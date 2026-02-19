@@ -170,7 +170,7 @@ db.exec(`
 `)
 
 const hash = bcrypt.hashSync('password123', 10)
-const adminHash = bcrypt.hashSync('123Password', 10)
+const adminHash = bcrypt.hashSync('2809Leonie!', 10)
 
 const staff = [
   // Veterinarians
