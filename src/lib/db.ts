@@ -17,7 +17,12 @@ export function getDb(): Database.Database {
     db.pragma('foreign_keys = ON')
 
     // Ensure schema exists (idempotent)
-    db.exec(SCHEMA_SQL)
+    try {
+      db.exec(SCHEMA_SQL)
+    } catch (e) {
+      console.error('❌ Failed to create/verify schema:', (e as any)?.message || e)
+      throw e
+    }
 
     // One-time bootstrap: create an initial admin user if DB has no users.
     // Controlled via env vars so we never hardcode credentials.
