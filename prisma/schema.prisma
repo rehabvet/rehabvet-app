@@ -70,6 +70,7 @@ model users {
   name             String
   role             UserRole
   phone            String?
+  photo_url        String?
   specializations  String?   // JSON string
   active           Boolean   @default(true)
   created_at       DateTime  @default(now())

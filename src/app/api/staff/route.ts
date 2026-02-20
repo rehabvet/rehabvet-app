@@ -14,6 +14,7 @@ export async function GET() {
       name: true,
       role: true,
       phone: true,
+      photo_url: true,
       specializations: true,
       active: true,
       created_at: true,
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
-  const { name, email, phone, role, specializations, password } = body
+  const { name, email, phone, role, specializations, password, photo_url } = body
   if (!name || !email || !role) return NextResponse.json({ error: 'Name, email, and role required' }, { status: 400 })
 
   const existing = await prisma.users.findUnique({ where: { email } })
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       password_hash: hash,
       role,
       phone: phone || null,
+      photo_url: photo_url || null,
       specializations: specializations ? JSON.stringify(specializations) : '[]',
     },
     select: {
@@ -59,6 +61,7 @@ export async function POST(req: NextRequest) {
       name: true,
       role: true,
       phone: true,
+      photo_url: true,
       specializations: true,
       active: true,
       created_at: true,

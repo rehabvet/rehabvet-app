@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, KeyRound } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 
@@ -24,7 +24,10 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [showDelete, setShowDelete] = useState<any>(null)
-  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', specializations: [] as string[] })
+  const [showReset, setShowReset] = useState<any>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
+  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] as string[] })
 
   async function fetchStaff() {
     setLoading(true)
@@ -44,12 +47,31 @@ export default function StaffPage() {
       body: JSON.stringify(form)
     })
     if (res.ok) {
-      setForm({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', specializations: [] })
+      setForm({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] })
       setShowAdd(false)
       fetchStaff()
     } else {
       const err = await res.json()
       alert(err.error || 'Failed to add staff')
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!showReset) return
+    setTempPassword(null)
+    const res = await fetch('/api/staff/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: showReset.id, password: resetPassword || undefined }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setTempPassword(data.tempPassword || null)
+      setResetPassword('')
+      fetchStaff()
+    } else {
+      alert(data.error || 'Failed to reset password')
     }
   }
 
@@ -100,17 +122,31 @@ export default function StaffPage() {
             const specs = s.specializations ? JSON.parse(s.specializations) : []
             return (
               <div key={s.id} className="card group relative">
-                <button
-                  onClick={() => setShowDelete(s)}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                  title="Remove staff"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={() => { setShowReset(s); setTempPassword(null); setResetPassword('') }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
+                    title="Reset password"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowDelete(s)}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
+                    title="Remove staff"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-sm">
-                    {s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
-                  </div>
+                  {s.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.photo_url} alt={s.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-sm">
+                      {s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">{s.name}</p>
                     <span className={roleColor[s.role] || 'badge-gray'}>{roleLabel[s.role] || s.role}</span>
@@ -159,6 +195,11 @@ export default function StaffPage() {
             </div>
           </div>
           <div>
+            <label className="label">Photo URL</label>
+            <input className="input" placeholder="https://..." value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})} />
+            <p className="text-xs text-gray-500 mt-1">Optional. If set, it will show as the staff avatar.</p>
+          </div>
+          <div>
             <label className="label">Specializations</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {SPEC_OPTIONS.map(sp => (
@@ -181,6 +222,32 @@ export default function StaffPage() {
             <button type="submit" className="btn-primary">Add Staff</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal open={!!showReset} onClose={() => { setShowReset(null); setTempPassword(null); setResetPassword('') }} title="Reset Staff Password">
+        {showReset && (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <p className="text-gray-600">
+              Reset password for <strong>{showReset.name}</strong> ({showReset.email}).
+            </p>
+            <div>
+              <label className="label">New password (leave blank to generate a temporary password)</label>
+              <input type="text" className="input" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
+            </div>
+            {tempPassword && (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                <p className="text-sm text-green-800 font-semibold">Temporary password generated:</p>
+                <p className="text-sm font-mono text-green-900 break-all">{tempPassword}</p>
+                <p className="text-xs text-green-700 mt-1">Copy this now — it won’t be shown again.</p>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => { setShowReset(null); setTempPassword(null); setResetPassword('') }} className="btn-secondary">Close</button>
+              <button type="submit" className="btn-primary">Reset Password</button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}
