@@ -402,7 +402,7 @@ export default function CalendarPage() {
                 onChange={e => setEditForm({...editForm, therapist_id: e.target.value})}
               >
                 <option value="">Select provider...</option>
-                {staff.filter(s => s.role === 'therapist' || s.role === 'vet').map(s => (
+                {staff.filter(s => ['therapist', 'vet', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'].includes(s.role)).map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>

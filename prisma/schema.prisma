@@ -7,10 +7,20 @@ datasource db {
 }
 
 enum UserRole {
+  // legacy
   admin
   vet
   therapist
   receptionist
+
+  // current role set
+  veterinarian
+  senior_therapist
+  assistant_therapist
+  hydrotherapist
+  marketing
+  office_manager
+  administrator
 }
 
 enum PatientSex {

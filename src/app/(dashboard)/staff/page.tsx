@@ -6,10 +6,13 @@ import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 
 const ROLES = [
-  { value: 'admin', label: 'Office Manager' },
-  { value: 'vet', label: 'Veterinarian' },
-  { value: 'therapist', label: 'Provider' },
-  { value: 'receptionist', label: 'Receptionist' },
+  { value: 'veterinarian', label: 'Veterinarian' },
+  { value: 'senior_therapist', label: 'Senior Therapist' },
+  { value: 'assistant_therapist', label: 'Assistant Therapist' },
+  { value: 'hydrotherapist', label: 'Hydrotherapist' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'office_manager', label: 'Office Manager' },
+  { value: 'administrator', label: 'Administrator' },
 ]
 
 const SPEC_OPTIONS = [
@@ -28,8 +31,8 @@ export default function StaffPage() {
   const [showEdit, setShowEdit] = useState<any>(null)
   const [resetPassword, setResetPassword] = useState('')
   const [tempPassword, setTempPassword] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] as string[] })
-  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'therapist', photo_url: '', specializations: [] as string[], active: true })
+  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
+  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
 
   async function fetchStaff() {
     setLoading(true)
@@ -49,7 +52,7 @@ export default function StaffPage() {
       body: JSON.stringify(form)
     })
     if (res.ok) {
-      setForm({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] })
+      setForm({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] })
       setShowAdd(false)
       fetchStaff()
     } else {
@@ -65,7 +68,7 @@ export default function StaffPage() {
       name: s.name || '',
       email: s.email || '',
       phone: s.phone || '+65 ',
-      role: s.role || 'therapist',
+      role: s.role || 'assistant_therapist',
       photo_url: s.photo_url || '',
       specializations: Array.isArray(specs) ? specs : [],
       active: !!s.active,
@@ -141,8 +144,32 @@ export default function StaffPage() {
     }))
   }
 
-  const roleLabel: Record<string, string> = { admin: 'Office Manager', vet: 'Veterinarian', therapist: 'Provider', receptionist: 'Receptionist' }
-  const roleColor: Record<string, string> = { admin: 'badge-pink', vet: 'badge-green', therapist: 'badge-blue', receptionist: 'badge-yellow' }
+  const roleLabel: Record<string, string> = {
+    admin: 'Administrator',
+    vet: 'Veterinarian',
+    therapist: 'Senior Therapist',
+    receptionist: 'Office Manager',
+    veterinarian: 'Veterinarian',
+    senior_therapist: 'Senior Therapist',
+    assistant_therapist: 'Assistant Therapist',
+    hydrotherapist: 'Hydrotherapist',
+    marketing: 'Marketing',
+    office_manager: 'Office Manager',
+    administrator: 'Administrator',
+  }
+  const roleColor: Record<string, string> = {
+    admin: 'badge-pink',
+    receptionist: 'badge-yellow',
+    vet: 'badge-green',
+    therapist: 'badge-blue',
+    veterinarian: 'badge-green',
+    senior_therapist: 'badge-blue',
+    assistant_therapist: 'badge-blue',
+    hydrotherapist: 'badge-blue',
+    marketing: 'badge-purple',
+    office_manager: 'badge-pink',
+    administrator: 'badge-red',
+  }
 
   return (
     <div className="space-y-6">

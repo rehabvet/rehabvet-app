@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || !['admin', 'vet'].includes(user.role)) {
+  if (!user || !['admin', 'administrator', 'office_manager', 'vet', 'veterinarian'].includes(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
   }
 
   const staff = await prisma.users.findMany({
-    where: { role: { in: ['vet', 'therapist'] }, active: true },
+    where: { role: { in: ['vet', 'therapist', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] }, active: true },
     select: { id: true, name: true },
   })
 

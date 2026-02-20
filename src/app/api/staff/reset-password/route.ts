@@ -16,7 +16,8 @@ function generateTempPassword(len = 14) {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  const isAdmin = !!user && ['admin', 'administrator', 'office_manager'].includes(user.role as string)
+  if (!isAdmin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
   const { id, password } = body || {}

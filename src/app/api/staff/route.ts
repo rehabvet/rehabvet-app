@@ -34,7 +34,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  const isAdmin = !!user && ['admin', 'administrator', 'office_manager'].includes(user.role as string)
+  if (!isAdmin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
   const { name, email, phone, role, specializations, password, photo_url } = body
@@ -73,7 +74,8 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  const isAdmin = !!user && ['admin', 'administrator', 'office_manager'].includes(user.role as string)
+  if (!isAdmin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
   const { id, name, email, phone, role, specializations, photo_url, active } = body || {}
@@ -118,7 +120,8 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  const isAdmin = !!user && ['admin', 'administrator', 'office_manager'].includes(user.role as string)
+  if (!isAdmin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const { id } = await req.json()
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })

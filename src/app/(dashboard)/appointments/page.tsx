@@ -47,7 +47,7 @@ export default function AppointmentsPage() {
       fetch('/api/staff').then(r => r.json()),
     ]).then(([p, s]) => {
       setPatients(p.patients || [])
-      setStaff((s.staff || []).filter((st: any) => ['vet', 'therapist'].includes(st.role)))
+      setStaff((s.staff || []).filter((st: any) => ['vet', 'therapist', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'].includes(st.role)))
       setShowAdd(true)
     })
   }
