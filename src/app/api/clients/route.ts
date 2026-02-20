@@ -33,18 +33,25 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, email, phone, address, notes, pet } = body
+  const { name, email, phone, address, notes, pet, pets } = body
   if (!name || !phone) return NextResponse.json({ error: 'Name and phone required' }, { status: 400 })
 
   const db = getDb()
   const id = uuidv4()
   db.prepare('INSERT INTO clients (id, name, email, phone, address, notes) VALUES (?, ?, ?, ?, ?, ?)').run(id, name, email || null, phone, address || null, notes || null)
 
-  // Create pet if provided
-  if (pet && pet.name) {
+  // Create pet(s) if provided (backward compatible: accepts `pet` or `pets`)
+  const petsArr = Array.isArray(pets) ? pets : (pet ? [pet] : [])
+  for (const p of petsArr) {
+    if (!p || !p.name) continue
     const petId = uuidv4()
     db.prepare('INSERT INTO patients (id, client_id, name, species, breed, medical_history) VALUES (?, ?, ?, ?, ?, ?)').run(
-      petId, id, pet.name, pet.species || 'Dog', pet.breed || null, pet.medical_history || null
+      petId,
+      id,
+      p.name,
+      p.species || 'Dog',
+      p.breed || null,
+      p.medical_history || null
     )
   }
 

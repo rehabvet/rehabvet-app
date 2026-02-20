@@ -1,83 +1,26 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Phone, Mail, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Search, Phone, Mail, ChevronRight, Trash2 } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
-import { DOG_BREEDS, CAT_BREEDS } from '@/lib/breeds'
+import BreedSearch from '@/components/BreedSearch'
 
 const SPECIES_OPTIONS = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Hamster', 'Guinea Pig', 'Reptile', 'Other']
-
-function BreedSearch({ species, value, onChange }: { species: string, value: string, onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-  
-  const breeds = species === 'Cat' ? CAT_BREEDS : DOG_BREEDS
-  const filtered = useMemo(() => {
-    if (!query) return breeds.slice(0, 50)
-    return breeds.filter(b => b.toLowerCase().includes(query.toLowerCase())).slice(0, 50)
-  }, [query, breeds])
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  return (
-    <div ref={ref} className="relative">
-      <div className="relative">
-        <input
-          className="input pr-8"
-          placeholder="Search breed..."
-          value={open ? query : value}
-          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true) }}
-          onFocus={() => { setOpen(true); setQuery(value) }}
-        />
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-      </div>
-      {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {query && !breeds.some(b => b.toLowerCase() === query.toLowerCase()) && (
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors text-green-600 font-medium border-b border-gray-100"
-              onClick={() => { onChange(query); setOpen(false) }}
-            >
-              + Add "{query}"
-            </button>
-          )}
-          {filtered.length === 0 && !query ? (
-            <div className="px-3 py-2 text-sm text-gray-400">Type to search breeds</div>
-          ) : (
-            filtered.map(b => (
-              <button
-                key={b} type="button"
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-pink/10 transition-colors ${b === value ? 'bg-brand-pink/10 text-brand-pink font-medium' : 'text-gray-700'}`}
-                onClick={() => { onChange(b); setOpen(false); setQuery(b) }}
-              >
-                {b}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({
-    name: '', email: '', phone: '+65 ', address: '', notes: '',
-    petName: '', species: 'Dog', breed: '', medicalHistory: ''
+    name: '',
+    email: '',
+    phone: '+65 ',
+    address: '',
+    notes: '',
+    pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
   })
   const [loading, setLoading] = useState(true)
 
@@ -96,15 +39,37 @@ export default function ClientsPage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
+
+    const pets = (form.pets || [])
+      .map(p => ({
+        name: (p.name || '').trim(),
+        species: p.species || 'Dog',
+        breed: (p.breed || '').trim(),
+        medical_history: (p.medical_history || '').trim(),
+      }))
+      .filter(p => p.name)
+
     await fetch('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: form.name, email: form.email, phone: form.phone, address: form.address, notes: form.notes,
-        pet: form.petName ? { name: form.petName, species: form.species, breed: form.breed, medical_history: form.medicalHistory } : undefined
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+        notes: form.notes,
+        pets,
       })
     })
-    setForm({ name: '', email: '', phone: '+65 ', address: '', notes: '', petName: '', species: 'Dog', breed: '', medicalHistory: '' })
+
+    setForm({
+      name: '',
+      email: '',
+      phone: '+65 ',
+      address: '',
+      notes: '',
+      pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
+    })
     setShowAdd(false)
     fetchClients()
   }
@@ -181,26 +146,100 @@ export default function ClientsPage() {
           </div>
 
           <hr className="border-gray-200" />
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Pet Details</h3>
-          <div>
-            <label className="label">Pet Name *</label>
-            <input className="input" placeholder="Pet's name" value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} required />
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Pet Details</h3>
+            <button
+              type="button"
+              className="btn-secondary text-sm"
+              onClick={() => setForm({
+                ...form,
+                pets: [...(form.pets || []), { name: '', species: 'Dog', breed: '', medical_history: '' }]
+              })}
+            >
+              + Add Pet
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Type of Animal</label>
-              <select className="input" value={form.species} onChange={e => setForm({...form, species: e.target.value, breed: ''})}>
-                {SPECIES_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Breed</label>
-              <BreedSearch species={form.species} value={form.breed} onChange={v => setForm({...form, breed: v})} />
-            </div>
-          </div>
-          <div>
-            <label className="label">Medical History</label>
-            <textarea className="input" rows={3} placeholder="Pre-existing conditions, surgeries, medications..." value={form.medicalHistory} onChange={e => setForm({...form, medicalHistory: e.target.value})} />
+
+          <div className="space-y-4">
+            {(form.pets || []).map((pet: any, idx: number) => (
+              <div key={idx} className="rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-gray-800">Pet #{idx + 1}</p>
+                  {(form.pets || []).length > 1 && (
+                    <button
+                      type="button"
+                      className="btn-secondary text-sm"
+                      onClick={() => setForm({
+                        ...form,
+                        pets: (form.pets || []).filter((_: any, i: number) => i !== idx)
+                      })}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" /> Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Pet Name *</label>
+                    <input
+                      className="input"
+                      placeholder="Pet's name"
+                      value={pet.name}
+                      onChange={e => {
+                        const pets = [...(form.pets || [])]
+                        pets[idx] = { ...pets[idx], name: e.target.value }
+                        setForm({ ...form, pets })
+                      }}
+                      required={idx === 0}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Type of Animal</label>
+                    <select
+                      className="input"
+                      value={pet.species}
+                      onChange={e => {
+                        const pets = [...(form.pets || [])]
+                        pets[idx] = { ...pets[idx], species: e.target.value, breed: '' }
+                        setForm({ ...form, pets })
+                      }}
+                    >
+                      {SPECIES_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="label">Breed</label>
+                    <BreedSearch
+                      species={pet.species}
+                      value={pet.breed}
+                      onChange={v => {
+                        const pets = [...(form.pets || [])]
+                        pets[idx] = { ...pets[idx], breed: v }
+                        setForm({ ...form, pets })
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Medical History</label>
+                    <textarea
+                      className="input"
+                      rows={1}
+                      placeholder="Pre-existing conditions, surgeries, medications..."
+                      value={pet.medical_history}
+                      onChange={e => {
+                        const pets = [...(form.pets || [])]
+                        pets[idx] = { ...pets[idx], medical_history: e.target.value }
+                        setForm({ ...form, pets })
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div>

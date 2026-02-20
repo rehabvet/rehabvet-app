@@ -3,8 +3,18 @@
 import { useState, useEffect } from 'react'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import Modal from '@/components/Modal'
+import DatePicker from '@/components/DatePicker'
+import TimePicker from '@/components/TimePicker'
 
-const MODALITIES = ['Physiotherapy', 'Hydrotherapy', 'Acupuncture', 'HBOT', 'Chiropractic', 'TCM', 'Laser Therapy', 'Electrotherapy', 'Assessment']
+function formatDuration(mins: number) {
+  if (mins >= 60) {
+    const hours = Math.floor(mins / 60)
+    const remaining = mins % 60
+    if (remaining === 0) return `${hours}h`
+    return `${hours}h ${remaining}min`
+  }
+  return `${mins}min`
+}
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
@@ -12,10 +22,15 @@ export default function AppointmentsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [patients, setPatients] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
-  const [form, setForm] = useState({ patient_id: '', client_id: '', therapist_id: '', date: '', start_time: '09:00', end_time: '09:45', modality: 'Physiotherapy', notes: '' })
+  const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
+  const [form, setForm] = useState({ patient_id: '', client_id: '', therapist_id: '', date: '', start_time: '09:00', end_time: '09:45', modality: '', notes: '' })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { fetchAppointments() }, [date])
+  
+  useEffect(() => {
+    fetch('/api/treatment-types').then(r => r.json()).then(d => setTreatmentGrouped(d.grouped || {}))
+  }, [])
 
   async function fetchAppointments() {
     setLoading(true)
@@ -144,21 +159,28 @@ export default function AppointmentsPage() {
             </select>
           </div>
           <div>
-            <label className="label">Therapist</label>
+            <label className="label">Provider</label>
             <select className="input" value={form.therapist_id} onChange={e => setForm({...form, therapist_id: e.target.value})}>
-              <option value="">Select therapist...</option>
+              <option value="">Select provider...</option>
               {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
             </select>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div><label className="label">Date *</label><input type="date" className="input" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required /></div>
-            <div><label className="label">Start Time *</label><input type="time" className="input" value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} required /></div>
-            <div><label className="label">End Time *</label><input type="time" className="input" value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} required /></div>
+            <DatePicker label="Date *" value={form.date} onChange={date => setForm({...form, date})} />
+            <TimePicker label="Start Time *" value={form.start_time} onChange={time => setForm({...form, start_time: time})} />
+            <TimePicker label="End Time *" value={form.end_time} onChange={time => setForm({...form, end_time: time})} minTime={form.start_time} />
           </div>
           <div>
-            <label className="label">Modality *</label>
-            <select className="input" value={form.modality} onChange={e => setForm({...form, modality: e.target.value})}>
-              {MODALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+            <label className="label">Treatment Type *</label>
+            <select className="input" value={form.modality} onChange={e => setForm({...form, modality: e.target.value})} required>
+              <option value="">Select treatment...</option>
+              {Object.entries(treatmentGrouped).map(([category, items]) => (
+                <optgroup key={category} label={category}>
+                  {(items as any[]).map(t => (
+                    <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>

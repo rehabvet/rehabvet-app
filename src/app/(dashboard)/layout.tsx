@@ -24,6 +24,7 @@ const nav = [
   { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'receptionist'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin'] },
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

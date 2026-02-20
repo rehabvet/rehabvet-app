@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Search, ChevronRight } from 'lucide-react'
 import Modal from '@/components/Modal'
+import BreedSearch from '@/components/BreedSearch'
 
 const SPECIES = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Horse', 'Other']
 const SEX_OPTIONS = [
@@ -101,13 +102,16 @@ export default function PatientsPage() {
             <div><label className="label">Pet Name *</label><input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required /></div>
             <div>
               <label className="label">Species *</label>
-              <select className="input" value={form.species} onChange={e => setForm({...form, species: e.target.value})}>
+              <select className="input" value={form.species} onChange={e => setForm({...form, species: e.target.value, breed: ''})}>
                 {SPECIES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div><label className="label">Breed</label><input className="input" value={form.breed} onChange={e => setForm({...form, breed: e.target.value})} /></div>
+            <div>
+              <label className="label">Breed</label>
+              <BreedSearch species={form.species} value={form.breed} onChange={v => setForm({ ...form, breed: v })} />
+            </div>
             <div><label className="label">Date of Birth</label><input type="date" className="input" value={form.date_of_birth} onChange={e => setForm({...form, date_of_birth: e.target.value})} /></div>
             <div><label className="label">Weight (kg)</label><input type="number" step="0.1" className="input" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} /></div>
           </div>

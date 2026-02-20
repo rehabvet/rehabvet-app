@@ -8,7 +8,7 @@ import PhoneInput from '@/components/PhoneInput'
 const ROLES = [
   { value: 'admin', label: 'Office Manager' },
   { value: 'vet', label: 'Veterinarian' },
-  { value: 'therapist', label: 'Therapist' },
+  { value: 'therapist', label: 'Provider' },
   { value: 'receptionist', label: 'Receptionist' },
 ]
 
@@ -77,7 +77,7 @@ export default function StaffPage() {
     }))
   }
 
-  const roleLabel: Record<string, string> = { admin: 'Office Manager', vet: 'Veterinarian', therapist: 'Therapist', receptionist: 'Receptionist' }
+  const roleLabel: Record<string, string> = { admin: 'Office Manager', vet: 'Veterinarian', therapist: 'Provider', receptionist: 'Receptionist' }
   const roleColor: Record<string, string> = { admin: 'badge-pink', vet: 'badge-green', therapist: 'badge-blue', receptionist: 'badge-yellow' }
 
   return (

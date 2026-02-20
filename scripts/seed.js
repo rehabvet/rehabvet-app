@@ -167,6 +167,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
   CREATE INDEX IF NOT EXISTS idx_invoices_client ON invoices(client_id);
   CREATE INDEX IF NOT EXISTS idx_treatment_plans_patient ON treatment_plans(patient_id);
+
+  CREATE TABLE IF NOT EXISTS treatment_types (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL,
+    duration INTEGER NOT NULL DEFAULT 60,
+    color TEXT DEFAULT 'bg-gray-400',
+    active INTEGER DEFAULT 1,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `)
 
 const hash = bcrypt.hashSync('password123', 10)
@@ -346,6 +357,41 @@ const insertPayment = db.prepare(`
 `)
 insertPayment.run(uuidv4(), inv1, 577.80, 'paynow', 'PN-20260201-001', '2026-02-01')
 insertPayment.run(uuidv4(), inv2, 400, 'card', 'VISA-****-1234', '2026-02-10')
+
+// Treatment types
+const insertTreatment = db.prepare(`
+  INSERT OR IGNORE INTO treatment_types (id, name, category, duration, color, sort_order)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+const treatmentTypes = [
+  // Uncategorized
+  { name: 'Lunch', category: 'Uncategorized', duration: 60, color: 'bg-gray-400' },
+  { name: 'Admin', category: 'Uncategorized', duration: 15, color: 'bg-gray-500' },
+  { name: 'On Leave', category: 'Uncategorized', duration: 540, color: 'bg-gray-300' },
+  { name: 'OFF', category: 'Uncategorized', duration: 540, color: 'bg-gray-300' },
+  { name: 'Half Day Off', category: 'Uncategorized', duration: 240, color: 'bg-gray-400' },
+  { name: 'DO NOT BOOK', category: 'Uncategorized', duration: 60, color: 'bg-red-300' },
+  // Pet Rehabilitation
+  { name: 'Rehabilitation - Hydrotherapy', category: 'Pet Rehabilitation', duration: 60, color: 'bg-cyan-500' },
+  { name: 'Animal Rehabilitation - Follow Ups', category: 'Pet Rehabilitation', duration: 60, color: 'bg-blue-400' },
+  { name: 'TCM Acupuncture Review', category: 'Pet Rehabilitation', duration: 30, color: 'bg-purple-400' },
+  { name: 'TCVM Tui-na and acupuncture', category: 'Pet Rehabilitation', duration: 60, color: 'bg-purple-500' },
+  { name: 'Pain Relief', category: 'Pet Rehabilitation', duration: 30, color: 'bg-orange-400' },
+  { name: 'House-Call', category: 'Pet Rehabilitation', duration: 90, color: 'bg-teal-500' },
+  { name: 'UWTM', category: 'Pet Rehabilitation', duration: 45, color: 'bg-cyan-400' },
+  // Other Services
+  { name: 'Hyperbaric Oxygen', category: 'Other Services', duration: 60, color: 'bg-orange-500' },
+  { name: 'Fitness Swim', category: 'Other Services', duration: 45, color: 'bg-sky-400' },
+  // Consultation & Assessment
+  { name: 'Orthopedic & Neurological Assessment', category: 'Consultation & Assessment', duration: 60, color: 'bg-green-500' },
+  { name: 'TCM Consultation', category: 'Consultation & Assessment', duration: 60, color: 'bg-emerald-500' },
+  { name: 'Reassessment', category: 'Consultation & Assessment', duration: 30, color: 'bg-green-400' },
+  { name: 'Assessment Fun Swim', category: 'Consultation & Assessment', duration: 30, color: 'bg-sky-500' },
+]
+let sortOrder = 0
+for (const t of treatmentTypes) {
+  insertTreatment.run(uuidv4(), t.name, t.category, t.duration, t.color, sortOrder++)
+}
 
 console.log('✅ Database seeded successfully!')
 console.log(`   ${staff.length} staff members`)

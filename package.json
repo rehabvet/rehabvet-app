@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/seed.js && next build",
+    "build": "next build",
     "start": "next start",
     "db:seed": "node scripts/seed.js",
     "db:migrate": "node scripts/migrate.js"

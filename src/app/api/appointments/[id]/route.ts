@@ -41,6 +41,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ appointment })
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  return PUT(req, { params })
+}
+
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
