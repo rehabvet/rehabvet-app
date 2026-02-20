@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Plus, Trash2, KeyRound, Pencil } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
@@ -26,13 +26,14 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [showEdit, setShowEdit] = useState<any>(null)
   const [showDelete, setShowDelete] = useState<any>(null)
   const [showReset, setShowReset] = useState<any>(null)
+  const [showEdit, setShowEdit] = useState<any>(null)
   const [resetPassword, setResetPassword] = useState('')
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
+  const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
   async function fetchStaff() {
     setLoading(true)
@@ -58,6 +59,37 @@ export default function StaffPage() {
     } else {
       const err = await res.json()
       alert(err.error || 'Failed to add staff')
+    }
+  }
+
+  function openEditModal(s: any) {
+    const specs = s.specializations ? JSON.parse(s.specializations) : []
+    setEditForm({
+      id: s.id,
+      name: s.name || '',
+      email: s.email || '',
+      phone: s.phone || '+65 ',
+      role: s.role || 'assistant_therapist',
+      photo_url: s.photo_url || '',
+      specializations: Array.isArray(specs) ? specs : [],
+      active: !!s.active,
+    })
+    setShowEdit(s)
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    const res = await fetch('/api/staff', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    if (res.ok) {
+      setShowEdit(null)
+      fetchStaff()
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Failed to update staff')
     }
   }
 
@@ -95,37 +127,6 @@ export default function StaffPage() {
     }
   }
 
-  function openEdit(staffMember: any) {
-    const specs = staffMember.specializations ? JSON.parse(staffMember.specializations) : []
-    setEditForm({
-      id: staffMember.id,
-      name: staffMember.name || '',
-      email: staffMember.email || '',
-      phone: staffMember.phone || '+65 ',
-      role: staffMember.role || 'assistant_therapist',
-      photo_url: staffMember.photo_url || '',
-      specializations: specs,
-      active: staffMember.active !== false,
-    })
-    setShowEdit(staffMember)
-  }
-
-  async function handleEdit(e: React.FormEvent) {
-    e.preventDefault()
-    const res = await fetch('/api/staff', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
-    })
-    if (res.ok) {
-      setShowEdit(null)
-      fetchStaff()
-    } else {
-      const err = await res.json()
-      alert(err.error || 'Failed to update staff')
-    }
-  }
-
   function toggleSpec(spec: string) {
     setForm(f => ({
       ...f,
@@ -135,7 +136,7 @@ export default function StaffPage() {
     }))
   }
 
-  function toggleSpecEdit(spec: string) {
+  function toggleEditSpec(spec: string) {
     setEditForm(f => ({
       ...f,
       specializations: f.specializations.includes(spec)
@@ -144,31 +145,45 @@ export default function StaffPage() {
     }))
   }
 
+  function triggerEditPhotoUpload() {
+    editPhotoInputRef.current?.click()
+  }
+
+  function onEditPhotoSelected(file?: File) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      if (result) setEditForm(f => ({ ...f, photo_url: result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
   const roleLabel: Record<string, string> = {
-    administrator: 'Administrator',
-    office_manager: 'Office Manager',
-    marketing: 'Marketing',
+    admin: 'Administrator',
+    vet: 'Veterinarian',
+    therapist: 'Senior Therapist',
+    receptionist: 'Office Manager',
     veterinarian: 'Veterinarian',
     senior_therapist: 'Senior Therapist',
     assistant_therapist: 'Assistant Therapist',
     hydrotherapist: 'Hydrotherapist',
-    admin: 'Administrator',
-    vet: 'Veterinarian',
-    therapist: 'Senior Therapist',
-    receptionist: 'Receptionist',
+    marketing: 'Marketing',
+    office_manager: 'Office Manager',
+    administrator: 'Administrator',
   }
   const roleColor: Record<string, string> = {
-    administrator: 'badge-pink',
-    office_manager: 'badge-pink',
-    marketing: 'badge-yellow',
-    veterinarian: 'badge-green',
-    senior_therapist: 'badge-blue',
-    assistant_therapist: 'badge-blue',
-    hydrotherapist: 'badge-blue',
-    admin: 'badge-pink',
+    admin: 'badge-red',
+    receptionist: 'badge-pink',
     vet: 'badge-green',
     therapist: 'badge-blue',
-    receptionist: 'badge-yellow',
+    veterinarian: 'badge-green',
+    senior_therapist: 'badge-blue',
+    assistant_therapist: 'badge-gray',
+    hydrotherapist: 'badge-purple',
+    marketing: 'badge-yellow',
+    office_manager: 'badge-pink',
+    administrator: 'badge-red',
   }
 
   return (
@@ -193,7 +208,7 @@ export default function StaffPage() {
               <div key={s.id} className="card group relative">
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button
-                    onClick={() => openEdit(s)}
+                    onClick={() => openEditModal(s)}
                     className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
                     title="Edit profile"
                   >
@@ -306,36 +321,60 @@ export default function StaffPage() {
           <form onSubmit={handleEdit} className="space-y-4">
             <div>
               <label className="label">Full Name *</label>
-              <input className="input" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} required />
+              <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Email *</label>
-                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} required />
+                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required />
               </div>
               <div>
                 <label className="label">Phone</label>
-                <PhoneInput value={editForm.phone} onChange={v => setEditForm({...editForm, phone: v})} />
+                <PhoneInput value={editForm.phone} onChange={v => setEditForm({ ...editForm, phone: v })} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Role *</label>
-                <select className="input" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
+                <select className="input" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
                   {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="label">Status</label>
-                <select className="input" value={editForm.active ? 'active' : 'inactive'} onChange={e => setEditForm({...editForm, active: e.target.value === 'active'})}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <div className="flex items-end">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={editForm.active} onChange={e => setEditForm({ ...editForm, active: e.target.checked })} />
+                  Active account
+                </label>
               </div>
             </div>
-            <div>
-              <label className="label">Photo URL</label>
-              <input className="input" placeholder="https://..." value={editForm.photo_url} onChange={e => setEditForm({...editForm, photo_url: e.target.value})} />
+            <div className="flex flex-col items-center gap-2">
+              {editForm.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={editForm.photo_url} alt={editForm.name || 'Staff photo'} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-lg">
+                  {(editForm.name || '?').split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                </div>
+              )}
+              <button type="button" onClick={triggerEditPhotoUpload} className="text-sm text-brand-pink hover:underline">
+                Edit photo
+              </button>
+              <input
+                ref={editPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => onEditPhotoSelected(e.target.files?.[0])}
+              />
+              {editForm.photo_url && (
+                <button
+                  type="button"
+                  onClick={() => setEditForm({ ...editForm, photo_url: '' })}
+                  className="text-xs text-gray-500 hover:text-red-600"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
             <div>
               <label className="label">Specializations</label>
@@ -343,7 +382,7 @@ export default function StaffPage() {
                 {SPEC_OPTIONS.map(sp => (
                   <button
                     key={sp} type="button"
-                    onClick={() => toggleSpecEdit(sp)}
+                    onClick={() => toggleEditSpec(sp)}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       editForm.specializations.includes(sp)
                         ? 'bg-brand-pink text-white'
