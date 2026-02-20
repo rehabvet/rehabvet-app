@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Plus, Trash2, KeyRound, Pencil } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
@@ -33,6 +33,7 @@ export default function StaffPage() {
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
+  const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
   async function fetchStaff() {
     setLoading(true)
@@ -142,6 +143,20 @@ export default function StaffPage() {
         ? f.specializations.filter(s => s !== spec)
         : [...f.specializations, spec]
     }))
+  }
+
+  function triggerEditPhotoUpload() {
+    editPhotoInputRef.current?.click()
+  }
+
+  function onEditPhotoSelected(file?: File) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      if (result) setEditForm(f => ({ ...f, photo_url: result }))
+    }
+    reader.readAsDataURL(file)
   }
 
   const roleLabel: Record<string, string> = {
@@ -332,9 +347,34 @@ export default function StaffPage() {
                 </label>
               </div>
             </div>
-            <div>
-              <label className="label">Photo URL</label>
-              <input className="input" placeholder="https://..." value={editForm.photo_url} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value })} />
+            <div className="flex flex-col items-center gap-2">
+              {editForm.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={editForm.photo_url} alt={editForm.name || 'Staff photo'} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-lg">
+                  {(editForm.name || '?').split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                </div>
+              )}
+              <button type="button" onClick={triggerEditPhotoUpload} className="text-sm text-brand-pink hover:underline">
+                Edit photo
+              </button>
+              <input
+                ref={editPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => onEditPhotoSelected(e.target.files?.[0])}
+              />
+              {editForm.photo_url && (
+                <button
+                  type="button"
+                  onClick={() => setEditForm({ ...editForm, photo_url: '' })}
+                  className="text-xs text-gray-500 hover:text-red-600"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
             <div>
               <label className="label">Specializations</label>
