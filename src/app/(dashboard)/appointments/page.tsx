@@ -17,6 +17,20 @@ function formatDuration(mins: number) {
 }
 
 export default function AppointmentsPage() {
+  const roleLabel: Record<string, string> = {
+    veterinarian: 'Veterinarian',
+    senior_therapist: 'Senior Therapist',
+    assistant_therapist: 'Assistant Therapist',
+    hydrotherapist: 'Hydrotherapist',
+    marketing: 'Marketing',
+    office_manager: 'Office Manager',
+    administrator: 'Administrator',
+    vet: 'Veterinarian',
+    therapist: 'Senior Therapist',
+    receptionist: 'Office Manager',
+    admin: 'Administrator',
+  }
+
   const [appointments, setAppointments] = useState<any[]>([])
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [showAdd, setShowAdd] = useState(false)
@@ -25,6 +39,8 @@ export default function AppointmentsPage() {
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
   const [form, setForm] = useState({ patient_id: '', client_id: '', therapist_id: '', date: '', start_time: '09:00', end_time: '09:45', modality: '', notes: '' })
   const [loading, setLoading] = useState(true)
+  const [showEdit, setShowEdit] = useState(false)
+  const [editing, setEditing] = useState<any>(null)
 
   useEffect(() => { fetchAppointments() }, [date])
   
@@ -47,7 +63,7 @@ export default function AppointmentsPage() {
       fetch('/api/staff').then(r => r.json()),
     ]).then(([p, s]) => {
       setPatients(p.patients || [])
-      setStaff((s.staff || []).filter((st: any) => ['vet', 'therapist'].includes(st.role)))
+      setStaff((s.staff || []).filter((st: any) => ['vet', 'therapist', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'].includes(st.role)))
       setShowAdd(true)
     })
   }
@@ -69,6 +85,55 @@ export default function AppointmentsPage() {
       body: JSON.stringify({ status })
     })
     fetchAppointments()
+  }
+
+  function openEdit(appt: any) {
+    Promise.all([
+      fetch('/api/staff').then(r => r.json()),
+      fetch('/api/treatment-types').then(r => r.json()),
+    ]).then(([s, t]) => {
+      setStaff((s.staff || []).filter((st: any) => ['vet', 'therapist', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'].includes(st.role)))
+      setTreatmentGrouped(t.grouped || {})
+      setEditing({
+        id: appt.id,
+        patient_name: appt.patient_name,
+        client_name: appt.client_name,
+        therapist_id: appt.therapist_id || '',
+        date: appt.date,
+        start_time: appt.start_time,
+        end_time: appt.end_time,
+        modality: appt.modality,
+        status: appt.status,
+        notes: appt.notes || '',
+      })
+      setShowEdit(true)
+    })
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editing?.id) return
+    const res = await fetch(`/api/appointments/${editing.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        therapist_id: editing.therapist_id,
+        date: editing.date,
+        start_time: editing.start_time,
+        end_time: editing.end_time,
+        modality: editing.modality,
+        status: editing.status,
+        notes: editing.notes,
+      })
+    })
+    if (res.ok) {
+      setShowEdit(false)
+      setEditing(null)
+      fetchAppointments()
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Failed to update appointment')
+    }
   }
 
   function shiftDate(days: number) {
@@ -117,7 +182,7 @@ export default function AppointmentsPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {appointments.map(a => (
-              <div key={a.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div key={a.id} onClick={() => openEdit(a)} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 cursor-pointer hover:bg-gray-50">
                 <div className="text-center min-w-[80px]">
                   <p className="text-sm font-bold text-gray-900">{a.start_time}</p>
                   <p className="text-xs text-gray-400">{a.end_time}</p>
@@ -128,8 +193,9 @@ export default function AppointmentsPage() {
                   <p className="text-xs text-gray-500">Provider: {a.therapist_name || 'Unassigned'}</p>
                 </div>
                 <span className={`badge ${modalityColor[a.modality] || 'bg-gray-100 text-gray-800'}`}>{a.modality}</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <ApptStatusBadge status={a.status} />
+                  <button className="btn-secondary text-xs py-1" onClick={() => openEdit(a)}>Edit</button>
                   <select
                     className="input text-xs py-1 w-auto"
                     value={a.status}
@@ -162,7 +228,7 @@ export default function AppointmentsPage() {
             <label className="label">Provider</label>
             <select className="input" value={form.therapist_id} onChange={e => setForm({...form, therapist_id: e.target.value})}>
               <option value="">Select provider...</option>
-              {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
+              {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}
             </select>
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -189,6 +255,57 @@ export default function AppointmentsPage() {
             <button type="submit" className="btn-primary">Book Appointment</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={showEdit} onClose={() => { setShowEdit(false); setEditing(null) }} title="Edit Appointment" size="lg">
+        {editing && (
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+              <strong>{editing.patient_name}</strong> · {editing.client_name}
+            </div>
+            <div>
+              <label className="label">Provider</label>
+              <select className="input" value={editing.therapist_id} onChange={e => setEditing({ ...editing, therapist_id: e.target.value })}>
+                <option value="">Select provider...</option>
+                {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}}
+              </select>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <DatePicker label="Date *" value={editing.date} onChange={date => setEditing({ ...editing, date })} />
+              <TimePicker label="Start Time *" value={editing.start_time} onChange={time => setEditing({ ...editing, start_time: time })} />
+              <TimePicker label="End Time *" value={editing.end_time} onChange={time => setEditing({ ...editing, end_time: time })} minTime={editing.start_time} />
+            </div>
+            <div>
+              <label className="label">Treatment Type *</label>
+              <select className="input" value={editing.modality} onChange={e => setEditing({ ...editing, modality: e.target.value })} required>
+                <option value="">Select treatment...</option>
+                {Object.entries(treatmentGrouped).map(([category, items]) => (
+                  <optgroup key={category} label={category}>
+                    {(items as any[]).map(t => (
+                      <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Status</label>
+              <select className="input" value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}>
+                <option value="scheduled">Scheduled</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="no_show">No Show</option>
+              </select>
+            </div>
+            <div><label className="label">Notes</label><textarea className="input" rows={2} value={editing.notes || ''} onChange={e => setEditing({ ...editing, notes: e.target.value })} /></div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => { setShowEdit(false); setEditing(null) }} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary">Save Changes</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   )
