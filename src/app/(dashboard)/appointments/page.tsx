@@ -17,6 +17,20 @@ function formatDuration(mins: number) {
 }
 
 export default function AppointmentsPage() {
+  const roleLabel: Record<string, string> = {
+    veterinarian: 'Veterinarian',
+    senior_therapist: 'Senior Therapist',
+    assistant_therapist: 'Assistant Therapist',
+    hydrotherapist: 'Hydrotherapist',
+    marketing: 'Marketing',
+    office_manager: 'Office Manager',
+    administrator: 'Administrator',
+    vet: 'Veterinarian',
+    therapist: 'Senior Therapist',
+    receptionist: 'Office Manager',
+    admin: 'Administrator',
+  }
+
   const [appointments, setAppointments] = useState<any[]>([])
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [showAdd, setShowAdd] = useState(false)
@@ -214,7 +228,7 @@ export default function AppointmentsPage() {
             <label className="label">Provider</label>
             <select className="input" value={form.therapist_id} onChange={e => setForm({...form, therapist_id: e.target.value})}>
               <option value="">Select provider...</option>
-              {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
+              {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}
             </select>
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -253,7 +267,7 @@ export default function AppointmentsPage() {
               <label className="label">Provider</label>
               <select className="input" value={editing.therapist_id} onChange={e => setEditing({ ...editing, therapist_id: e.target.value })}>
                 <option value="">Select provider...</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
+                {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}}
               </select>
             </div>
             <div className="grid grid-cols-3 gap-4">

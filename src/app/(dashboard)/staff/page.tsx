@@ -173,15 +173,15 @@ export default function StaffPage() {
     administrator: 'Administrator',
   }
   const roleColor: Record<string, string> = {
-    admin: 'badge-pink',
-    receptionist: 'badge-yellow',
+    admin: 'badge-red',
+    receptionist: 'badge-pink',
     vet: 'badge-green',
     therapist: 'badge-blue',
     veterinarian: 'badge-green',
     senior_therapist: 'badge-blue',
-    assistant_therapist: 'badge-blue',
-    hydrotherapist: 'badge-blue',
-    marketing: 'badge-purple',
+    assistant_therapist: 'badge-gray',
+    hydrotherapist: 'badge-purple',
+    marketing: 'badge-yellow',
     office_manager: 'badge-pink',
     administrator: 'badge-red',
   }
