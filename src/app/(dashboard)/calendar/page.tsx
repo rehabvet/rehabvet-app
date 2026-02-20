@@ -10,7 +10,7 @@ type ViewType = 'day' | 'week' | 'month'
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<ViewType>('month')
+  const [view, setView] = useState<ViewType>('day')
   const [appointments, setAppointments] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
   const [treatmentTypes, setTreatmentTypes] = useState<any[]>([])
