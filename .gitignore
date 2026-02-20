@@ -12,3 +12,5 @@ data/*.db-shm
 
 # TypeScript build info
 tsconfig.tsbuildinfo
+
+/src/generated/prisma

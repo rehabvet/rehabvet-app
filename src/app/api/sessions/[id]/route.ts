@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
-  const session = db.prepare(`
-    SELECT s.*, p.name as patient_name, p.species, p.breed, u.name as therapist_name, c.name as client_name
-    FROM sessions s
-    JOIN patients p ON s.patient_id = p.id
-    JOIN clients c ON p.client_id = c.id
-    LEFT JOIN users u ON s.therapist_id = u.id
-    WHERE s.id = ?
-  `).get(params.id)
-  if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const row = await prisma.sessions.findUnique({
+    where: { id: params.id },
+    include: {
+      patient: { select: { name: true, species: true, breed: true, client: { select: { name: true } } } },
+      therapist: { select: { name: true } },
+    },
+  })
+
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { patient, therapist, ...rest } = row as any
+  const session = {
+    ...rest,
+    patient_name: patient?.name,
+    species: patient?.species,
+    breed: patient?.breed,
+    therapist_name: therapist?.name ?? null,
+    client_name: patient?.client?.name,
+  }
+
   return NextResponse.json({ session })
 }
 
@@ -24,17 +34,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const db = getDb()
-  const fields = ['modality','duration_minutes','subjective','objective','assessment','plan',
-    'pain_score','mobility_score','progress_notes']
-  const sets = fields.map(f => `${f}=?`).join(', ')
-  const values = fields.map(f => body[f] ?? null)
 
-  db.prepare(`UPDATE sessions SET ${sets}, measurements=?, exercises=?, home_exercises=?, updated_at=datetime('now') WHERE id=?`)
-    .run(...values, body.measurements ? JSON.stringify(body.measurements) : null,
-      body.exercises ? JSON.stringify(body.exercises) : null,
-      body.home_exercises ? JSON.stringify(body.home_exercises) : null,
-      params.id)
+  const data: any = {}
+  const fields = [
+    'modality',
+    'duration_minutes',
+    'subjective',
+    'objective',
+    'assessment',
+    'plan',
+    'pain_score',
+    'mobility_score',
+    'progress_notes',
+  ]
+  for (const f of fields) {
+    if (body[f] !== undefined) data[f] = body[f]
+  }
 
-  return NextResponse.json({ session: db.prepare('SELECT * FROM sessions WHERE id = ?').get(params.id) })
+  data.measurements = body.measurements ? JSON.stringify(body.measurements) : null
+  data.exercises = body.exercises ? JSON.stringify(body.exercises) : null
+  data.home_exercises = body.home_exercises ? JSON.stringify(body.home_exercises) : null
+
+  const session = await prisma.sessions.update({ where: { id: params.id }, data })
+  return NextResponse.json({ session })
 }

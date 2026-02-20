@@ -1,41 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
-  const patient = db.prepare(`
-    SELECT p.*, c.name as client_name, c.phone as client_phone, c.email as client_email
-    FROM patients p JOIN clients c ON p.client_id = c.id WHERE p.id = ?
-  `).get(params.id) as any
-  if (!patient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const patientRow = await prisma.patients.findUnique({
+    where: { id: params.id },
+    include: { client: { select: { name: true, phone: true, email: true } } },
+  })
+  if (!patientRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const treatmentPlans = db.prepare(`
-    SELECT tp.*, u.name as created_by_name, a.name as approved_by_name
-    FROM treatment_plans tp
-    LEFT JOIN users u ON tp.created_by = u.id
-    LEFT JOIN users a ON tp.approved_by = a.id
-    WHERE tp.patient_id = ? ORDER BY tp.created_at DESC
-  `).all(params.id)
+  const patient: any = {
+    ...(() => {
+      const { client, ...rest } = patientRow as any
+      return rest
+    })(),
+    client_name: (patientRow as any).client?.name,
+    client_phone: (patientRow as any).client?.phone,
+    client_email: (patientRow as any).client?.email,
+  }
 
-  const sessions = db.prepare(`
-    SELECT s.*, u.name as therapist_name
-    FROM sessions s LEFT JOIN users u ON s.therapist_id = u.id
-    WHERE s.patient_id = ? ORDER BY s.date DESC LIMIT 20
-  `).all(params.id)
+  const [treatmentPlans, sessions, appointments, documents] = await Promise.all([
+    prisma.treatment_plans.findMany({
+      where: { patient_id: params.id },
+      include: {
+        created_by_user: { select: { name: true } },
+        approved_by_user: { select: { name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    }),
+    prisma.sessions.findMany({
+      where: { patient_id: params.id },
+      include: { therapist: { select: { name: true } } },
+      orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+      take: 20,
+    }),
+    prisma.appointments.findMany({
+      where: { patient_id: params.id },
+      include: { therapist: { select: { name: true } } },
+      orderBy: [{ date: 'desc' }, { start_time: 'desc' }],
+      take: 20,
+    }),
+    prisma.documents.findMany({
+      where: { patient_id: params.id },
+      orderBy: { created_at: 'desc' },
+    }),
+  ])
 
-  const appointments = db.prepare(`
-    SELECT a.*, u.name as therapist_name
-    FROM appointments a LEFT JOIN users u ON a.therapist_id = u.id
-    WHERE a.patient_id = ? ORDER BY a.date DESC, a.start_time DESC LIMIT 20
-  `).all(params.id)
+  const treatmentPlansWithNames = (treatmentPlans as any[]).map((tp) => {
+    const { created_by_user, approved_by_user, ...rest } = tp
+    return {
+      ...rest,
+      created_by_name: created_by_user?.name ?? null,
+      approved_by_name: approved_by_user?.name ?? null,
+    }
+  })
 
-  const documents = db.prepare('SELECT * FROM documents WHERE patient_id = ? ORDER BY created_at DESC').all(params.id)
+  const sessionsWithNames = (sessions as any[]).map((s) => {
+    const { therapist, ...rest } = s
+    return { ...rest, therapist_name: therapist?.name ?? null }
+  })
 
-  return NextResponse.json({ patient, treatmentPlans, sessions, appointments, documents })
+  const appointmentsWithNames = (appointments as any[]).map((a) => {
+    const { therapist, ...rest } = a
+    return { ...rest, therapist_name: therapist?.name ?? null }
+  })
+
+  return NextResponse.json({
+    patient,
+    treatmentPlans: treatmentPlansWithNames,
+    sessions: sessionsWithNames,
+    appointments: appointmentsWithNames,
+    documents,
+  })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
@@ -43,12 +82,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const db = getDb()
-  const fields = ['name','species','breed','date_of_birth','weight','sex','microchip','medical_history','allergies','notes']
-  const sets = fields.map(f => `${f}=?`).join(', ')
-  const values = fields.map(f => body[f] ?? null)
 
-  db.prepare(`UPDATE patients SET ${sets}, updated_at=datetime('now') WHERE id=?`).run(...values, params.id)
-  const patient = db.prepare('SELECT * FROM patients WHERE id = ?').get(params.id)
+  const data: any = {}
+  if (body.name !== undefined) data.name = body.name
+  if (body.species !== undefined) data.species = body.species
+  if (body.breed !== undefined) data.breed = body.breed ?? null
+  if (body.date_of_birth !== undefined) data.date_of_birth = body.date_of_birth ?? null
+  if (body.weight !== undefined) data.weight = body.weight ?? null
+  if (body.sex !== undefined) data.sex = body.sex || null
+  if (body.microchip !== undefined) data.microchip = body.microchip ?? null
+  if (body.medical_history !== undefined) data.medical_history = body.medical_history ?? null
+  if (body.allergies !== undefined) data.allergies = body.allergies ?? null
+  if (body.notes !== undefined) data.notes = body.notes ?? null
+
+  const patient = await prisma.patients.update({
+    where: { id: params.id },
+    data,
+  })
+
   return NextResponse.json({ patient })
 }

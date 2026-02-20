@@ -1,35 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
-  const search = req.nextUrl.searchParams.get('search') || ''
-  const clientId = req.nextUrl.searchParams.get('client_id') || ''
+  const search = (req.nextUrl.searchParams.get('search') || '').trim()
+  const clientId = (req.nextUrl.searchParams.get('client_id') || '').trim()
 
-  let query = `
-    SELECT p.*, c.name as client_name, c.phone as client_phone,
-    (SELECT COUNT(*) FROM treatment_plans tp WHERE tp.patient_id = p.id AND tp.status = 'active') as active_plans
-    FROM patients p JOIN clients c ON p.client_id = c.id
-    WHERE p.active = 1
-  `
-  const params: any[] = []
-
+  const where: any = { active: true }
+  if (clientId) where.client_id = clientId
   if (search) {
-    query += ' AND (p.name LIKE ? OR c.name LIKE ? OR p.breed LIKE ?)'
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { breed: { contains: search, mode: 'insensitive' } },
+      { client: { name: { contains: search, mode: 'insensitive' } } },
+    ]
   }
-  if (clientId) {
-    query += ' AND p.client_id = ?'
-    params.push(clientId)
-  }
-  query += ' ORDER BY p.name'
 
-  const patients = db.prepare(query).all(...params)
+  const basePatients = await prisma.patients.findMany({
+    where,
+    include: { client: { select: { name: true, phone: true } } },
+    orderBy: { name: 'asc' },
+  })
+
+  const ids = basePatients.map((p) => p.id)
+  const activePlans = ids.length
+    ? await prisma.treatment_plans.groupBy({
+        by: ['patient_id'],
+        where: { patient_id: { in: ids }, status: 'active' },
+        _count: { _all: true },
+      })
+    : []
+
+  const activePlansByPatient = new Map(activePlans.map((r) => [r.patient_id, r._count._all]))
+
+  const patients = basePatients.map((p: any) => {
+    const client_name = p.client?.name
+    const client_phone = p.client?.phone
+    const active_plans = activePlansByPatient.get(p.id) ?? 0
+    const { client, ...rest } = p
+    return { ...rest, client_name, client_phone, active_plans }
+  })
+
   return NextResponse.json({ patients })
 }
 
@@ -41,10 +55,21 @@ export async function POST(req: NextRequest) {
   const { client_id, name, species, breed, date_of_birth, weight, sex, microchip, medical_history, allergies, notes } = body
   if (!client_id || !name || !species) return NextResponse.json({ error: 'Client, name, and species required' }, { status: 400 })
 
-  const db = getDb()
-  const id = uuidv4()
-  db.prepare(`INSERT INTO patients (id, client_id, name, species, breed, date_of_birth, weight, sex, microchip, medical_history, allergies, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, client_id, name, species, breed||null, date_of_birth||null, weight||null, sex||null, microchip||null, medical_history||null, allergies||null, notes||null)
+  const patient = await prisma.patients.create({
+    data: {
+      client_id,
+      name,
+      species,
+      breed: breed || null,
+      date_of_birth: date_of_birth || null,
+      weight: weight ?? null,
+      sex: sex || null,
+      microchip: microchip || null,
+      medical_history: medical_history || null,
+      allergies: allergies || null,
+      notes: notes || null,
+    },
+  })
 
-  const patient = db.prepare('SELECT * FROM patients WHERE id = ?').get(id)
   return NextResponse.json({ patient }, { status: 201 })
 }

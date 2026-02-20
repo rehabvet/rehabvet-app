@@ -1,52 +1,6 @@
-import Database from 'better-sqlite3'
-import path from 'path'
-import { SCHEMA_SQL } from '@/lib/schema'
+// Deprecated: the app migrated from SQLite (better-sqlite3) to Postgres via Prisma.
+// Kept only to avoid import-path breakage in old branches.
 
-const DB_PATH = path.join(process.cwd(), 'data', 'rehabvet.db')
-
-let db: Database.Database | null = null
-
-export function getDb(): Database.Database {
-  if (!db) {
-    const fs = require('fs')
-    const dir = path.dirname(DB_PATH)
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-
-    db = new Database(DB_PATH)
-    db.pragma('journal_mode = WAL')
-    db.pragma('foreign_keys = ON')
-
-    // Ensure schema exists (idempotent)
-    try {
-      db.exec(SCHEMA_SQL)
-    } catch (e) {
-      console.error('❌ Failed to create/verify schema:', (e as any)?.message || e)
-      throw e
-    }
-
-    // One-time bootstrap: create an initial admin user if DB has no users.
-    // Controlled via env vars so we never hardcode credentials.
-    try {
-      const countRow = db.prepare('SELECT COUNT(*) as c FROM users').get() as any
-      const count = Number(countRow?.c || 0)
-
-      const email = process.env.BOOTSTRAP_ADMIN_EMAIL
-      const password = process.env.BOOTSTRAP_ADMIN_PASSWORD
-      const name = process.env.BOOTSTRAP_ADMIN_NAME || 'Admin'
-
-      if (count === 0 && email && password) {
-        const { v4: uuidv4 } = require('uuid')
-        const bcrypt = require('bcryptjs')
-        const id = uuidv4()
-        const hash = bcrypt.hashSync(password, 10)
-        db.prepare('INSERT INTO users (id, email, name, role, password_hash, active) VALUES (?, ?, ?, ?, ?, 1)')
-          .run(id, email, name, 'admin', hash)
-        console.log(`✅ Bootstrapped admin user: ${email}`)
-      }
-    } catch (e) {
-      // Don't block app start if bootstrap fails.
-      console.warn('Bootstrap admin skipped/failed:', (e as any)?.message || e)
-    }
-  }
-  return db
+export function getDb(): never {
+  throw new Error('SQLite getDb() is deprecated. Use prisma client from src/lib/prisma.ts')
 }

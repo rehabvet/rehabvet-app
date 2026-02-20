@@ -1,59 +1,79 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const db = getDb()
   const today = new Date().toISOString().split('T')[0]
 
-  const todayAppointments = (db.prepare(
-    'SELECT COUNT(*) as c FROM appointments WHERE date = ?'
-  ).get(today) as any).c
+  const [todayAppointments, totalPatients, activePlans] = await Promise.all([
+    prisma.appointments.count({ where: { date: today } }),
+    prisma.patients.count({ where: { active: true } }),
+    prisma.treatment_plans.count({ where: { status: 'active' } }),
+  ])
 
-  const totalPatients = (db.prepare(
-    'SELECT COUNT(*) as c FROM patients WHERE active = 1'
-  ).get() as any).c
-
-  const activeClients = (db.prepare(
-    'SELECT COUNT(DISTINCT client_id) as c FROM patients WHERE active = 1'
-  ).get() as any).c
-
-  const activePlans = (db.prepare(
-    "SELECT COUNT(*) as c FROM treatment_plans WHERE status = 'active'"
-  ).get() as any).c
+  const activeClientRows = await prisma.patients.findMany({
+    where: { active: true },
+    distinct: ['client_id'],
+    select: { client_id: true },
+  })
+  const activeClients = activeClientRows.length
 
   const monthStart = today.substring(0, 7) + '-01'
-  const monthRevenue = (db.prepare(
-    "SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE date >= ?"
-  ).get(monthStart) as any).total
+  const monthRevenueAgg = await prisma.payments.aggregate({
+    where: { date: { gte: monthStart } },
+    _sum: { amount: true },
+    _count: { _all: true },
+  })
+  const monthRevenue = monthRevenueAgg._sum.amount ?? 0
 
-  const outstandingBalance = (db.prepare(
-    "SELECT COALESCE(SUM(total - amount_paid), 0) as total FROM invoices WHERE status IN ('sent','partial','overdue')"
-  ).get() as any).total
+  const outstandingInvoices = await prisma.invoices.findMany({
+    where: { status: { in: ['sent', 'partial', 'overdue'] } },
+    select: { total: true, amount_paid: true },
+  })
+  const outstandingBalance = outstandingInvoices.reduce((sum, i) => sum + (Number(i.total) - Number(i.amount_paid)), 0)
 
-  const todaySchedule = db.prepare(`
-    SELECT a.*, p.name as patient_name, c.name as client_name, u.name as therapist_name
-    FROM appointments a
-    JOIN patients p ON a.patient_id = p.id
-    JOIN clients c ON a.client_id = c.id
-    LEFT JOIN users u ON a.therapist_id = u.id
-    WHERE a.date = ?
-    ORDER BY a.start_time
-  `).all(today)
+  const scheduleRows = await prisma.appointments.findMany({
+    where: { date: today },
+    include: {
+      patient: { select: { name: true } },
+      client: { select: { name: true } },
+      therapist: { select: { name: true } },
+    },
+    orderBy: { start_time: 'asc' },
+  })
 
-  const recentSessions = db.prepare(`
-    SELECT s.*, p.name as patient_name
-    FROM sessions s
-    JOIN patients p ON s.patient_id = p.id
-    ORDER BY s.date DESC, s.created_at DESC
-    LIMIT 5
-  `).all()
+  const todaySchedule = (scheduleRows as any[]).map((a) => {
+    const { patient, client, therapist, ...rest } = a
+    return {
+      ...rest,
+      patient_name: patient?.name,
+      client_name: client?.name,
+      therapist_name: therapist?.name ?? null,
+    }
+  })
+
+  const recentRows = await prisma.sessions.findMany({
+    include: { patient: { select: { name: true } } },
+    orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+    take: 5,
+  })
+
+  const recentSessions = (recentRows as any[]).map((s) => {
+    const { patient, ...rest } = s
+    return { ...rest, patient_name: patient?.name }
+  })
 
   return NextResponse.json({
-    todayAppointments, totalPatients, activeClients, activePlans,
-    monthRevenue, outstandingBalance, todaySchedule, recentSessions,
+    todayAppointments,
+    totalPatients,
+    activeClients,
+    activePlans,
+    monthRevenue,
+    outstandingBalance,
+    todaySchedule,
+    recentSessions,
   })
 }

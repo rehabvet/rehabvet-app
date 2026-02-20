@@ -1,20 +1,51 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const db = getDb()
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as any[]
-    const usersCount = (() => {
-      try {
-        const r = db.prepare('SELECT COUNT(*) as c FROM users').get() as any
-        return Number(r?.c || 0)
-      } catch {
-        return null
-      }
-    })()
+    const [
+      users,
+      clients,
+      patients,
+      appointments,
+      sessions,
+      treatment_plans,
+      invoices,
+      invoice_items,
+      payments,
+      documents,
+      treatment_types,
+    ] = await Promise.all([
+      prisma.users.count(),
+      prisma.clients.count(),
+      prisma.patients.count(),
+      prisma.appointments.count(),
+      prisma.sessions.count(),
+      prisma.treatment_plans.count(),
+      prisma.invoices.count(),
+      prisma.invoice_items.count(),
+      prisma.payments.count(),
+      prisma.documents.count(),
+      prisma.treatment_types.count(),
+    ])
 
-    return NextResponse.json({ ok: true, tables: tables.map(t => t.name), usersCount })
+    return NextResponse.json({
+      ok: true,
+      db: 'postgres',
+      counts: {
+        users,
+        clients,
+        patients,
+        appointments,
+        sessions,
+        treatment_plans,
+        invoices,
+        invoice_items,
+        payments,
+        documents,
+        treatment_types,
+      },
+    })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 })
   }

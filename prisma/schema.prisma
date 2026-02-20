@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  vet
+  therapist
+  receptionist
+}
+
+enum PatientSex {
+  male
+  female
+  neutered_male
+  spayed_female
+}
+
+enum TreatmentPlanStatus {
+  draft
+  pending_approval
+  active
+  completed
+  discontinued
+}
+
+enum AppointmentStatus {
+  scheduled
+  confirmed
+  in_progress
+  completed
+  cancelled
+  no_show
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  partial
+  overdue
+  cancelled
+}
+
+enum PaymentMethod {
+  cash
+  card
+  bank_transfer
+  paynow
+  other
+}
+
+enum DocumentCategory {
+  xray
+  lab_report
+  photo
+  document
+  video
+  other
+}
+
+model users {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique
+  password_hash    String
+  name             String
+  role             UserRole
+  phone            String?
+  specializations  String?   // JSON string
+  active           Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  // Relations
+  created_plans    treatment_plans[] @relation("plans_created_by")
+  approved_plans   treatment_plans[] @relation("plans_approved_by")
+  appointments     appointments[]    @relation("appointments_therapist")
+  sessions         sessions[]        @relation("sessions_therapist")
+  documents        documents[]       @relation("documents_uploaded_by")
+
+  @@map("users")
+}
+
+model clients {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  email      String?
+  phone      String
+  address    String?
+  notes      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  patients      patients[]
+  invoices      invoices[]
+  appointments  appointments[]
+
+  @@index([name])
+  @@index([phone])
+  @@map("clients")
+}
+
+model patients {
+  id              String      @id @default(uuid()) @db.Uuid
+  client_id       String      @db.Uuid
+  name            String
+  species         String
+  breed           String?
+  date_of_birth   String?
+  weight          Float?
+  sex             PatientSex?
+  microchip       String?
+  medical_history String?
+  allergies       String?
+  notes           String?
+  photo_url       String?
+  active          Boolean     @default(true)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  // Relations
+  client          clients     @relation(fields: [client_id], references: [id])
+  treatment_plans treatment_plans[]
+  appointments    appointments[]
+  sessions        sessions[]
+  invoices        invoices[]
+  documents       documents[]
+
+  @@index([client_id])
+  @@index([name])
+  @@map("patients")
+}
+
+model treatment_plans {
+  id                 String             @id @default(uuid()) @db.Uuid
+  patient_id          String             @db.Uuid
+  created_by          String?            @db.Uuid
+  approved_by         String?            @db.Uuid
+  title               String
+  diagnosis            String?
+  goals               String?
+  modalities          String?            // JSON string
+  frequency           String?
+  total_sessions      Int?
+  completed_sessions  Int                @default(0)
+  status              TreatmentPlanStatus @default(draft)
+  start_date          String?
+  end_date            String?
+  notes               String?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  patient             patients          @relation(fields: [patient_id], references: [id])
+  created_by_user     users?            @relation("plans_created_by", fields: [created_by], references: [id])
+  approved_by_user    users?            @relation("plans_approved_by", fields: [approved_by], references: [id])
+  appointments        appointments[]
+  sessions            sessions[]
+
+  @@index([patient_id])
+  @@index([status])
+  @@map("treatment_plans")
+}
+
+model appointments {
+  id                String            @id @default(uuid()) @db.Uuid
+  patient_id         String            @db.Uuid
+  client_id          String            @db.Uuid
+  therapist_id       String?           @db.Uuid
+  treatment_plan_id  String?           @db.Uuid
+  date              String
+  start_time        String
+  end_time          String
+  modality          String
+  status            AppointmentStatus @default(scheduled)
+  notes             String?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+
+  patient            patients         @relation(fields: [patient_id], references: [id])
+  client             clients          @relation(fields: [client_id], references: [id])
+  therapist          users?           @relation("appointments_therapist", fields: [therapist_id], references: [id])
+  treatment_plan     treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
+  sessions           sessions[]
+
+  @@index([date])
+  @@index([therapist_id])
+  @@index([patient_id])
+  @@index([client_id])
+  @@map("appointments")
+}
+
+model sessions {
+  id                String   @id @default(uuid()) @db.Uuid
+  appointment_id    String?  @db.Uuid
+  patient_id        String   @db.Uuid
+  therapist_id      String   @db.Uuid
+  treatment_plan_id String?  @db.Uuid
+  date              String
+  modality          String
+  duration_minutes  Int?
+  subjective        String?
+  objective         String?
+  assessment        String?
+  plan              String?
+  pain_score        Int?
+  mobility_score    Int?
+  progress_notes    String?
+  measurements      String?  // JSON string
+  exercises         String?  // JSON string
+  home_exercises    String?  // JSON string
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  appointment        appointments?   @relation(fields: [appointment_id], references: [id])
+  patient            patients        @relation(fields: [patient_id], references: [id])
+  therapist          users           @relation("sessions_therapist", fields: [therapist_id], references: [id])
+  treatment_plan     treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
+  invoice_items      invoice_items[]
+
+  @@index([patient_id])
+  @@index([date])
+  @@index([therapist_id])
+  @@map("sessions")
+}
+
+model invoices {
+  id             String        @id @default(uuid()) @db.Uuid
+  invoice_number String        @unique
+  client_id      String        @db.Uuid
+  patient_id     String?       @db.Uuid
+  date           String
+  due_date       String
+  subtotal       Float         @default(0)
+  tax            Float         @default(0)
+  total          Float         @default(0)
+  amount_paid    Float         @default(0)
+  status         InvoiceStatus @default(draft)
+  notes          String?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  client         clients       @relation(fields: [client_id], references: [id])
+  patient        patients?     @relation(fields: [patient_id], references: [id])
+  items          invoice_items[]
+  payments       payments[]
+
+  @@index([client_id])
+  @@index([date])
+  @@index([status])
+  @@map("invoices")
+}
+
+model invoice_items {
+  id           String   @id @default(uuid()) @db.Uuid
+  invoice_id   String   @db.Uuid
+  description  String
+  modality     String?
+  session_id   String?  @db.Uuid
+  quantity     Int      @default(1)
+  unit_price   Float
+  total        Float
+  created_at   DateTime @default(now())
+
+  invoice      invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  session      sessions? @relation(fields: [session_id], references: [id])
+
+  @@index([invoice_id])
+  @@index([session_id])
+  @@map("invoice_items")
+}
+
+model payments {
+  id          String        @id @default(uuid()) @db.Uuid
+  invoice_id  String        @db.Uuid
+  amount      Float
+  method      PaymentMethod?
+  reference   String?
+  date        String
+  notes       String?
+  created_at  DateTime      @default(now())
+
+  invoice     invoices      @relation(fields: [invoice_id], references: [id])
+
+  @@index([invoice_id])
+  @@index([date])
+  @@map("payments")
+}
+
+model documents {
+  id           String           @id @default(uuid()) @db.Uuid
+  patient_id   String           @db.Uuid
+  uploaded_by  String?          @db.Uuid
+  filename     String
+  file_type    String?
+  file_size    Int?
+  file_path    String
+  category     DocumentCategory?
+  description  String?
+  created_at   DateTime         @default(now())
+
+  patient      patients         @relation(fields: [patient_id], references: [id])
+  uploader     users?           @relation("documents_uploaded_by", fields: [uploaded_by], references: [id])
+
+  @@index([patient_id])
+  @@map("documents")
+}
+
+model treatment_types {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  category    String
+  duration    Int      @default(60)
+  color       String?  @default("bg-gray-400")
+  active      Boolean  @default(true)
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+
+  @@index([category])
+  @@map("treatment_types")
+}
