@@ -71,6 +71,51 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ staff }, { status: 201 })
 }
 
+export async function PUT(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+
+  const body = await req.json()
+  const { id, name, email, phone, role, specializations, photo_url, active } = body || {}
+  if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+  if (!name || !email || !role) return NextResponse.json({ error: 'Name, email, and role required' }, { status: 400 })
+
+  const existing = await prisma.users.findFirst({
+    where: {
+      email,
+      NOT: { id },
+    },
+    select: { id: true },
+  })
+  if (existing) return NextResponse.json({ error: 'Email already exists' }, { status: 409 })
+
+  const staff = await prisma.users.update({
+    where: { id },
+    data: {
+      name,
+      email,
+      role,
+      phone: phone || null,
+      photo_url: photo_url || null,
+      specializations: specializations ? JSON.stringify(specializations) : '[]',
+      active: typeof active === 'boolean' ? active : true,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      phone: true,
+      photo_url: true,
+      specializations: true,
+      active: true,
+      created_at: true,
+    },
+  })
+
+  return NextResponse.json({ staff })
+}
+
 export async function DELETE(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
