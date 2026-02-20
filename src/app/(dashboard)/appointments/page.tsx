@@ -125,7 +125,7 @@ export default function AppointmentsPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{a.patient_name} <span className="text-gray-400">({a.species}{a.breed ? ` · ${a.breed}` : ''})</span></p>
                   <p className="text-xs text-gray-500">Owner: {a.client_name} · {a.client_phone}</p>
-                  {a.therapist_name && <p className="text-xs text-gray-500">Therapist: {a.therapist_name}</p>}
+                  <p className="text-xs text-gray-500">Provider: {a.therapist_name || 'Unassigned'}</p>
                 </div>
                 <span className={`badge ${modalityColor[a.modality] || 'bg-gray-100 text-gray-800'}`}>{a.modality}</span>
                 <div className="flex items-center gap-2">

@@ -274,7 +274,7 @@ export default function CalendarPage() {
                         <span>{a.client_name}</span>
                         <span>•</span>
                         <span className="font-medium">{a.patient_name}</span>
-                        {a.therapist_name && <span className="opacity-75">({a.therapist_name})</span>}
+                        <span className="opacity-75">({a.therapist_name || 'Unassigned'})</span>
                       </div>
                       <div className="text-xs opacity-75 mt-0.5">{a.client_phone}</div>
                     </button>
