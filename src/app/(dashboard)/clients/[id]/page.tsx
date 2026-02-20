@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, Edit2, Save, X } from 'lucide-react'
+import AddressInput from '@/components/AddressInput'
 
 export default function ClientDetailPage() {
   const { id } = useParams()
@@ -68,7 +69,10 @@ export default function ClientDetailPage() {
             <>
               <div><label className="label">Phone</label><input className="input" value={form.phone||''} onChange={e => setForm({...form, phone: e.target.value})} /></div>
               <div><label className="label">Email</label><input className="input" value={form.email||''} onChange={e => setForm({...form, email: e.target.value})} /></div>
-              <div><label className="label">Address</label><input className="input" value={form.address||''} onChange={e => setForm({...form, address: e.target.value})} /></div>
+              <div className="sm:col-span-3">
+                <label className="label">Address</label>
+                <AddressInput value={form.address||''} onChange={v => setForm({...form, address: v})} />
+              </div>
             </>
           ) : (
             <>
