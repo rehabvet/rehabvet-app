@@ -10,15 +10,22 @@ export default function PatientDetailPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [tab, setTab] = useState('overview')
+  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     fetch(`/api/patients/${id}`).then(r => r.json()).then(setData)
   }, [id])
 
+  useEffect(() => {
+    setImageError(false)
+  }, [data?.patient?.id, data?.patient?.breed, data?.patient?.species])
+
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
 
   const { patient, treatmentPlans, sessions, appointments } = data
   const speciesEmoji: Record<string, string> = { Dog: '🐕', Cat: '🐈', Rabbit: '🐇', Bird: '🐦', Horse: '🐴' }
+  const breedQuery = `${patient.breed || patient.species || 'pet'} ${patient.species || ''}`.trim()
+  const breedImageUrl = `https://source.unsplash.com/featured/?${encodeURIComponent(breedQuery)}`
 
   const tabs = [
     { key: 'overview', label: 'Overview', icon: Activity },
@@ -36,8 +43,18 @@ export default function PatientDetailPage() {
       {/* Patient Header */}
       <div className="card">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-full bg-brand-gold/10 flex items-center justify-center text-3xl">
-            {speciesEmoji[patient.species] || '🐾'}
+          <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-200 bg-brand-gold/10 flex items-center justify-center text-3xl">
+            {!imageError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={breedImageUrl}
+                alt={`${patient.breed || patient.species} photo`}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <span>{speciesEmoji[patient.species] || '🐾'}</span>
+            )}
           </div>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
