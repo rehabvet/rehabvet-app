@@ -144,12 +144,10 @@ export default function LeadsPage() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Received (SGT)</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Owner</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pet</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Service</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Preferred Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Received</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -158,23 +156,24 @@ export default function LeadsPage() {
                   const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.new
                   return (
                     <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        <p className="font-medium text-gray-700">{new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' })}</p>
+                        <p className="text-gray-400">{new Date(lead.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Singapore' })}</p>
+                      </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.owner_name}</p>
                         <p className="text-xs text-gray-400">{lead.owner_email}</p>
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.pet_name}</p>
-                        <p className="text-xs text-gray-400">{lead.species}{lead.breed ? ` · ${lead.breed}` : ''}</p>
+                        <p className="text-xs text-gray-400">{lead.species && lead.species !== 'Unknown' ? lead.species : ''}{lead.breed ? `${lead.species && lead.species !== 'Unknown' ? ' · ' : ''}${lead.breed}` : ''}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{SERVICE_LABELS[lead.service || ''] || lead.service || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{lead.preferred_date || '—'}</td>
                       <td className="px-4 py-3">
                         <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)}
                           className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${sc.bg} ${sc.color}`}>
                           {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                         </select>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">{new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => { setViewLead(lead); setStaffNote(lead.staff_notes || '') }} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors" title="View details">
