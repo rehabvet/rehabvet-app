@@ -155,62 +155,123 @@ export default function AppointmentsPage() {
     setDate(d.toISOString().split('T')[0])
   }
 
-  const modalityColor: Record<string, string> = {
-    Physiotherapy: 'bg-blue-100 text-blue-800',
-    Hydrotherapy: 'bg-cyan-100 text-cyan-800',
-    Acupuncture: 'bg-purple-100 text-purple-800',
-    HBOT: 'bg-orange-100 text-orange-800',
-    Chiropractic: 'bg-green-100 text-green-800',
-    TCM: 'bg-red-100 text-red-800',
-    'Laser Therapy': 'bg-yellow-100 text-yellow-800',
-    Electrotherapy: 'bg-indigo-100 text-indigo-800',
-    Assessment: 'bg-gray-100 text-gray-800',
+  const modalityBorder: Record<string, string> = {
+    Physiotherapy: 'border-l-blue-400',
+    Hydrotherapy: 'border-l-cyan-400',
+    Acupuncture: 'border-l-purple-400',
+    HBOT: 'border-l-orange-400',
+    Chiropractic: 'border-l-green-400',
+    TCM: 'border-l-red-400',
+    'Laser Therapy': 'border-l-yellow-400',
+    Electrotherapy: 'border-l-indigo-400',
+    Assessment: 'border-l-gray-400',
+    Consultation: 'border-l-pink-400',
+  }
+  const modalityBg: Record<string, string> = {
+    Physiotherapy: 'bg-blue-50 text-blue-700',
+    Hydrotherapy: 'bg-cyan-50 text-cyan-700',
+    Acupuncture: 'bg-purple-50 text-purple-700',
+    HBOT: 'bg-orange-50 text-orange-700',
+    Chiropractic: 'bg-green-50 text-green-700',
+    TCM: 'bg-red-50 text-red-700',
+    'Laser Therapy': 'bg-yellow-50 text-yellow-700',
+    Electrotherapy: 'bg-indigo-50 text-indigo-700',
+    Assessment: 'bg-gray-50 text-gray-700',
+    Consultation: 'bg-pink-50 text-pink-700',
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
-          <p className="text-gray-500 text-sm">Schedule and manage sessions</p>
+          <p className="text-gray-400 text-sm">Schedule and manage sessions</p>
         </div>
         <button onClick={openAdd} className="btn-primary"><Plus className="w-4 h-4 mr-2" /> New Appointment</button>
       </div>
 
       {/* Date Navigator */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => shiftDate(-1)} className="btn-secondary p-2"><ChevronLeft className="w-4 h-4" /></button>
-        <input type="date" className="input max-w-[200px]" value={date} onChange={e => setDate(e.target.value)} />
-        <button onClick={() => shiftDate(1)} className="btn-secondary p-2"><ChevronRight className="w-4 h-4" /></button>
-        <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="btn-secondary text-sm">Today</button>
-        <span className="text-sm text-gray-500">{new Date(date + 'T00:00').toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+      <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-4 py-2.5 w-fit shadow-sm">
+        <button onClick={() => shiftDate(-1)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronLeft className="w-4 h-4" /></button>
+        <input type="date" className="text-sm font-medium text-gray-700 border-0 outline-none bg-transparent cursor-pointer" value={date} onChange={e => setDate(e.target.value)} />
+        <button onClick={() => shiftDate(1)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronRight className="w-4 h-4" /></button>
+        <div className="w-px h-5 bg-gray-200 mx-1" />
+        <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="text-xs font-medium text-brand-pink hover:text-brand-pink/80 px-2 py-1 rounded-lg hover:bg-pink-50 transition-colors">Today</button>
+        <span className="text-xs text-gray-400 ml-1 hidden sm:block">
+          {new Date(date + 'T00:00').toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        </span>
       </div>
 
+      {/* Count */}
+      {!loading && appointments.length > 0 && (
+        <p className="text-xs text-gray-400 font-medium">{appointments.length} appointment{appointments.length !== 1 ? 's' : ''} today</p>
+      )}
+
       {/* Appointments List */}
-      <div className="card p-0 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
         {loading ? (
-          <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" /></div>
+          <div className="space-y-0">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="px-4 py-3 border-b border-gray-100 animate-pulse flex gap-4 items-center">
+                <div className="w-12 h-8 bg-gray-100 rounded" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 bg-gray-100 rounded w-48" />
+                  <div className="h-3 bg-gray-100 rounded w-64" />
+                </div>
+                <div className="w-24 h-5 bg-gray-100 rounded" />
+                <div className="w-20 h-6 bg-gray-100 rounded" />
+              </div>
+            ))}
+          </div>
         ) : appointments.length === 0 ? (
-          <p className="text-gray-400 text-sm py-8 text-center">No appointments for this date</p>
+          <div className="py-16 text-center">
+            <p className="text-gray-300 text-4xl mb-3">📅</p>
+            <p className="text-gray-400 text-sm">No appointments scheduled for this day</p>
+            <button onClick={openAdd} className="mt-3 text-sm text-brand-pink hover:underline">+ Add one</button>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {appointments.map(a => (
-              <div key={a.id} onClick={() => openEdit(a)} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 cursor-pointer hover:bg-gray-50">
-                <div className="text-center min-w-[80px]">
-                  <p className="text-sm font-bold text-gray-900">{a.start_time}</p>
-                  <p className="text-xs text-gray-400">{a.end_time}</p>
+          <div>
+            {appointments.map((a, idx) => (
+              <div
+                key={a.id}
+                onClick={() => openEdit(a)}
+                className={`flex items-center gap-0 cursor-pointer hover:bg-gray-50/80 transition-colors border-l-4 ${modalityBorder[a.modality] || 'border-l-gray-200'} ${idx !== 0 ? 'border-t border-t-gray-100' : ''}`}
+              >
+                {/* Time */}
+                <div className="w-20 flex-shrink-0 px-3 py-3 text-center border-r border-gray-100">
+                  <p className="text-sm font-bold text-gray-800 leading-tight">{a.start_time}</p>
+                  <p className="text-xs text-gray-400 leading-tight">{a.end_time}</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{a.patient_name} <span className="text-gray-400">({a.species}{a.breed ? ` · ${a.breed}` : ''})</span></p>
-                  <p className="text-xs text-gray-500">Owner: {a.client_name} · {a.client_phone}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1.5">Provider: <span>{a.therapist_name || 'Unassigned'}</span>{a.therapist_role ? <span className={roleBadge[a.therapist_role] || 'badge-gray'}>{roleLabel[a.therapist_role] || a.therapist_role}</span> : null}</p>
+
+                {/* Patient + Owner + Provider */}
+                <div className="flex-1 min-w-0 px-3 py-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-900">{a.patient_name}</span>
+                    <span className="text-xs text-gray-400">({a.species}{a.breed ? ` · ${a.breed}` : ''})</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {a.client_name} · <span className="font-mono">{a.client_phone}</span>
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-gray-400">Provider:</span>
+                    <span className="text-xs text-gray-600 font-medium">{a.therapist_name || 'Unassigned'}</span>
+                    {a.therapist_role && <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${roleBadge[a.therapist_role] || 'badge-gray'}`}>{roleLabel[a.therapist_role] || a.therapist_role}</span>}
+                  </div>
                 </div>
-                <span className={`badge ${modalityColor[a.modality] || 'bg-gray-100 text-gray-800'}`}>{a.modality}</span>
-                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+
+                {/* Modality */}
+                <div className="px-3 py-3 hidden sm:block">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${modalityBg[a.modality] || 'bg-gray-50 text-gray-700'}`}>
+                    {a.modality}
+                  </span>
+                </div>
+
+                {/* Status + Actions */}
+                <div className="flex items-center gap-2 px-3 py-3" onClick={e => e.stopPropagation()}>
                   <ApptStatusBadge status={a.status} />
-                  <button className="btn-secondary text-xs py-1" onClick={() => openEdit(a)}>Edit</button>
                   <select
-                    className="input text-xs py-1 w-auto"
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 cursor-pointer hover:border-gray-300 outline-none"
                     value={a.status}
                     onChange={e => updateStatus(a.id, e.target.value)}
                   >
