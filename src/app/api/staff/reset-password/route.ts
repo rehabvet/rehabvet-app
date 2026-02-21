@@ -7,6 +7,10 @@ import bcrypt from 'bcryptjs'
 // Body: { id: string, password?: string }
 // If password omitted, a random temp password is generated and returned.
 
+function isAdminRole(role?: string) {
+  return ['admin', 'administrator', 'office_manager'].includes(String(role || '').toLowerCase())
+}
+
 function generateTempPassword(len = 14) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%'
   let out = ''
@@ -16,7 +20,7 @@ function generateTempPassword(len = 14) {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  if (!user || !isAdminRole(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
   const { id, password } = body || {}

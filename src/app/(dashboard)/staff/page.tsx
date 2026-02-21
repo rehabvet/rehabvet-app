@@ -1,15 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, KeyRound } from 'lucide-react'
+import { Plus, Trash2, KeyRound, Pencil } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 
 const ROLES = [
-  { value: 'admin', label: 'Office Manager' },
-  { value: 'vet', label: 'Veterinarian' },
-  { value: 'therapist', label: 'Provider' },
-  { value: 'receptionist', label: 'Receptionist' },
+  { value: 'veterinarian', label: 'Veterinarian' },
+  { value: 'senior_therapist', label: 'Senior Therapist' },
+  { value: 'assistant_therapist', label: 'Assistant Therapist' },
+  { value: 'hydrotherapist', label: 'Hydrotherapist' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'office_manager', label: 'Office Manager' },
+  { value: 'administrator', label: 'Administrator' },
 ]
 
 const SPEC_OPTIONS = [
@@ -23,11 +26,13 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [showEdit, setShowEdit] = useState<any>(null)
   const [showDelete, setShowDelete] = useState<any>(null)
   const [showReset, setShowReset] = useState<any>(null)
   const [resetPassword, setResetPassword] = useState('')
   const [tempPassword, setTempPassword] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] as string[] })
+  const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
+  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
 
   async function fetchStaff() {
     setLoading(true)
@@ -47,7 +52,7 @@ export default function StaffPage() {
       body: JSON.stringify(form)
     })
     if (res.ok) {
-      setForm({ name: '', email: '', phone: '+65 ', role: 'therapist', password: '', photo_url: '', specializations: [] })
+      setForm({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] })
       setShowAdd(false)
       fetchStaff()
     } else {
@@ -90,6 +95,37 @@ export default function StaffPage() {
     }
   }
 
+  function openEdit(staffMember: any) {
+    const specs = staffMember.specializations ? JSON.parse(staffMember.specializations) : []
+    setEditForm({
+      id: staffMember.id,
+      name: staffMember.name || '',
+      email: staffMember.email || '',
+      phone: staffMember.phone || '+65 ',
+      role: staffMember.role || 'assistant_therapist',
+      photo_url: staffMember.photo_url || '',
+      specializations: specs,
+      active: staffMember.active !== false,
+    })
+    setShowEdit(staffMember)
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    const res = await fetch('/api/staff', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    if (res.ok) {
+      setShowEdit(null)
+      fetchStaff()
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Failed to update staff')
+    }
+  }
+
   function toggleSpec(spec: string) {
     setForm(f => ({
       ...f,
@@ -99,8 +135,41 @@ export default function StaffPage() {
     }))
   }
 
-  const roleLabel: Record<string, string> = { admin: 'Office Manager', vet: 'Veterinarian', therapist: 'Provider', receptionist: 'Receptionist' }
-  const roleColor: Record<string, string> = { admin: 'badge-pink', vet: 'badge-green', therapist: 'badge-blue', receptionist: 'badge-yellow' }
+  function toggleSpecEdit(spec: string) {
+    setEditForm(f => ({
+      ...f,
+      specializations: f.specializations.includes(spec)
+        ? f.specializations.filter(s => s !== spec)
+        : [...f.specializations, spec]
+    }))
+  }
+
+  const roleLabel: Record<string, string> = {
+    administrator: 'Administrator',
+    office_manager: 'Office Manager',
+    marketing: 'Marketing',
+    veterinarian: 'Veterinarian',
+    senior_therapist: 'Senior Therapist',
+    assistant_therapist: 'Assistant Therapist',
+    hydrotherapist: 'Hydrotherapist',
+    admin: 'Administrator',
+    vet: 'Veterinarian',
+    therapist: 'Senior Therapist',
+    receptionist: 'Receptionist',
+  }
+  const roleColor: Record<string, string> = {
+    administrator: 'badge-pink',
+    office_manager: 'badge-pink',
+    marketing: 'badge-yellow',
+    veterinarian: 'badge-green',
+    senior_therapist: 'badge-blue',
+    assistant_therapist: 'badge-blue',
+    hydrotherapist: 'badge-blue',
+    admin: 'badge-pink',
+    vet: 'badge-green',
+    therapist: 'badge-blue',
+    receptionist: 'badge-yellow',
+  }
 
   return (
     <div className="space-y-6">
@@ -123,6 +192,13 @@ export default function StaffPage() {
             return (
               <div key={s.id} className="card group relative">
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
+                    title="Edit profile"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => { setShowReset(s); setTempPassword(null); setResetPassword('') }}
                     className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
@@ -222,6 +298,69 @@ export default function StaffPage() {
             <button type="submit" className="btn-primary">Add Staff</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Staff Modal */}
+      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Staff Profile">
+        {showEdit && (
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div>
+              <label className="label">Full Name *</label>
+              <input className="input" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Email *</label>
+                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} required />
+              </div>
+              <div>
+                <label className="label">Phone</label>
+                <PhoneInput value={editForm.phone} onChange={v => setEditForm({...editForm, phone: v})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Role *</label>
+                <select className="input" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
+                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Status</label>
+                <select className="input" value={editForm.active ? 'active' : 'inactive'} onChange={e => setEditForm({...editForm, active: e.target.value === 'active'})}>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="label">Photo URL</label>
+              <input className="input" placeholder="https://..." value={editForm.photo_url} onChange={e => setEditForm({...editForm, photo_url: e.target.value})} />
+            </div>
+            <div>
+              <label className="label">Specializations</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {SPEC_OPTIONS.map(sp => (
+                  <button
+                    key={sp} type="button"
+                    onClick={() => toggleSpecEdit(sp)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      editForm.specializations.includes(sp)
+                        ? 'bg-brand-pink text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {sp}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary">Save Changes</button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* Reset Password Modal */}
