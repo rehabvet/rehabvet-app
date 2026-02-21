@@ -35,6 +35,7 @@ export default function AppointmentPage() {
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', owner_email: '', owner_phone: '+65 ', post_code: '',
+    address: '',
     pet_name: '', breed: '', age: '', pet_gender: '',
     vet_friendly: null as boolean | null,
     reactive_to_pets: null as boolean | null,
@@ -42,8 +43,36 @@ export default function AppointmentPage() {
     has_pain: null as boolean | null,
     condition: '', how_heard: '',
   })
+  const [addressLoading, setAddressLoading] = useState(false)
+  const [addressError, setAddressError] = useState('')
 
   const s = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+
+  async function lookupPostal(code: string) {
+    s('post_code', code)
+    s('address', '')
+    setAddressError('')
+    if (code.replace(/\s/g, '').length !== 6) return
+    setAddressLoading(true)
+    try {
+      const res = await fetch(
+        `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${code}&returnGeom=N&getAddrDetails=Y&pageNum=1`
+      )
+      const data = await res.json()
+      if (data.found > 0) {
+        const r = data.results[0]
+        const addr = [r.BLK_NO, r.ROAD_NAME, r.BUILDING].filter(Boolean).map((v: string) => v.trim()).filter(v => v && v !== 'NIL').join(', ')
+        s('address', addr)
+        setAddressError('')
+      } else {
+        setAddressError('Postal code not found')
+      }
+    } catch {
+      setAddressError('Could not look up address')
+    } finally {
+      setAddressLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/google-reviews').then(r => r.json()).then(d => {
@@ -224,8 +253,30 @@ export default function AppointmentPage() {
                     <input type="email" className={inp} placeholder="jane@email.com" value={form.owner_email} onChange={e => s('owner_email', e.target.value)} /></div>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Phone <span className="text-[#EC6496]">*</span></label>
                     <input type="tel" className={inp} placeholder="9123 4567" value={form.owner_phone} onChange={e => s('owner_phone', e.target.value)} /></div>
-                  <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Postal Code <span className="text-[#EC6496]">*</span></label>
-                    <input className={inp} placeholder="123456" value={form.post_code} onChange={e => s('post_code', e.target.value)} /></div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 block mb-1.5">Postal Code <span className="text-[#EC6496]">*</span></label>
+                    <input
+                      className={inp}
+                      placeholder="e.g. 218154"
+                      value={form.post_code}
+                      maxLength={6}
+                      onChange={e => lookupPostal(e.target.value.replace(/\D/g, ''))}
+                    />
+                    {addressLoading && (
+                      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-[#EC6496] rounded-full animate-spin" />
+                        Looking up address…
+                      </p>
+                    )}
+                    {form.address && !addressLoading && (
+                      <p className="text-xs text-gray-600 mt-1.5 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 font-medium">
+                        📍 {form.address}
+                      </p>
+                    )}
+                    {addressError && !addressLoading && (
+                      <p className="text-xs text-red-400 mt-1.5">{addressError}</p>
+                    )}
+                  </div>
                   <button onClick={() => setStep(2)} disabled={!ok1}
                     className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     style={{ background: ok1 ? '#EC6496' : '#f0a0bc' }}>
