@@ -7,7 +7,7 @@ import Modal from '@/components/Modal'
 interface Lead {
   id: string
   owner_name: string; owner_email: string; owner_phone: string; how_heard: string | null
-  pet_name: string; species: string; breed: string | null; age: string | null
+  pet_name: string; species: string; breed: string | null; age: string | null; weight: string | null
   service: string | null; condition: string | null; preferred_date: string | null
   first_visit: boolean; notes: string | null; status: string; staff_notes: string | null
   created_at: string
