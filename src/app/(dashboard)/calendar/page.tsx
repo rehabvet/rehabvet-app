@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, User } from 'lucide-react'
+import { useRef } from 'react'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -18,6 +19,8 @@ export default function CalendarPage() {
   const [selectedAppt, setSelectedAppt] = useState<any>(null)
   const [editForm, setEditForm] = useState<any>(null)
   const [saving, setSaving] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const dayScrollRef = useRef<HTMLDivElement>(null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -32,6 +35,23 @@ export default function CalendarPage() {
     fetch('/api/treatment-types')
       .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
   }, [year, month])
+
+  // Update current time every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Auto-scroll day view to current time on mount / view change
+  useEffect(() => {
+    if (view !== 'day' || !dayScrollRef.current) return
+    const CELL_HEIGHT = 72
+    const now = new Date()
+    const mins = now.getHours() * 60 + now.getMinutes()
+    const gridStartMins = 8 * 60
+    const topPx = ((mins - gridStartMins) / 60) * CELL_HEIGHT
+    dayScrollRef.current.scrollTo({ top: Math.max(0, topPx - 200), behavior: 'smooth' })
+  }, [view])
   
   // Build color map from treatment types
   const treatmentColors: Record<string, string> = {}
@@ -277,8 +297,14 @@ export default function CalendarPage() {
       return h * 60 + m
     }
 
+    // Current time indicator
+    const isToday = dateStr === todayStr
+    const nowMins = currentTime.getHours() * 60 + currentTime.getMinutes()
+    const gridStartMins = 8 * 60
+    const timeIndicatorTop = ((nowMins - gridStartMins) / 60) * CELL_HEIGHT
+
     return (
-      <div className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div ref={dayScrollRef} className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* Provider header row */}
         <div className="flex sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
           <div className="w-16 flex-shrink-0 border-r border-gray-100" />
@@ -314,6 +340,21 @@ export default function CalendarPage() {
 
         {/* Time grid */}
         <div className="relative flex" style={{ minHeight: `${CELL_HEIGHT * hours.length}px` }}>
+          {/* Current time indicator */}
+          {isToday && nowMins >= gridStartMins && nowMins <= gridStartMins + (hours.length * 60) && (
+            <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${timeIndicatorTop}px` }}>
+              <div className="flex items-center">
+                <div className="w-16 flex justify-end pr-1 flex-shrink-0">
+                  <span className="text-[10px] font-bold text-red-500 bg-white px-1 rounded leading-none">
+                    {String(currentTime.getHours()).padStart(2,'0')}:{String(currentTime.getMinutes()).padStart(2,'0')}
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-red-400 relative">
+                  <div className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-red-500" />
+                </div>
+              </div>
+            </div>
+          )}
           {/* Hour lines + labels */}
           <div className="w-16 flex-shrink-0 border-r border-gray-100 relative z-10">
             {hours.map(hour => (
