@@ -30,6 +30,19 @@ export default function AppointmentsPage() {
     receptionist: 'Office Manager',
     admin: 'Administrator',
   }
+  const roleBadge: Record<string, string> = {
+    veterinarian: 'badge-green',
+    senior_therapist: 'badge-blue',
+    assistant_therapist: 'badge-gray',
+    hydrotherapist: 'badge-purple',
+    marketing: 'badge-yellow',
+    office_manager: 'badge-pink',
+    administrator: 'badge-red',
+    vet: 'badge-green',
+    therapist: 'badge-blue',
+    receptionist: 'badge-pink',
+    admin: 'badge-red',
+  }
 
   const [appointments, setAppointments] = useState<any[]>([])
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -190,7 +203,7 @@ export default function AppointmentsPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{a.patient_name} <span className="text-gray-400">({a.species}{a.breed ? ` · ${a.breed}` : ''})</span></p>
                   <p className="text-xs text-gray-500">Owner: {a.client_name} · {a.client_phone}</p>
-                  <p className="text-xs text-gray-500">Provider: {a.therapist_name || 'Unassigned'}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5">Provider: <span>{a.therapist_name || 'Unassigned'}</span>{a.therapist_role ? <span className={roleBadge[a.therapist_role] || 'badge-gray'}>{roleLabel[a.therapist_role] || a.therapist_role}</span> : null}</p>
                 </div>
                 <span className={`badge ${modalityColor[a.modality] || 'bg-gray-100 text-gray-800'}`}>{a.modality}</span>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
@@ -267,7 +280,7 @@ export default function AppointmentsPage() {
               <label className="label">Provider</label>
               <select className="input" value={editing.therapist_id} onChange={e => setEditing({ ...editing, therapist_id: e.target.value })}>
                 <option value="">Select provider...</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}}
+                {staff.map(s => <option key={s.id} value={s.id}>{s.name} ({roleLabel[s.role] || s.role})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-3 gap-4">
