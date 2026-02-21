@@ -21,6 +21,49 @@ const GENDERS = [
 
 type Step = 1 | 2 | 3
 
+const STEPS = [
+  { n: 1, label: 'Your Info' },
+  { n: 2, label: "Pet's Info" },
+  { n: 3, label: 'Health & Vet' },
+]
+
+function ToggleButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${
+        active
+          ? 'bg-brand-pink text-white border-brand-pink'
+          : 'bg-white text-gray-700 border-gray-300 hover:border-brand-pink hover:text-brand-pink'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-base font-bold text-gray-900 border-b-2 border-brand-yellow pb-2 mb-4">
+      {children}
+    </h2>
+  )
+}
+
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label} {required && <span className="text-brand-pink">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-pink/40 focus:border-brand-pink transition-colors'
+
 export default function AppointmentPage() {
   const [step, setStep] = useState<Step>(1)
   const [submitted, setSubmitted] = useState(false)
@@ -66,13 +109,14 @@ export default function AppointmentPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-pink-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-500" />
+          <img src="/rehabvet-logo.jpg" alt="RehabVet" className="h-16 mx-auto mb-8 object-contain" />
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <CheckCircle className="w-10 h-10 text-brand-green" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Request Received!</h2>
-          <p className="text-gray-500 mb-2">Thank you for reaching out to RehabVet.</p>
+          <p className="text-gray-500 mb-1">Thank you for reaching out to RehabVet.</p>
           <p className="text-gray-500">Our team will be in touch shortly to confirm your appointment.</p>
         </div>
       </div>
@@ -80,25 +124,33 @@ export default function AppointmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-pink-50 py-10 px-4">
       <div className="max-w-xl mx-auto">
+
         {/* Header */}
         <div className="text-center mb-8">
-          <img src="/logo.webp" alt="RehabVet" className="h-12 mx-auto mb-4" onError={e => (e.currentTarget.style.display = 'none')} />
-          <h1 className="text-2xl font-bold text-gray-900">Make an Appointment</h1>
-          <p className="text-gray-500 text-sm mt-1">Restore Your Pet's Mobility</p>
+          <img src="/rehabvet-logo.jpg" alt="RehabVet" className="h-16 mx-auto mb-2 object-contain" />
+          <h1 className="text-2xl font-bold text-gray-900 mt-3">Make an Appointment</h1>
+          <p className="text-sm font-medium text-brand-pink mt-1">Proven steps to pain free mobility</p>
         </div>
 
-        {/* Progress */}
-        <div className="flex items-center gap-2 mb-8">
-          {[1, 2, 3].map(s => (
-            <div key={s} className="flex items-center flex-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${
-                step > s ? 'bg-green-500 text-white' : step === s ? 'bg-rose-500 text-white' : 'bg-gray-200 text-gray-400'
-              }`}>
-                {step > s ? '✓' : s}
+        {/* Progress bar */}
+        <div className="flex items-start gap-1 mb-8">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="flex items-center flex-1">
+              <div className="flex flex-col items-center gap-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all ${
+                  step > s.n ? 'bg-brand-green text-white' : step === s.n ? 'bg-brand-pink text-white' : 'bg-gray-200 text-gray-400'
+                }`}>
+                  {step > s.n ? '✓' : s.n}
+                </div>
+                <span className={`text-xs font-medium hidden sm:block transition-colors ${step === s.n ? 'text-brand-pink' : 'text-gray-400'}`}>
+                  {s.label}
+                </span>
               </div>
-              {s < 3 && <div className={`flex-1 h-1 mx-2 rounded transition-all ${step > s ? 'bg-green-400' : 'bg-gray-200'}`} />}
+              {i < 2 && (
+                <div className={`flex-1 h-1 mx-2 mb-4 rounded transition-all ${step > s.n ? 'bg-brand-green' : 'bg-gray-200'}`} />
+              )}
             </div>
           ))}
         </div>
@@ -107,36 +159,35 @@ export default function AppointmentPage() {
 
           {/* ─── STEP 1: Customer Information ─── */}
           {step === 1 && (
-            <div className="space-y-5">
-              <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">Customer Information</h2>
+            <div className="space-y-4">
+              <SectionTitle>Customer Information</SectionTitle>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-rose-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Jane" value={form.first_name} onChange={e => set('first_name', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name <span className="text-rose-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Smith" value={form.last_name} onChange={e => set('last_name', e.target.value)} />
-                </div>
+                <Field label="First Name" required>
+                  <input className={inputClass} placeholder="Jane" value={form.first_name} onChange={e => set('first_name', e.target.value)} />
+                </Field>
+                <Field label="Last Name" required>
+                  <input className={inputClass} placeholder="Smith" value={form.last_name} onChange={e => set('last_name', e.target.value)} />
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-rose-500">*</span></label>
-                <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="jane@email.com" value={form.owner_email} onChange={e => set('owner_email', e.target.value)} />
-              </div>
+              <Field label="Email" required>
+                <input type="email" className={inputClass} placeholder="jane@email.com" value={form.owner_email} onChange={e => set('owner_email', e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-rose-500">*</span></label>
-                <input type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="+65 9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
-              </div>
+              <Field label="Phone Number" required>
+                <input type="tel" className={inputClass} placeholder="+65 9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code <span className="text-rose-500">*</span></label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="123456" value={form.post_code} onChange={e => set('post_code', e.target.value)} />
-              </div>
+              <Field label="Postal Code" required>
+                <input className={inputClass} placeholder="123456" value={form.post_code} onChange={e => set('post_code', e.target.value)} />
+              </Field>
 
-              <button onClick={() => setStep(2)} disabled={!canNext1} className="w-full bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
+              <button
+                onClick={() => setStep(2)}
+                disabled={!canNext1}
+                className="w-full bg-brand-pink hover:bg-brand-pink-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2"
+              >
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -144,122 +195,101 @@ export default function AppointmentPage() {
 
           {/* ─── STEP 2: Pet's Information ─── */}
           {step === 2 && (
-            <div className="space-y-5">
-              <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">Pet's Information</h2>
+            <div className="space-y-4">
+              <SectionTitle>Pet's Information</SectionTitle>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name of Pet <span className="text-rose-500">*</span></label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Buddy" value={form.pet_name} onChange={e => set('pet_name', e.target.value)} />
-              </div>
+              <Field label="Name of Pet" required>
+                <input className={inputClass} placeholder="Buddy" value={form.pet_name} onChange={e => set('pet_name', e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Breed <span className="text-rose-500">*</span></label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Golden Retriever" value={form.breed} onChange={e => set('breed', e.target.value)} />
-              </div>
+              <Field label="Breed" required>
+                <input className={inputClass} placeholder="e.g. Golden Retriever" value={form.breed} onChange={e => set('breed', e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Age <span className="text-rose-500">*</span></label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g. 3 years" value={form.age} onChange={e => set('age', e.target.value)} />
-              </div>
+              <Field label="Age" required>
+                <input className={inputClass} placeholder="e.g. 3 years" value={form.age} onChange={e => set('age', e.target.value)} />
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gender <span className="text-rose-500">*</span></label>
+              <Field label="Gender" required>
                 <div className="grid grid-cols-2 gap-2">
                   {GENDERS.map(g => (
-                    <button key={g.id} type="button" onClick={() => set('pet_gender', g.id)}
-                      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${form.pet_gender === g.id ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-gray-700 border-gray-300 hover:border-rose-300'}`}>
+                    <ToggleButton key={g.id} active={form.pet_gender === g.id} onClick={() => set('pet_gender', g.id)}>
                       {g.label}
-                    </button>
+                    </ToggleButton>
                   ))}
                 </div>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Vet Friendly? <span className="text-rose-500">*</span></label>
+              <Field label="Vet Friendly?" required>
                 <div className="grid grid-cols-2 gap-2">
-                  {[{ val: true, label: 'Yes' }, { val: false, label: 'No (Aggressive)' }].map(o => (
-                    <button key={String(o.val)} type="button" onClick={() => set('vet_friendly', o.val)}
-                      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${form.vet_friendly === o.val ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-gray-700 border-gray-300 hover:border-rose-300'}`}>
-                      {o.label}
-                    </button>
-                  ))}
+                  <ToggleButton active={form.vet_friendly === true} onClick={() => set('vet_friendly', true)}>Yes</ToggleButton>
+                  <ToggleButton active={form.vet_friendly === false} onClick={() => set('vet_friendly', false)}>No (Aggressive)</ToggleButton>
                 </div>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Is Your Pet Reactive To Other Pets? <span className="text-rose-500">*</span></label>
+              <Field label="Is Your Pet Reactive To Other Pets?" required>
                 <div className="grid grid-cols-2 gap-2">
-                  {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(o => (
-                    <button key={String(o.val)} type="button" onClick={() => set('reactive_to_pets', o.val)}
-                      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${form.reactive_to_pets === o.val ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-gray-700 border-gray-300 hover:border-rose-300'}`}>
-                      {o.label}
-                    </button>
-                  ))}
+                  <ToggleButton active={form.reactive_to_pets === true} onClick={() => set('reactive_to_pets', true)}>Yes</ToggleButton>
+                  <ToggleButton active={form.reactive_to_pets === false} onClick={() => set('reactive_to_pets', false)}>No</ToggleButton>
                 </div>
-              </div>
+              </Field>
 
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setStep(1)} className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(3)} disabled={!canNext2} className="flex-1 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                <button onClick={() => setStep(3)} disabled={!canNext2} className="flex-1 bg-brand-pink hover:bg-brand-pink-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
                   Next <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* ─── STEP 3: Vet Info + Mobility + How Heard ─── */}
+          {/* ─── STEP 3 ─── */}
           {step === 3 && (
             <div className="space-y-6">
+
               {/* Veterinarian Information */}
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">Veterinarian Information</h2>
-                <p className="text-sm text-gray-500 -mt-2">Let us know who is your attending vet and clinic</p>
+                <SectionTitle>Veterinarian Information</SectionTitle>
+                <p className="text-sm text-gray-500 -mt-3">Let us know who is your attending vet and clinic</p>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name of Clinic(s) <span className="text-rose-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="e.g. Mount Pleasant Vet" value={form.clinic_name} onChange={e => set('clinic_name', e.target.value)} />
-                </div>
+                <Field label="Name of Clinic(s)" required>
+                  <input className={inputClass} placeholder="e.g. Mount Pleasant Vet" value={form.clinic_name} onChange={e => set('clinic_name', e.target.value)} />
+                </Field>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name of Attending Vet <span className="text-rose-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" placeholder="Dr. Lee" value={form.attending_vet} onChange={e => set('attending_vet', e.target.value)} />
-                </div>
+                <Field label="Name of Attending Vet" required>
+                  <input className={inputClass} placeholder="Dr. Lee" value={form.attending_vet} onChange={e => set('attending_vet', e.target.value)} />
+                </Field>
               </div>
 
               {/* Pet's Current Mobility Condition */}
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">Pet's Current Mobility Condition</h2>
+                <SectionTitle>Pet's Current Mobility Condition</SectionTitle>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Does your pet display symptoms of pain? <span className="text-rose-500">*</span></label>
+                <Field label="Does your pet display symptoms of pain?" required>
                   <div className="grid grid-cols-2 gap-2">
-                    {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(o => (
-                      <button key={String(o.val)} type="button" onClick={() => set('has_pain', o.val)}
-                        className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${form.has_pain === o.val ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-gray-700 border-gray-300 hover:border-rose-300'}`}>
-                        {o.label}
-                      </button>
-                    ))}
+                    <ToggleButton active={form.has_pain === true} onClick={() => set('has_pain', true)}>Yes</ToggleButton>
+                    <ToggleButton active={form.has_pain === false} onClick={() => set('has_pain', false)}>No</ToggleButton>
                   </div>
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">What is the current issue with your pet's mobility?</label>
-                  <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none" rows={4} placeholder="Please describe your pet's condition..." value={form.condition} onChange={e => set('condition', e.target.value)} />
-                </div>
+                <Field label="What is the current issue with your pet's mobility?">
+                  <textarea className={inputClass + ' resize-none'} rows={4} placeholder="Please describe your pet's condition…" value={form.condition} onChange={e => set('condition', e.target.value)} />
+                </Field>
               </div>
 
               {/* How did you find out */}
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">How did you find out about us?</h2>
-                <p className="text-sm text-gray-500 -mt-1">We are interested to know how you learned about us <span className="text-rose-500">*</span></p>
+                <SectionTitle>How did you find out about us?</SectionTitle>
+                <p className="text-sm text-gray-500 -mt-3">
+                  We are interested to know how you learned about us <span className="text-brand-pink">*</span>
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {HOW_HEARD.map(h => (
-                    <button key={h} type="button" onClick={() => set('how_heard', h)}
-                      className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-all text-left ${form.how_heard === h ? 'bg-rose-500 text-white border-rose-500' : 'bg-white text-gray-700 border-gray-300 hover:border-rose-300'}`}>
+                    <ToggleButton key={h} active={form.how_heard === h} onClick={() => set('how_heard', h)}>
                       {h}
-                    </button>
+                    </ToggleButton>
                   ))}
                 </div>
               </div>
@@ -270,7 +300,11 @@ export default function AppointmentPage() {
                 <button onClick={() => setStep(2)} className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={submit} disabled={!canSubmit || loading} className="flex-1 bg-rose-500 hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition">
+                <button
+                  onClick={submit}
+                  disabled={!canSubmit || loading}
+                  className="flex-1 bg-brand-green hover:bg-brand-green-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+                >
                   {loading ? 'Submitting…' : 'Submit Request'}
                 </button>
               </div>
