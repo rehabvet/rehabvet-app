@@ -7,10 +7,13 @@ datasource db {
 }
 
 enum UserRole {
+  // legacy
   admin
   vet
   therapist
   receptionist
+
+  // current role set
   veterinarian
   senior_therapist
   assistant_therapist
@@ -331,6 +334,41 @@ model documents {
 
   @@index([patient_id])
   @@map("documents")
+}
+
+model inventory_items {
+  id            String   @id @default(uuid()) @db.Uuid
+  sku           String?
+  name          String
+  category      String   @default("General")
+  brand         String?
+  cost_price    Float?
+  sell_price    Float?
+  markup_pct    Float?
+  stock_on_hand Int      @default(0)
+  stock_min     Int      @default(1)
+  stock_max     Int      @default(10)
+  unit          String   @default("each")
+  expiry_date   String?
+  is_active     Boolean  @default(true)
+  notes         String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  movements     stock_movements[]
+  @@map("inventory_items")
+}
+
+model stock_movements {
+  id          String   @id @default(uuid()) @db.Uuid
+  item_id     String   @db.Uuid
+  type        String   // in, out, adjustment, sale, return
+  quantity    Int
+  reference   String?
+  notes       String?
+  created_by  String?
+  created_at  DateTime @default(now())
+  item        inventory_items @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  @@map("stock_movements")
 }
 
 model clinic_settings {
