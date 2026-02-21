@@ -4,13 +4,13 @@ import { prisma } from '@/lib/prisma'
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const {
-    owner_name, owner_email, owner_phone, post_code, how_heard,
+    owner_name, owner_email, owner_phone, post_code, address, how_heard,
     pet_name, species, breed, age, weight, pet_gender, vet_friendly, reactive_to_pets,
     service, condition, has_pain, clinic_name, attending_vet,
     preferred_date, first_visit, notes
   } = body
 
-  if (!owner_name || !owner_email || !owner_phone || !pet_name || !species) {
+  if (!owner_name || !owner_email || !owner_phone || !pet_name) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       owner_name, owner_email, owner_phone,
       post_code: post_code || null,
       how_heard: how_heard || null,
-      pet_name, species,
+      pet_name, species: species || 'Unknown',
       breed: breed || null,
       age: age || null,
       weight: weight || null,
