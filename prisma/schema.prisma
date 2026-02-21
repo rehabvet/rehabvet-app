@@ -433,9 +433,24 @@ model treatment_types {
   created_at          DateTime @default(now())
 
   client_packages  client_packages[]
+  service_pricing  service_pricing[]
 
   @@index([category])
   @@map("treatment_types")
+}
+
+model service_pricing {
+  id         String          @id @default(uuid()) @db.Uuid
+  service_id String          @db.Uuid
+  label      String
+  sessions   Int             @default(1)
+  price      Float
+  created_at DateTime        @default(now())
+
+  service    treatment_types @relation(fields: [service_id], references: [id])
+
+  @@index([service_id])
+  @@map("service_pricing")
 }
 
 model client_packages {
