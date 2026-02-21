@@ -76,7 +76,7 @@ export default function ThankYouPage() {
               className="flex items-center justify-center gap-2 bg-[#EC6496] hover:bg-[#c94878] text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors">
               <Phone className="w-4 h-4" /> Call 6291 6881
             </a>
-            <a href="https://wa.me/6562916881" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/6587987554" target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors">
               <MessageCircle className="w-4 h-4" /> WhatsApp Us
             </a>
