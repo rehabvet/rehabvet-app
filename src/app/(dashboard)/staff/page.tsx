@@ -319,34 +319,6 @@ export default function StaffPage() {
       <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Staff Profile">
         {showEdit && (
           <form onSubmit={handleEdit} className="space-y-4">
-            <div>
-              <label className="label">Full Name *</label>
-              <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Email *</label>
-                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required />
-              </div>
-              <div>
-                <label className="label">Phone</label>
-                <PhoneInput value={editForm.phone} onChange={v => setEditForm({ ...editForm, phone: v })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Role *</label>
-                <select className="input" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
-                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-              <div className="flex items-end">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                  <input type="checkbox" checked={editForm.active} onChange={e => setEditForm({ ...editForm, active: e.target.checked })} />
-                  Active account
-                </label>
-              </div>
-            </div>
             <div className="flex flex-col items-center gap-2">
               {editForm.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -375,6 +347,34 @@ export default function StaffPage() {
                   Remove photo
                 </button>
               )}
+            </div>
+            <div>
+              <label className="label">Full Name *</label>
+              <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Email *</label>
+                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required />
+              </div>
+              <div>
+                <label className="label">Phone</label>
+                <PhoneInput value={editForm.phone} onChange={v => setEditForm({ ...editForm, phone: v })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Role *</label>
+                <select className="input" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={editForm.active} onChange={e => setEditForm({ ...editForm, active: e.target.checked })} />
+                  Active account
+                </label>
+              </div>
             </div>
             <div>
               <label className="label">Specializations</label>
