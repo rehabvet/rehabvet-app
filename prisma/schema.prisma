@@ -336,6 +336,37 @@ model documents {
   @@map("documents")
 }
 
+model leads {
+  id              String    @id @default(uuid()) @db.Uuid
+  // Owner info
+  owner_name      String
+  owner_email     String
+  owner_phone     String
+  how_heard       String?
+  // Pet info
+  pet_name        String
+  species         String
+  breed           String?
+  age             String?
+  weight          String?
+  // Visit info
+  service         String?
+  condition       String?
+  preferred_date  String?
+  first_visit     Boolean   @default(true)
+  notes           String?
+  // Pipeline
+  status          String    @default("new")
+  staff_notes     String?
+  // Conversion
+  converted_client_id      String?   @db.Uuid
+  converted_patient_id     String?   @db.Uuid
+  converted_appointment_id String?   @db.Uuid
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+}
+
 model inventory_items {
   id            String   @id @default(uuid()) @db.Uuid
   sku           String?
