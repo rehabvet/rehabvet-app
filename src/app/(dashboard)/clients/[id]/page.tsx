@@ -6,6 +6,24 @@ import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, Edit2, Save, X } from 'lucide-react'
 import AddressInput from '@/components/AddressInput'
 
+function splitAddress(full?: string) {
+  const out = { block: '', street: '', unit: '', building: '', postalCode: '' }
+  if (!full) return out
+  const parts = full.split(',').map(p => p.trim()).filter(Boolean)
+  const postal = parts.find(p => /(?:Singapore\s+)?\d{6}$/i.test(p))
+  if (postal) {
+    const m = postal.match(/(\d{6})$/)
+    if (m) out.postalCode = m[1]
+  }
+  const unit = parts.find(p => /^#/.test(p))
+  if (unit) out.unit = unit.replace(/^#/, '')
+  const normal = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
+  out.block = normal[0] || ''
+  out.street = normal[1] || ''
+  out.building = normal[2] || ''
+  return out
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -33,6 +51,7 @@ export default function ClientDetailPage() {
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
 
   const { client, patients, invoices } = data
+  const addr = splitAddress(client.address)
 
   return (
     <div className="space-y-6">
@@ -76,9 +95,18 @@ export default function ClientDetailPage() {
             </>
           ) : (
             <>
-              {client.phone && <div className="flex items-center gap-2 text-sm text-gray-600"><Phone className="w-4 h-4 text-gray-400" />{client.phone}</div>}
-              {client.email && <div className="flex items-center gap-2 text-sm text-gray-600"><Mail className="w-4 h-4 text-gray-400" />{client.email}</div>}
-              {client.address && <div className="flex items-center gap-2 text-sm text-gray-600"><MapPin className="w-4 h-4 text-gray-400" />{client.address}</div>}
+              <div className="flex items-center gap-2 text-sm text-gray-600"><Phone className="w-4 h-4 text-gray-400" />{client.phone || '—'}</div>
+              <div className="flex items-center gap-2 text-sm text-gray-600"><Mail className="w-4 h-4 text-gray-400" />{client.email || '—'}</div>
+              <div className="sm:col-span-3 rounded-lg border border-gray-100 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2"><MapPin className="w-4 h-4 text-gray-400" />Address</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                  <div><span className="text-gray-400">Block:</span> {addr.block || '—'}</div>
+                  <div><span className="text-gray-400">Street:</span> {addr.street || '—'}</div>
+                  <div><span className="text-gray-400">Unit:</span> {addr.unit || '—'}</div>
+                  <div><span className="text-gray-400">Building:</span> {addr.building || '—'}</div>
+                  <div className="sm:col-span-2"><span className="text-gray-400">Postal Code:</span> {addr.postalCode || '—'}</div>
+                </div>
+              </div>
             </>
           )}
         </div>
