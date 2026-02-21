@@ -342,6 +342,7 @@ model leads {
   owner_name      String
   owner_email     String
   owner_phone     String
+  post_code       String?
   how_heard       String?
   // Pet info
   pet_name        String
@@ -349,9 +350,15 @@ model leads {
   breed           String?
   age             String?
   weight          String?
+  pet_gender      String?
+  vet_friendly    Boolean?
+  reactive_to_pets Boolean?
   // Visit info
   service         String?
   condition       String?
+  has_pain        Boolean?
+  clinic_name     String?
+  attending_vet   String?
   preferred_date  String?
   first_visit     Boolean   @default(true)
   notes           String?

@@ -14,11 +14,18 @@ const SERVICES = [
 ]
 
 const HOW_HEARD = [
-  'Google Search', 'Instagram', 'Facebook', 'Friend / Word of Mouth',
-  'Veterinarian Referral', 'Blog / Article', 'Walk-in', 'Other',
+  'Google Search', 'Instagram', 'Facebook', 'Friend or Family',
+  'Vet or clinic referred', 'Events and Expo', 'Other',
 ]
 
 const SPECIES = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Reptile', 'Other']
+
+const GENDERS = [
+  { id: 'Male', label: 'Male' },
+  { id: 'Female', label: 'Female' },
+  { id: 'Male Neutered', label: 'Male (Neutered)' },
+  { id: 'Female Neutered', label: 'Female (Neutered)' },
+]
 
 type Step = 1 | 2 | 3
 
@@ -31,10 +38,13 @@ export default function AppointmentPage() {
   const [form, setForm] = useState({
     // Pet
     pet_name: '', species: '', breed: '', age: '', weight: '',
+    pet_gender: '', vet_friendly: null as boolean | null, reactive_to_pets: null as boolean | null,
     // Owner
-    owner_name: '', owner_email: '', owner_phone: '', how_heard: '',
+    owner_name: '', owner_email: '', owner_phone: '', post_code: '', how_heard: '',
     // Visit
-    service: '', condition: '', preferred_date: '', first_visit: true, notes: '',
+    service: '', condition: '', has_pain: null as boolean | null,
+    clinic_name: '', attending_vet: '',
+    preferred_date: '', first_visit: true, notes: '',
   })
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
@@ -223,8 +233,44 @@ export default function AppointmentPage() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {GENDERS.map(g => (
+                        <button key={g.id} onClick={() => set('pet_gender', g.id)}
+                          className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all text-left ${form.pet_gender === g.id ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Weight (optional)</label>
                     <input className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. 12 kg" value={form.weight} onChange={e => set('weight', e.target.value)} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Is your pet vet-friendly?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: true, l: 'Yes' }, { v: false, l: 'No / Nervous' }].map(({ v, l }) => (
+                        <button key={l} onClick={() => set('vet_friendly', v)}
+                          className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${form.vet_friendly === v ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Is your pet reactive to other animals?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => (
+                        <button key={l} onClick={() => set('reactive_to_pets', v)}
+                          className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${form.reactive_to_pets === v ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <button onClick={() => setStep(2)} disabled={!canNext1}
@@ -252,9 +298,15 @@ export default function AppointmentPage() {
                     <input type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="sarah@email.com" value={form.owner_email} onChange={e => set('owner_email', e.target.value)} />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number <span className="text-rose-500">*</span></label>
-                    <input type="tel" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. 9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number <span className="text-rose-500">*</span></label>
+                      <input type="tel" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. 9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                      <input className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. 218154" value={form.post_code} onChange={e => set('post_code', e.target.value)} />
+                    </div>
                   </div>
 
                   <div>
@@ -303,8 +355,31 @@ export default function AppointmentPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">What condition or concern are you seeing?</label>
-                    <textarea rows={3} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900 resize-none" placeholder="e.g. My dog has been limping after a surgery and can't put weight on his back leg..." value={form.condition} onChange={e => set('condition', e.target.value)} />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Does your pet display symptoms of pain?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: true, l: 'Yes' }, { v: false, l: 'No / Not sure' }].map(({ v, l }) => (
+                        <button key={l} onClick={() => set('has_pain', v)}
+                          className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${form.has_pain === v ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">What is the current issue with your pet's mobility?</label>
+                    <textarea rows={3} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900 resize-none" placeholder="e.g. My dog has been limping after surgery and can't put weight on his back leg..." value={form.condition} onChange={e => set('condition', e.target.value)} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Name of Vet Clinic(s)</label>
+                      <input className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. Mount Pleasant" value={form.clinic_name} onChange={e => set('clinic_name', e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Name of Attending Vet</label>
+                      <input className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition text-gray-900" placeholder="e.g. Dr Sarah Wong" value={form.attending_vet} onChange={e => set('attending_vet', e.target.value)} />
+                    </div>
                   </div>
 
                   <div>
