@@ -31,9 +31,9 @@ const COLOR_OPTIONS = [
   { value: 'bg-pink-500', label: 'Dark Pink', preview: 'bg-pink-500' },
 ]
 
-const CATEGORIES = ['Uncategorized', 'Pet Rehabilitation', 'Other Services', 'Consultation & Assessment']
+const CATEGORIES = ['Consultation & Assessment', 'Pet Rehabilitation', 'Hydrotherapy', 'Hyperbaric Oxygen Treatment', 'Other Services', 'Uncategorized']
 
-const EMPTY_FORM = { name: '', description: '', category: 'Pet Rehabilitation', duration: 60, price: '', color: 'bg-cyan-500' }
+const EMPTY_FORM = { name: '', description: '', category: 'Pet Rehabilitation', duration: 60, price: '', sessions_in_package: '', color: 'bg-cyan-500' }
 
 export default function ServicesPage() {
   const [types, setTypes] = useState<any[]>([])
@@ -83,6 +83,7 @@ export default function ServicesPage() {
         description: showEdit.description,
         category: showEdit.category,
         duration: showEdit.duration,
+        sessions_in_package: showEdit.sessions_in_package || null,
         price: showEdit.price,
         color: showEdit.color,
       })
@@ -183,6 +184,7 @@ export default function ServicesPage() {
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 hidden sm:table-cell">Description</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-20">Sessions</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price</th>
                             <th className="w-20"></th>
                           </tr>
@@ -199,8 +201,15 @@ export default function ServicesPage() {
                               </td>
                               <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                                 <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> {formatDuration(t.duration)}
+                                  <Clock className="w-3 h-3" /> {t.duration > 0 ? formatDuration(t.duration) : '—'}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                {t.sessions_in_package ? (
+                                  <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t.sessions_in_package}x pack</span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
                               </td>
                               <td className="px-4 py-3">
                                 {t.price != null ? (
@@ -257,10 +266,15 @@ export default function ServicesPage() {
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="label">Duration (minutes) *</label>
-              <input type="number" className="input" min="5" step="5" value={form.duration} onChange={e => setForm({...form, duration: parseInt(e.target.value)})} required />
+              <label className="label">Duration (mins)</label>
+              <input type="number" className="input" min="0" step="5" value={form.duration} onChange={e => setForm({...form, duration: parseInt(e.target.value) || 0})} />
+            </div>
+            <div>
+              <label className="label">Package Sessions</label>
+              <input type="number" className="input" min="1" placeholder="e.g. 10" value={form.sessions_in_package} onChange={e => setForm({...form, sessions_in_package: e.target.value})} />
+              <p className="text-xs text-gray-400 mt-1">Leave blank for single sessions</p>
             </div>
             <div>
               <label className="label">Price (S$)</label>
@@ -306,10 +320,15 @@ export default function ServicesPage() {
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="label">Duration (minutes) *</label>
-                <input type="number" className="input" min="5" step="5" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)})} required />
+                <label className="label">Duration (mins)</label>
+                <input type="number" className="input" min="0" step="5" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value) || 0})} />
+              </div>
+              <div>
+                <label className="label">Package Sessions</label>
+                <input type="number" className="input" min="1" placeholder="e.g. 10" value={showEdit.sessions_in_package ?? ''} onChange={e => setShowEdit({...showEdit, sessions_in_package: e.target.value || null})} />
+                <p className="text-xs text-gray-400 mt-1">Blank = single session</p>
               </div>
               <div>
                 <label className="label">Price (S$)</label>

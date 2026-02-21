@@ -106,9 +106,10 @@ model clients {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  patients      patients[]
-  invoices      invoices[]
-  appointments  appointments[]
+  patients         patients[]
+  invoices         invoices[]
+  appointments     appointments[]
+  client_packages  client_packages[]
 
   @@index([name])
   @@index([phone])
@@ -134,12 +135,13 @@ model patients {
   updated_at      DateTime    @updatedAt
 
   // Relations
-  client          clients     @relation(fields: [client_id], references: [id])
-  treatment_plans treatment_plans[]
-  appointments    appointments[]
-  sessions        sessions[]
-  invoices        invoices[]
-  documents       documents[]
+  client           clients     @relation(fields: [client_id], references: [id])
+  treatment_plans  treatment_plans[]
+  appointments     appointments[]
+  sessions         sessions[]
+  invoices         invoices[]
+  documents        documents[]
+  client_packages  client_packages[]
 
   @@index([client_id])
   @@index([name])
@@ -418,17 +420,58 @@ model clinic_settings {
 }
 
 model treatment_types {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  category    String
-  description String?
-  duration    Int      @default(60)
-  price       Float?
-  color       String?  @default("bg-gray-400")
-  active      Boolean  @default(true)
-  sort_order  Int      @default(0)
-  created_at  DateTime @default(now())
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String   @unique
+  category            String
+  description         String?
+  duration            Int      @default(60)
+  price               Float?
+  sessions_in_package Int?
+  color               String?  @default("bg-gray-400")
+  active              Boolean  @default(true)
+  sort_order          Int      @default(0)
+  created_at          DateTime @default(now())
+
+  client_packages  client_packages[]
 
   @@index([category])
   @@map("treatment_types")
+}
+
+model client_packages {
+  id                String   @id @default(uuid()) @db.Uuid
+  client_id         String   @db.Uuid
+  patient_id        String?  @db.Uuid
+  treatment_type_id String   @db.Uuid
+  sessions_total    Int
+  sessions_used     Int      @default(0)
+  purchase_date     String
+  expiry_date       String?
+  price_paid        Float?
+  notes             String?
+  status            String   @default("active")
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  client         clients         @relation(fields: [client_id], references: [id])
+  patient        patients?       @relation(fields: [patient_id], references: [id])
+  treatment_type treatment_types @relation(fields: [treatment_type_id], references: [id])
+  usage_logs     package_usage_logs[]
+
+  @@index([client_id])
+  @@index([status])
+  @@map("client_packages")
+}
+
+model package_usage_logs {
+  id             String   @id @default(uuid()) @db.Uuid
+  package_id     String   @db.Uuid
+  appointment_id String?  @db.Uuid
+  used_date      String
+  notes          String?
+  created_at     DateTime @default(now())
+
+  package client_packages @relation(fields: [package_id], references: [id])
+
+  @@map("package_usage_logs")
 }

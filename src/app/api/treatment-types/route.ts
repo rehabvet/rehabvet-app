@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
-  const { name, category, description, duration, price, color } = body
+  const { name, category, description, duration, price, sessions_in_package, color } = body
   if (!name || !category) return NextResponse.json({ error: 'Name and category required' }, { status: 400 })
 
   const existing = await prisma.treatment_types.findUnique({ where: { name } })
@@ -46,8 +46,9 @@ export async function POST(req: NextRequest) {
       name,
       category,
       description: description || null,
-      duration: duration || 60,
+      duration: duration !== undefined ? parseInt(duration) : 60,
       price: price !== undefined && price !== '' ? parseFloat(price) : null,
+      sessions_in_package: sessions_in_package ? parseInt(sessions_in_package) : null,
       color: color || 'bg-gray-400',
       sort_order,
     },
