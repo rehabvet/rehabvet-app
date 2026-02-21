@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Package, Search, AlertTriangle, TrendingUp, Boxes, Plus, Edit2, PlusCircle, Trash2, X, ChevronDown } from 'lucide-react'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 
 interface Product {
   id: string
@@ -76,6 +77,9 @@ export default function InventoryPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, totalOnHand: 0, lowStockCount: 0, totalValue: 0 })
   const [categories, setCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -92,23 +96,28 @@ export default function InventoryPage() {
 
   const [deleteItem, setDeleteItem] = useState<Product | null>(null)
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(async (p = page) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (filterCategory) params.set('category', filterCategory)
       if (lowStockOnly) params.set('low_stock', 'true')
+      params.set('page', String(p))
+      params.set('limit', String(PAGE_SIZE))
 
       const res = await fetch(`/api/inventory?${params}`)
       const data = await res.json()
       setItems(data.items || [])
+      setTotal(data.total || 0)
       setStats(data.stats || { total: 0, totalOnHand: 0, lowStockCount: 0, totalValue: 0 })
       setCategories(data.categories || [])
     } finally {
       setLoading(false)
     }
-  }, [search, filterCategory, lowStockOnly])
+  }, [search, filterCategory, lowStockOnly, page])
+
+  useEffect(() => { setPage(1) }, [search, filterCategory, lowStockOnly])
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
@@ -398,11 +407,7 @@ export default function InventoryPage() {
             </table>
           </div>
         )}
-        {!loading && items.length > 0 && (
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-            Showing {items.length} of {stats.total} products
-          </div>
-        )}
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => { setPage(p); fetchItems(p) }} />
       </div>
 
       {/* Add / Edit Modal */}

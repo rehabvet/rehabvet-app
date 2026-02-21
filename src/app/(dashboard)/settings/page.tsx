@@ -1,20 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, Building2, Clock, Calendar, DollarSign, Bell, Sliders } from 'lucide-react'
+import { Save, Building2, Clock, Calendar, DollarSign, Bell, Sliders, Stethoscope, Check } from 'lucide-react'
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as const
 const DAY_LABELS: Record<string, string> = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' }
 
-type Section = 'clinic' | 'hours' | 'appointments' | 'billing' | 'reminders' | 'system'
+type Section = 'clinic' | 'hours' | 'appointments' | 'billing' | 'reminders' | 'system' | 'service_pricing'
 
 const SECTIONS: { key: Section; label: string; icon: any }[] = [
-  { key: 'clinic',       label: 'Clinic Profile',     icon: Building2 },
-  { key: 'hours',        label: 'Business Hours',      icon: Clock },
-  { key: 'appointments', label: 'Appointments',        icon: Calendar },
-  { key: 'billing',      label: 'Billing & Payments',  icon: DollarSign },
-  { key: 'reminders',    label: 'Reminders',           icon: Bell },
-  { key: 'system',       label: 'System',              icon: Sliders },
+  { key: 'clinic',          label: 'Clinic Profile',     icon: Building2 },
+  { key: 'hours',           label: 'Business Hours',     icon: Clock },
+  { key: 'appointments',    label: 'Appointments',       icon: Calendar },
+  { key: 'billing',         label: 'Billing & Payments', icon: DollarSign },
+  { key: 'reminders',       label: 'Reminders',          icon: Bell },
+  { key: 'system',          label: 'System',             icon: Sliders },
+  { key: 'service_pricing', label: 'Service Pricing',    icon: Stethoscope },
 ]
 
 export default function SettingsPage() {
@@ -23,9 +24,54 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // Service Pricing state
+  const [services, setServices] = useState<any[]>([])
+  const [pricingEdits, setPricingEdits] = useState<Record<string, { price: string; sessions_in_package: string }>>({})
+  const [savingPricing, setSavingPricing] = useState<string | null>(null)
+  const [savedPricing, setSavedPricing] = useState<string | null>(null)
+
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => setSettings(d.settings))
   }, [])
+
+  useEffect(() => {
+    if (active === 'service_pricing' && services.length === 0) {
+      fetch('/api/treatment-types').then(r => r.json()).then(d => {
+        const all = d.types || []
+        setServices(all)
+        const edits: Record<string, { price: string; sessions_in_package: string }> = {}
+        all.forEach((s: any) => {
+          edits[s.id] = {
+            price: s.price != null ? String(s.price) : '',
+            sessions_in_package: s.sessions_in_package != null ? String(s.sessions_in_package) : '',
+          }
+        })
+        setPricingEdits(edits)
+      })
+    }
+  }, [active])
+
+  async function savePricing(id: string) {
+    setSavingPricing(id)
+    const svc = services.find(s => s.id === id)
+    const { price, sessions_in_package } = pricingEdits[id] || {}
+    await fetch(`/api/treatment-types/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: svc.name,
+        category: svc.category,
+        description: svc.description,
+        duration: svc.duration,
+        color: svc.color,
+        price: price !== '' ? parseFloat(price) : null,
+        sessions_in_package: sessions_in_package !== '' ? parseInt(sessions_in_package) : null,
+      }),
+    })
+    setSavingPricing(null)
+    setSavedPricing(id)
+    setTimeout(() => setSavedPricing(null), 2000)
+  }
 
   function set(section: string, key: string, val: any) {
     setSettings((s: any) => ({ ...s, [section]: { ...s[section], [key]: val } }))
@@ -54,10 +100,12 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-500 text-sm">Manage your clinic configuration</p>
         </div>
-        <button onClick={save} disabled={saving} className="btn-primary flex items-center gap-2">
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
-        </button>
+        {active !== 'service_pricing' && (
+          <button onClick={save} disabled={saving} className="btn-primary flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -288,6 +336,102 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
+            </>
+          )}
+
+          {/* Service Pricing */}
+          {active === 'service_pricing' && (
+            <>
+              <h2 className="text-base font-semibold text-gray-900">Service Pricing</h2>
+              <p className="text-sm text-gray-500 -mt-4">Set the price and package configuration for each service.</p>
+
+              {services.length === 0 ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Group by category */}
+                  {Array.from(new Set(services.map(s => s.category))).sort().map(cat => (
+                    <div key={cat}>
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{cat}</h3>
+                      <div className="border border-gray-200 rounded-xl overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-4"></th>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service</th>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-32">Duration</th>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-36">Price per Session</th>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Sessions / Pack</th>
+                              <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-32">Pack Total</th>
+                              <th className="w-20"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {services.filter(s => s.category === cat).map(s => {
+                              const ed = pricingEdits[s.id] || { price: '', sessions_in_package: '' }
+                              const priceNum = parseFloat(ed.price) || 0
+                              const sessions = parseInt(ed.sessions_in_package) || 0
+                              const packTotal = priceNum > 0 && sessions > 0 ? priceNum * sessions : null
+                              const isSaving = savingPricing === s.id
+                              const isSaved  = savedPricing === s.id
+                              return (
+                                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <div className={`w-3 h-3 rounded-full ${s.color}`} />
+                                  </td>
+                                  <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
+                                  <td className="px-4 py-3 text-gray-500 text-xs">
+                                    {s.duration > 0 ? `${s.duration} min` : '—'}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="relative">
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">S$</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        className="input pl-8 py-1.5 text-sm w-full"
+                                        value={ed.price}
+                                        onChange={e => setPricingEdits(prev => ({ ...prev, [s.id]: { ...prev[s.id], price: e.target.value } }))}
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      placeholder="—"
+                                      className="input py-1.5 text-sm w-full"
+                                      value={ed.sessions_in_package}
+                                      onChange={e => setPricingEdits(prev => ({ ...prev, [s.id]: { ...prev[s.id], sessions_in_package: e.target.value } }))}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                    {packTotal != null ? `S$${packTotal.toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={() => savePricing(s.id)}
+                                      disabled={isSaving}
+                                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${isSaved ? 'bg-green-100 text-green-700' : 'bg-brand-pink/10 text-brand-pink hover:bg-brand-pink hover:text-white'}`}
+                                    >
+                                      {isSaving ? '…' : isSaved ? <span className="flex items-center gap-1"><Check className="w-3 h-3"/>Saved</span> : 'Save'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 

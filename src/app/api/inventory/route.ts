@@ -23,27 +23,35 @@ export async function GET(req: NextRequest) {
     where.category = category
   }
 
-  const items = await prisma.inventory_items.findMany({
-    where,
-    orderBy: [{ category: 'asc' }, { name: 'asc' }],
-  })
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
+  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
 
-  // Filter low stock after query (stock_on_hand <= stock_min)
+  const [allItems, allActive] = await Promise.all([
+    prisma.inventory_items.findMany({ where, orderBy: [{ category: 'asc' }, { name: 'asc' }] }),
+    prisma.inventory_items.findMany({ where: { is_active: true } }),
+  ])
+
+  // Filter low stock in-memory (cross-column comparison not supported by Prisma)
   const filtered = lowStock
-    ? items.filter((i: any) => i.stock_on_hand <= i.stock_min)
-    : items
+    ? allItems.filter((i: any) => i.stock_on_hand <= i.stock_min)
+    : allItems
 
-  // Aggregate stats
-  const allActive = await prisma.inventory_items.findMany({ where: { is_active: true } })
+  // Paginate the filtered set
+  const total = filtered.length
+  const items = filtered.slice((page - 1) * limit, page * limit)
+
+  // Aggregate stats (always over full active set)
   const totalValue = allActive.reduce((sum: number, i: any) => sum + (i.stock_on_hand * (i.cost_price || 0)), 0)
   const totalOnHand = allActive.reduce((sum: number, i: any) => sum + i.stock_on_hand, 0)
   const lowStockCount = allActive.filter((i: any) => i.stock_on_hand <= i.stock_min).length
 
-  // Get distinct categories
   const categories = Array.from(new Set(allActive.map((i: any) => i.category))).sort()
 
   return NextResponse.json({
-    items: filtered,
+    items,
+    total,
+    page,
+    limit,
     stats: {
       total: allActive.length,
       totalOnHand,

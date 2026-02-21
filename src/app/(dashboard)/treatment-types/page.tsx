@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Clock, DollarSign, Tag } from 'lucide-react'
+import { Plus, Pencil, Trash2, Clock, Tag } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 const COLOR_OPTIONS = [
@@ -112,49 +112,17 @@ export default function ServicesPage() {
   }
 
   const totalServices = types.length
-  const pricedServices = types.filter(t => t.price != null).length
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Services & Pricing</h1>
-          <p className="text-gray-500 text-sm">Manage services, durations, pricing and calendar colours</p>
+          <h1 className="text-2xl font-bold text-gray-900">Services</h1>
+          <p className="text-gray-500 text-sm">{totalServices} services · Manage types, durations and calendar colours</p>
         </div>
         <button onClick={() => { setForm({ ...EMPTY_FORM }); setShowAdd(true) }} className="btn-primary text-sm">
           <Plus className="w-4 h-4 mr-1" /> Add Service
         </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <div className="card py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Tag className="w-5 h-5 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{totalServices}</p>
-            <p className="text-xs text-gray-500">Active Services</p>
-          </div>
-        </div>
-        <div className="card py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <DollarSign className="w-5 h-5 text-green-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{pricedServices}</p>
-            <p className="text-xs text-gray-500">With Pricing Set</p>
-          </div>
-        </div>
-        <div className="card py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Clock className="w-5 h-5 text-orange-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{totalServices - pricedServices}</p>
-            <p className="text-xs text-gray-500">Pricing Pending</p>
-          </div>
-        </div>
       </div>
 
       {/* Services by Category */}
@@ -184,8 +152,6 @@ export default function ServicesPage() {
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 hidden sm:table-cell">Description</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
-                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-20">Sessions</th>
-                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price</th>
                             <th className="w-20"></th>
                           </tr>
                         </thead>
@@ -203,20 +169,6 @@ export default function ServicesPage() {
                                 <span className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" /> {t.duration > 0 ? formatDuration(t.duration) : '—'}
                                 </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                {t.sessions_in_package ? (
-                                  <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t.sessions_in_package}x pack</span>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                {t.price != null ? (
-                                  <span className="font-semibold text-gray-800">S${t.price.toFixed(2)}</span>
-                                ) : (
-                                  <span className="text-xs text-orange-400 bg-orange-50 px-2 py-0.5 rounded-full">Not set</span>
-                                )}
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center justify-end gap-1">
