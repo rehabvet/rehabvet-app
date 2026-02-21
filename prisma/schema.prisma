@@ -333,6 +333,14 @@ model documents {
   @@map("documents")
 }
 
+model clinic_settings {
+  id         String   @id @default("default")
+  data       String   // JSON string of all settings
+  updated_at DateTime @updatedAt
+
+  @@map("clinic_settings")
+}
+
 model treatment_types {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique

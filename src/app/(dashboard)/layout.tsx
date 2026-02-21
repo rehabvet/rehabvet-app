@@ -14,17 +14,18 @@ interface User {
 }
 
 const nav = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'vet', 'therapist', 'receptionist'] },
-  { href: '/calendar', label: 'Calendar', icon: Calendar, roles: ['admin', 'vet', 'therapist', 'receptionist'] },
-  { href: '/appointments', label: 'Appointments', icon: ClipboardList, roles: ['admin', 'vet', 'therapist', 'receptionist'] },
-  { href: '/clients', label: 'Clients', icon: Users, roles: ['admin', 'vet', 'therapist', 'receptionist'] },
-  { href: '/patients', label: 'Patients', icon: PawPrint, roles: ['admin', 'vet', 'therapist', 'receptionist'] },
-  { href: '/treatment-plans', label: 'Treatment Plans', icon: Stethoscope, roles: ['admin', 'vet', 'therapist'] },
-  { href: '/sessions', label: 'Sessions', icon: FileText, roles: ['admin', 'vet', 'therapist'] },
-  { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'receptionist'] },
-  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet'] },
-  { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin'] },
-  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
+  { href: '/calendar', label: 'Calendar', icon: Calendar, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
+  { href: '/appointments', label: 'Appointments', icon: ClipboardList, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
+  { href: '/clients', label: 'Clients', icon: Users, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
+  { href: '/patients', label: 'Patients', icon: PawPrint, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
+  { href: '/treatment-plans', label: 'Treatment Plans', icon: Stethoscope, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
+  { href: '/sessions', label: 'Sessions', icon: FileText, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
+  { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
+  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet', 'administrator', 'office_manager', 'veterinarian'] },
+  { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
+  { href: '/treatment-types', label: 'Treatment Types', icon: Stethoscope, roles: ['admin', 'administrator', 'office_manager'] },
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin', 'administrator', 'office_manager'] },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -52,30 +53,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 
-  const roleMap: Record<string, 'admin' | 'vet' | 'therapist' | 'receptionist'> = {
-    administrator: 'admin',
-    office_manager: 'admin',
-    marketing: 'admin',
-    veterinarian: 'vet',
-    senior_therapist: 'therapist',
-    assistant_therapist: 'therapist',
-    hydrotherapist: 'therapist',
-  }
-  const effectiveRole = user ? (roleMap[user.role] || user.role) : ''
-  const filteredNav = nav.filter(n => user && n.roles.includes(effectiveRole))
+  const filteredNav = nav.filter(n => user && n.roles.includes(user.role))
 
   const roleLabel: Record<string, string> = {
     admin: 'Administrator',
     vet: 'Veterinarian',
     therapist: 'Senior Therapist',
-    receptionist: 'Receptionist',
-    administrator: 'Administrator',
-    office_manager: 'Office Manager',
+    receptionist: 'Office Manager',
     veterinarian: 'Veterinarian',
     senior_therapist: 'Senior Therapist',
     assistant_therapist: 'Assistant Therapist',
     hydrotherapist: 'Hydrotherapist',
     marketing: 'Marketing',
+    office_manager: 'Office Manager',
+    administrator: 'Administrator',
   }
 
   return (

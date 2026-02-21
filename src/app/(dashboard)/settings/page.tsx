@@ -1,271 +1,298 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Clock } from 'lucide-react'
-import Modal from '@/components/Modal'
+import { Save, Building2, Clock, Calendar, DollarSign, Bell, Sliders } from 'lucide-react'
 
-const COLOR_OPTIONS = [
-  { value: 'bg-gray-400', label: 'Gray', preview: 'bg-gray-400' },
-  { value: 'bg-gray-500', label: 'Dark Gray', preview: 'bg-gray-500' },
-  { value: 'bg-red-400', label: 'Red', preview: 'bg-red-400' },
-  { value: 'bg-red-500', label: 'Dark Red', preview: 'bg-red-500' },
-  { value: 'bg-orange-400', label: 'Orange', preview: 'bg-orange-400' },
-  { value: 'bg-orange-500', label: 'Dark Orange', preview: 'bg-orange-500' },
-  { value: 'bg-yellow-400', label: 'Yellow', preview: 'bg-yellow-400' },
-  { value: 'bg-yellow-500', label: 'Dark Yellow', preview: 'bg-yellow-500' },
-  { value: 'bg-green-400', label: 'Green', preview: 'bg-green-400' },
-  { value: 'bg-green-500', label: 'Dark Green', preview: 'bg-green-500' },
-  { value: 'bg-emerald-500', label: 'Emerald', preview: 'bg-emerald-500' },
-  { value: 'bg-teal-500', label: 'Teal', preview: 'bg-teal-500' },
-  { value: 'bg-cyan-400', label: 'Cyan', preview: 'bg-cyan-400' },
-  { value: 'bg-cyan-500', label: 'Dark Cyan', preview: 'bg-cyan-500' },
-  { value: 'bg-sky-400', label: 'Sky', preview: 'bg-sky-400' },
-  { value: 'bg-sky-500', label: 'Dark Sky', preview: 'bg-sky-500' },
-  { value: 'bg-blue-400', label: 'Blue', preview: 'bg-blue-400' },
-  { value: 'bg-blue-500', label: 'Dark Blue', preview: 'bg-blue-500' },
-  { value: 'bg-indigo-400', label: 'Indigo', preview: 'bg-indigo-400' },
-  { value: 'bg-indigo-500', label: 'Dark Indigo', preview: 'bg-indigo-500' },
-  { value: 'bg-purple-400', label: 'Purple', preview: 'bg-purple-400' },
-  { value: 'bg-purple-500', label: 'Dark Purple', preview: 'bg-purple-500' },
-  { value: 'bg-pink-400', label: 'Pink', preview: 'bg-pink-400' },
-  { value: 'bg-pink-500', label: 'Dark Pink', preview: 'bg-pink-500' },
+const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as const
+const DAY_LABELS: Record<string, string> = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' }
+
+type Section = 'clinic' | 'hours' | 'appointments' | 'billing' | 'reminders' | 'system'
+
+const SECTIONS: { key: Section; label: string; icon: any }[] = [
+  { key: 'clinic',       label: 'Clinic Profile',     icon: Building2 },
+  { key: 'hours',        label: 'Business Hours',      icon: Clock },
+  { key: 'appointments', label: 'Appointments',        icon: Calendar },
+  { key: 'billing',      label: 'Billing & Payments',  icon: DollarSign },
+  { key: 'reminders',    label: 'Reminders',           icon: Bell },
+  { key: 'system',       label: 'System',              icon: Sliders },
 ]
 
-const CATEGORIES = ['Uncategorized', 'Pet Rehabilitation', 'Other Services', 'Consultation & Assessment']
-
 export default function SettingsPage() {
-  const [types, setTypes] = useState<any[]>([])
-  const [grouped, setGrouped] = useState<Record<string, any[]>>({})
-  const [loading, setLoading] = useState(true)
-  const [showAdd, setShowAdd] = useState(false)
-  const [showEdit, setShowEdit] = useState<any>(null)
-  const [showDelete, setShowDelete] = useState<any>(null)
-  const [form, setForm] = useState({ name: '', category: 'Pet Rehabilitation', duration: 60, color: 'bg-cyan-500' })
+  const [settings, setSettings] = useState<any>(null)
+  const [active, setActive] = useState<Section>('clinic')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  async function fetchTypes() {
-    setLoading(true)
-    const res = await fetch('/api/treatment-types')
-    const data = await res.json()
-    setTypes(data.types || [])
-    setGrouped(data.grouped || {})
-    setLoading(false)
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.json()).then(d => setSettings(d.settings))
+  }, [])
+
+  function set(section: string, key: string, val: any) {
+    setSettings((s: any) => ({ ...s, [section]: { ...s[section], [key]: val } }))
+    setSaved(false)
   }
 
-  useEffect(() => { fetchTypes() }, [])
-
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault()
-    const res = await fetch('/api/treatment-types', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    })
-    if (res.ok) {
-      setForm({ name: '', category: 'Pet Rehabilitation', duration: 60, color: 'bg-cyan-500' })
-      setShowAdd(false)
-      fetchTypes()
-    } else {
-      const err = await res.json()
-      alert(err.error || 'Failed to add')
-    }
+  function setHours(day: string, key: string, val: any) {
+    setSettings((s: any) => ({ ...s, hours: { ...s.hours, [day]: { ...s.hours[day], [key]: val } } }))
+    setSaved(false)
   }
 
-  async function handleEdit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!showEdit) return
-    const res = await fetch(`/api/treatment-types/${showEdit.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: showEdit.name,
-        category: showEdit.category,
-        duration: showEdit.duration,
-        color: showEdit.color
-      })
-    })
-    if (res.ok) {
-      setShowEdit(null)
-      fetchTypes()
-    }
+  async function save() {
+    setSaving(true)
+    await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
   }
 
-  async function handleDelete() {
-    if (!showDelete) return
-    await fetch(`/api/treatment-types/${showDelete.id}`, { method: 'DELETE' })
-    setShowDelete(null)
-    fetchTypes()
-  }
-
-  function formatDuration(mins: number) {
-    if (mins >= 60) {
-      const hours = Math.floor(mins / 60)
-      const remaining = mins % 60
-      if (remaining === 0) return `${hours}h`
-      return `${hours}h ${remaining}min`
-    }
-    return `${mins}min`
-  }
+  if (!settings) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-500 text-sm">Manage treatment types and system settings</p>
+          <p className="text-gray-500 text-sm">Manage your clinic configuration</p>
         </div>
+        <button onClick={save} disabled={saving} className="btn-primary flex items-center gap-2">
+          <Save className="w-4 h-4" />
+          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
+        </button>
       </div>
 
-      {/* Treatment Types Section */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Treatment Types</h2>
-          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
-            <Plus className="w-4 h-4 mr-1" /> Add Treatment
-          </button>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar tabs */}
+        <div className="lg:w-52 flex-shrink-0">
+          <nav className="space-y-1">
+            {SECTIONS.map(s => (
+              <button key={s.key} onClick={() => setActive(s.key)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${active === s.key ? 'bg-brand-pink/10 text-brand-pink' : 'text-gray-600 hover:bg-gray-100'}`}>
+                <s.icon className="w-4 h-4 flex-shrink-0" />
+                {s.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {CATEGORIES.map(category => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{category}</h3>
-                <div className="space-y-2">
-                  {(grouped[category] || []).map(t => (
-                    <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded ${t.color}`} />
-                        <span className="font-medium text-gray-800">{t.name}</span>
-                        <span className="text-sm text-gray-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {formatDuration(t.duration)}
-                        </span>
+        {/* Content panel */}
+        <div className="flex-1 card space-y-6">
+
+          {/* Clinic Profile */}
+          {active === 'clinic' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Building2 className="w-5 h-5 text-brand-pink" /> Clinic Profile</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2"><label className="label">Clinic Name</label><input className="input" value={settings.clinic.name} onChange={e => set('clinic','name',e.target.value)} /></div>
+                <div className="sm:col-span-2"><label className="label">Tagline</label><input className="input" value={settings.clinic.tagline} onChange={e => set('clinic','tagline',e.target.value)} placeholder="Proven steps to pain free mobility" /></div>
+                <div><label className="label">Phone</label><input className="input" value={settings.clinic.phone} onChange={e => set('clinic','phone',e.target.value)} placeholder="+65 xxxx xxxx" /></div>
+                <div><label className="label">Email</label><input type="email" className="input" value={settings.clinic.email} onChange={e => set('clinic','email',e.target.value)} /></div>
+                <div><label className="label">Website</label><input className="input" value={settings.clinic.website} onChange={e => set('clinic','website',e.target.value)} placeholder="https://rehabvet.com" /></div>
+                <div><label className="label">Business Registration No.</label><input className="input" value={settings.clinic.registration} onChange={e => set('clinic','registration',e.target.value)} /></div>
+                <div className="sm:col-span-2"><label className="label">Address</label><textarea className="input" rows={2} value={settings.clinic.address} onChange={e => set('clinic','address',e.target.value)} /></div>
+                <div className="sm:col-span-2 flex items-center gap-3">
+                  <input type="checkbox" id="gst_reg" checked={settings.clinic.gst_registered} onChange={e => set('clinic','gst_registered',e.target.checked)} className="accent-brand-pink" />
+                  <label htmlFor="gst_reg" className="text-sm text-gray-700 cursor-pointer">GST Registered</label>
+                </div>
+                {settings.clinic.gst_registered && (
+                  <div><label className="label">GST Registration No.</label><input className="input" value={settings.clinic.gst_number} onChange={e => set('clinic','gst_number',e.target.value)} /></div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Business Hours */}
+          {active === 'hours' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Clock className="w-5 h-5 text-brand-pink" /> Business Hours</h2>
+              <div className="space-y-3">
+                {DAYS.map(day => {
+                  const h = settings.hours[day]
+                  return (
+                    <div key={day} className="flex items-center gap-4">
+                      <div className="w-28 flex-shrink-0 flex items-center gap-2">
+                        <input type="checkbox" id={day} checked={!h.closed} onChange={e => setHours(day,'closed',!e.target.checked)} className="accent-brand-pink" />
+                        <label htmlFor={day} className="text-sm font-medium text-gray-700 cursor-pointer capitalize">{DAY_LABELS[day]}</label>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setShowEdit({ ...t })}
-                          className="p-2 text-gray-400 hover:text-brand-pink hover:bg-white rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setShowDelete(t)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {h.closed ? (
+                        <span className="text-sm text-gray-400 italic">Closed</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input type="time" className="input w-32" value={h.open} onChange={e => setHours(day,'open',e.target.value)} />
+                          <span className="text-gray-400 text-sm">to</span>
+                          <input type="time" className="input w-32" value={h.close} onChange={e => setHours(day,'close',e.target.value)} />
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {(!grouped[category] || grouped[category].length === 0) && (
-                    <p className="text-sm text-gray-400 italic py-2">No treatments in this category</p>
-                  )}
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Appointments */}
+          {active === 'appointments' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Calendar className="w-5 h-5 text-brand-pink" /> Appointment Settings</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Default Duration (minutes)</label>
+                  <input type="number" className="input" min="5" step="5" value={settings.appointments.default_duration} onChange={e => set('appointments','default_duration',parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Buffer Between Appointments (minutes)</label>
+                  <input type="number" className="input" min="0" step="5" value={settings.appointments.buffer_minutes} onChange={e => set('appointments','buffer_minutes',parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Max Bookings Per Day</label>
+                  <input type="number" className="input" min="1" value={settings.appointments.max_per_day} onChange={e => set('appointments','max_per_day',parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Online Booking Window (days ahead)</label>
+                  <input type="number" className="input" min="1" value={settings.appointments.booking_window_days} onChange={e => set('appointments','booking_window_days',parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Minimum Notice for New Bookings (hours)</label>
+                  <input type="number" className="input" min="0" value={settings.appointments.min_notice_hours} onChange={e => set('appointments','min_notice_hours',parseInt(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Cancellation Notice Required (hours)</label>
+                  <input type="number" className="input" min="0" value={settings.appointments.cancellation_hours} onChange={e => set('appointments','cancellation_hours',parseInt(e.target.value))} />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </>
+          )}
 
-      {/* Add Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Treatment Type">
-        <form onSubmit={handleAdd} className="space-y-4">
-          <div>
-            <label className="label">Name *</label>
-            <input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-          </div>
-          <div>
-            <label className="label">Category *</label>
-            <select className="input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Duration (minutes) *</label>
-            <input type="number" className="input" min="5" step="5" value={form.duration} onChange={e => setForm({...form, duration: parseInt(e.target.value)})} required />
-          </div>
-          <div>
-            <label className="label">Color</label>
-            <div className="grid grid-cols-6 gap-2 mt-1">
-              {COLOR_OPTIONS.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setForm({...form, color: c.value})}
-                  className={`w-8 h-8 rounded-full ${c.preview} ${form.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
-                  title={c.label}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Add Treatment</button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Treatment Type">
-        {showEdit && (
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div>
-              <label className="label">Name *</label>
-              <input className="input" value={showEdit.name} onChange={e => setShowEdit({...showEdit, name: e.target.value})} required />
-            </div>
-            <div>
-              <label className="label">Category *</label>
-              <select className="input" value={showEdit.category} onChange={e => setShowEdit({...showEdit, category: e.target.value})}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Duration (minutes) *</label>
-              <input type="number" className="input" min="5" step="5" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)})} required />
-            </div>
-            <div>
-              <label className="label">Color</label>
-              <div className="grid grid-cols-6 gap-2 mt-1">
-                {COLOR_OPTIONS.map(c => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    onClick={() => setShowEdit({...showEdit, color: c.value})}
-                    className={`w-8 h-8 rounded-full ${c.preview} ${showEdit.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
-                    title={c.label}
-                  />
-                ))}
+          {/* Billing */}
+          {active === 'billing' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><DollarSign className="w-5 h-5 text-brand-pink" /> Billing & Payments</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Currency</label>
+                  <select className="input" value={settings.billing.currency} onChange={e => set('billing','currency',e.target.value)}>
+                    <option value="SGD">SGD — Singapore Dollar</option>
+                    <option value="MYR">MYR — Malaysian Ringgit</option>
+                    <option value="USD">USD — US Dollar</option>
+                    <option value="AUD">AUD — Australian Dollar</option>
+                    <option value="GBP">GBP — British Pound</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Currency Symbol</label>
+                  <input className="input" value={settings.billing.currency_symbol} onChange={e => set('billing','currency_symbol',e.target.value)} placeholder="S$" />
+                </div>
+                <div>
+                  <label className="label">Invoice Prefix</label>
+                  <input className="input" value={settings.billing.invoice_prefix} onChange={e => set('billing','invoice_prefix',e.target.value)} placeholder="INV" />
+                </div>
+                <div>
+                  <label className="label">GST Rate (%)</label>
+                  <input type="number" className="input" min="0" max="100" step="0.5" value={settings.billing.gst_rate} onChange={e => set('billing','gst_rate',parseFloat(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">Default Payment Terms (days)</label>
+                  <input type="number" className="input" min="0" value={settings.billing.payment_terms_days} onChange={e => set('billing','payment_terms_days',parseInt(e.target.value))} />
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Save Changes</button>
-            </div>
-          </form>
-        )}
-      </Modal>
+              <hr className="border-gray-100" />
+              <h3 className="text-sm font-semibold text-gray-700">Payment Details (for invoices)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Bank Name</label>
+                  <input className="input" value={settings.billing.bank_name} onChange={e => set('billing','bank_name',e.target.value)} placeholder="DBS Bank" />
+                </div>
+                <div>
+                  <label className="label">Bank Account Number</label>
+                  <input className="input" value={settings.billing.bank_account} onChange={e => set('billing','bank_account',e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">PayNow (UEN or Phone)</label>
+                  <input className="input" value={settings.billing.paynow_number} onChange={e => set('billing','paynow_number',e.target.value)} />
+                </div>
+              </div>
+            </>
+          )}
 
-      {/* Delete Confirmation */}
-      <Modal open={!!showDelete} onClose={() => setShowDelete(null)} title="Delete Treatment Type">
-        {showDelete && (
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Are you sure you want to delete <strong>{showDelete.name}</strong>?
-            </p>
-            <p className="text-sm text-red-600">Existing appointments using this treatment type will not be affected.</p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowDelete(null)} className="btn-secondary">Cancel</button>
-              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-                Delete
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          {/* Reminders */}
+          {active === 'reminders' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Bell className="w-5 h-5 text-brand-pink" /> Appointment Reminders</h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" id="send_reminders" checked={settings.reminders.send_reminders} onChange={e => set('reminders','send_reminders',e.target.checked)} className="accent-brand-pink" />
+                  <label htmlFor="send_reminders" className="text-sm text-gray-700 cursor-pointer font-medium">Enable appointment reminders</label>
+                </div>
+                {settings.reminders.send_reminders && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <label className="label">First Reminder (hours before)</label>
+                      <input type="number" className="input" min="1" value={settings.reminders.reminder_hours_before} onChange={e => set('reminders','reminder_hours_before',parseInt(e.target.value))} />
+                    </div>
+                    <div>
+                      <label className="label">Second Reminder (hours before)</label>
+                      <input type="number" className="input" min="1" value={settings.reminders.second_reminder_hours} onChange={e => set('reminders','second_reminder_hours',parseInt(e.target.value))} />
+                    </div>
+                    <div className="sm:col-span-2 space-y-2">
+                      <label className="label">Send reminders via</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input type="checkbox" checked={settings.reminders.reminder_via_email} onChange={e => set('reminders','reminder_via_email',e.target.checked)} className="accent-brand-pink" />
+                          Email
+                        </label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input type="checkbox" checked={settings.reminders.reminder_via_sms} onChange={e => set('reminders','reminder_via_sms',e.target.checked)} className="accent-brand-pink" />
+                          SMS
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* System */}
+          {active === 'system' && (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><Sliders className="w-5 h-5 text-brand-pink" /> System Settings</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Timezone</label>
+                  <select className="input" value={settings.system.timezone} onChange={e => set('system','timezone',e.target.value)}>
+                    <option value="Asia/Singapore">Asia/Singapore (SGT +8)</option>
+                    <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (MYT +8)</option>
+                    <option value="Australia/Sydney">Australia/Sydney (AEDT)</option>
+                    <option value="Europe/London">Europe/London (GMT/BST)</option>
+                    <option value="America/New_York">America/New York (EST/EDT)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Date Format</label>
+                  <select className="input" value={settings.system.date_format} onChange={e => set('system','date_format',e.target.value)}>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Time Format</label>
+                  <select className="input" value={settings.system.time_format} onChange={e => set('system','time_format',e.target.value)}>
+                    <option value="24h">24-hour (14:00)</option>
+                    <option value="12h">12-hour (2:00 PM)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Language</label>
+                  <select className="input" value={settings.system.language} onChange={e => set('system','language',e.target.value)}>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
     </div>
   )
 }
