@@ -210,6 +210,7 @@ model sessions {
   date              String
   modality          String
   duration_minutes  Int?
+  // SOAP
   subjective        String?
   objective         String?
   assessment        String?
@@ -220,6 +221,21 @@ model sessions {
   measurements      String?  // JSON string
   exercises         String?  // JSON string
   home_exercises    String?  // JSON string
+  // Clinical consultation fields (Annual Health Exam)
+  heart_rate        Float?
+  resp_rate         Float?
+  temperature       Float?
+  weight_session    Float?
+  dental_score      Int?     // 0-4
+  body_score        Float?   // 0-9
+  flea_treatment    Boolean?
+  wormed            Boolean?
+  bloods            Boolean?
+  history           String?
+  clinical_examination String?
+  diagnosis         String?
+  treatment_notes   String?
+  comments          String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 

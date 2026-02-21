@@ -61,6 +61,21 @@ export async function POST(req: NextRequest) {
     measurements,
     exercises,
     home_exercises,
+    // clinical consultation fields
+    heart_rate,
+    resp_rate,
+    temperature,
+    weight_session,
+    dental_score,
+    body_score,
+    flea_treatment,
+    wormed,
+    bloods,
+    history,
+    clinical_examination,
+    diagnosis,
+    treatment_notes,
+    comments,
   } = body
 
   if (!patient_id || !date || !modality) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -85,6 +100,20 @@ export async function POST(req: NextRequest) {
         measurements: measurements ? JSON.stringify(measurements) : null,
         exercises: exercises ? JSON.stringify(exercises) : null,
         home_exercises: home_exercises ? JSON.stringify(home_exercises) : null,
+        heart_rate: heart_rate ?? null,
+        resp_rate: resp_rate ?? null,
+        temperature: temperature ?? null,
+        weight_session: weight_session ?? null,
+        dental_score: dental_score ?? null,
+        body_score: body_score ?? null,
+        flea_treatment: flea_treatment ?? null,
+        wormed: wormed ?? null,
+        bloods: bloods ?? null,
+        history: history || null,
+        clinical_examination: clinical_examination || null,
+        diagnosis: diagnosis || null,
+        treatment_notes: treatment_notes || null,
+        comments: comments || null,
       },
     })
 
