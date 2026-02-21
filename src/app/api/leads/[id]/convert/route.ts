@@ -40,13 +40,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Create appointment if date provided
   let appointment = null
   if (appointment_date) {
+    const apptDate = new Date(appointment_date)
+    const dateStr = apptDate.toISOString().split('T')[0]
+    const startTimeStr = apptDate.toTimeString().slice(0, 5) || '09:00'
+    const endDate = new Date(apptDate.getTime() + 60 * 60 * 1000)
+    const endTimeStr = endDate.toTimeString().slice(0, 5) || '10:00'
     appointment = await prisma.appointments.create({
       data: {
         client_id: client.id,
         patient_id: patient.id,
         therapist_id: therapist_id || null,
-        appointment_date: new Date(appointment_date),
-        duration_minutes: 60,
+        date: dateStr,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
         status: 'scheduled',
         modality: modality || lead.service || 'Consultation',
         notes: lead.condition || lead.notes || null,
