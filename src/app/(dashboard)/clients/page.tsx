@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Phone, Mail, ChevronRight, Trash2 } from 'lucide-react'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
 import BreedSearch from '@/components/BreedSearch'
@@ -12,6 +13,9 @@ const SPECIES_OPTIONS = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Hamster', 'Guinea Pig'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({
@@ -24,16 +28,19 @@ export default function ClientsPage() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchClients()
-  }, [search])
+  useEffect(() => { setPage(1) }, [search])
+  useEffect(() => { fetchClients(page) }, [search, page])
 
-  async function fetchClients() {
+  async function fetchClients(p = 1) {
     setLoading(true)
-    const q = search ? `?search=${encodeURIComponent(search)}` : ''
-    const res = await fetch(`/api/clients${q}`)
+    const params = new URLSearchParams()
+    if (search) params.set('search', encodeURIComponent(search))
+    params.set('page', String(p))
+    params.set('limit', String(PAGE_SIZE))
+    const res = await fetch(`/api/clients?${params}`)
     const data = await res.json()
     setClients(data.clients || [])
+    setTotal(data.total || 0)
     setLoading(false)
   }
 
@@ -71,7 +78,7 @@ export default function ClientsPage() {
       pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
     })
     setShowAdd(false)
-    fetchClients()
+    fetchClients(page)
   }
 
   return (
@@ -79,7 +86,7 @@ export default function ClientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-500 text-sm">Manage pet owner profiles</p>
+          <p className="text-gray-500 text-sm">{total > 0 ? `${total} clients total` : 'Manage pet owner profiles'}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" /> Add Client
@@ -120,6 +127,7 @@ export default function ClientsPage() {
               </Link>
             ))}
           </div>
+          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => setPage(p)} />
         )}
       </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Users, Search, ChevronDown, Eye, CheckCircle, Calendar, Trash2, Phone, Mail, PawPrint, Megaphone, MapPin, Stethoscope, AlertCircle } from 'lucide-react'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 
 interface Lead {
   id: string
@@ -50,6 +51,9 @@ const SERVICE_LABELS: Record<string, string> = {
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -62,19 +66,25 @@ export default function LeadsPage() {
   const [staffNote, setStaffNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (p = page) => {
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (filterStatus) params.set('status', filterStatus)
+    params.set('page', String(p))
+    params.set('limit', String(PAGE_SIZE))
     const res = await fetch(`/api/leads?${params}`)
     const data = await res.json()
     setLeads(data.leads || [])
+    setTotal(data.total || 0)
     setStatusCounts(data.statusCounts || {})
     setLoading(false)
-  }, [search, filterStatus])
+  }, [search, filterStatus, page])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => { setPage(1) }, [search, filterStatus])
 
   // Resolve postcode → address whenever a lead is opened
   useEffect(() => {
@@ -120,7 +130,7 @@ export default function LeadsPage() {
     fetchLeads()
   }
 
-  const totalLeads = Object.values(statusCounts).reduce((a, b) => a + b, 0)
+  const totalLeads = total || Object.values(statusCounts).reduce((a, b) => a + b, 0)
 
   return (
     <div className="space-y-6">
@@ -250,6 +260,7 @@ export default function LeadsPage() {
             </table>
           </div>
         )}
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => { setPage(p); fetchLeads(p) }} />
       </div>
 
       {/* View Lead Modal */}

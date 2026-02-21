@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Plus, Search, ChevronRight } from 'lucide-react'
 import Modal from '@/components/Modal'
 import BreedSearch from '@/components/BreedSearch'
+import Pagination from '@/components/Pagination'
 
 const SPECIES = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Horse', 'Other']
 const SEX_OPTIONS = [
@@ -17,20 +18,28 @@ const SEX_OPTIONS = [
 export default function PatientsPage() {
   const [patients, setPatients] = useState<any[]>([])
   const [clients, setClients] = useState<any[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '' })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetchPatients() }, [search])
+  useEffect(() => { setPage(1) }, [search])
+  useEffect(() => { fetchPatients(page) }, [search, page])
   useEffect(() => { fetch('/api/clients').then(r => r.json()).then(d => setClients(d.clients || [])) }, [])
 
-  async function fetchPatients() {
+  async function fetchPatients(p = 1) {
     setLoading(true)
-    const q = search ? `?search=${encodeURIComponent(search)}` : ''
-    const res = await fetch(`/api/patients${q}`)
+    const params = new URLSearchParams()
+    if (search) params.set('search', encodeURIComponent(search))
+    params.set('page', String(p))
+    params.set('limit', String(PAGE_SIZE))
+    const res = await fetch(`/api/patients?${params}`)
     const data = await res.json()
     setPatients(data.patients || [])
+    setTotal(data.total || 0)
     setLoading(false)
   }
 
@@ -42,7 +51,7 @@ export default function PatientsPage() {
     })
     setShowAdd(false)
     setForm({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '' })
-    fetchPatients()
+    fetchPatients(page)
   }
 
   const speciesEmoji: Record<string, string> = { Dog: '🐕', Cat: '🐈', Rabbit: '🐇', Bird: '🐦', Horse: '🐴', Other: '🐾' }
@@ -52,7 +61,7 @@ export default function PatientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
-          <p className="text-gray-500 text-sm">Manage pet profiles and medical records</p>
+          <p className="text-gray-500 text-sm">{total > 0 ? `${total} patients total` : 'Manage pet profiles and medical records'}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary"><Plus className="w-4 h-4 mr-2" /> Add Patient</button>
       </div>
@@ -86,6 +95,7 @@ export default function PatientsPage() {
               </Link>
             ))}
           </div>
+          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => setPage(p)} />
         )}
       </div>
 

@@ -19,8 +19,13 @@ export async function GET(req: NextRequest) {
     ]
   }
 
-  const [leads, counts] = await Promise.all([
-    prisma.leads.findMany({ where, orderBy: { created_at: 'desc' } }),
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
+  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const skip  = (page - 1) * limit
+
+  const [leads, total, counts] = await Promise.all([
+    prisma.leads.findMany({ where, orderBy: { created_at: 'desc' }, skip, take: limit }),
+    prisma.leads.count({ where }),
     prisma.leads.groupBy({ by: ['status'], _count: { id: true } }),
   ])
 
@@ -29,5 +34,5 @@ export async function GET(req: NextRequest) {
     return acc
   }, {})
 
-  return NextResponse.json({ leads, statusCounts })
+  return NextResponse.json({ leads, total, page, limit, statusCounts })
 }

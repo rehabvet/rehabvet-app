@@ -19,19 +19,31 @@ export async function GET(req: NextRequest) {
       }
     : {}
 
-  const clients = await prisma.clients.findMany({
-    where,
-    orderBy: { name: 'asc' },
-    include: { _count: { select: { patients: true } } },
-  })
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
+  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const skip  = (page - 1) * limit
+
+  const [clients, total] = await Promise.all([
+    prisma.clients.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { patients: true } } },
+      skip,
+      take: limit,
+    }),
+    prisma.clients.count({ where }),
+  ])
 
   const cliRes = NextResponse.json({
     clients: clients.map((c) => {
       const { _count, ...rest } = c as any
       return { ...rest, patient_count: _count?.patients ?? 0 }
     }),
+    total,
+    page,
+    limit,
   })
-  cliRes.headers.set('Cache-Control', CACHE_MEDIUM)
+  cliRes.headers.set('Cache-Control', 'no-store')
   return cliRes
 }
 

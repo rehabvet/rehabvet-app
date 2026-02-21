@@ -20,11 +20,20 @@ export async function GET(req: NextRequest) {
     ]
   }
 
-  const basePatients = await prisma.patients.findMany({
-    where,
-    include: { client: { select: { name: true, phone: true } } },
-    orderBy: { name: 'asc' },
-  })
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
+  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const skip  = (page - 1) * limit
+
+  const [basePatients, total] = await Promise.all([
+    prisma.patients.findMany({
+      where,
+      include: { client: { select: { name: true, phone: true } } },
+      orderBy: { name: 'asc' },
+      skip,
+      take: limit,
+    }),
+    prisma.patients.count({ where }),
+  ])
 
   const ids = basePatients.map((p) => p.id)
   const activePlans = ids.length
@@ -45,8 +54,8 @@ export async function GET(req: NextRequest) {
     return { ...rest, client_name, client_phone, active_plans }
   })
 
-  const pRes = NextResponse.json({ patients })
-  pRes.headers.set('Cache-Control', CACHE_MEDIUM)
+  const pRes = NextResponse.json({ patients, total, page, limit })
+  pRes.headers.set('Cache-Control', 'no-store')
   return pRes
 }
 
