@@ -158,19 +158,6 @@ export default function AppointmentPage() {
               ))}
             </div>
 
-            {/* Divider */}
-            <div className="w-12 h-1 rounded-full bg-[#FDC61C]" />
-
-            {/* Services pills */}
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">What we treat</p>
-              <div className="flex flex-wrap gap-2">
-                {['Hydrotherapy', 'HBOT', 'Physiotherapy', 'Acupuncture', 'TCVM', 'Post-Surgery Rehab', 'Arthritis Management', 'IVDD Recovery'].map(t => (
-                  <span key={t} className="text-xs font-medium bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-full shadow-sm">{t}</span>
-                ))}
-              </div>
-            </div>
-
             {/* Review */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
