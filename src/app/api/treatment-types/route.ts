@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { CACHE_STATIC } from '@/lib/cache'
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -18,7 +19,9 @@ export async function GET() {
     grouped[t.category].push(t)
   }
 
-  return NextResponse.json({ types, grouped })
+  const ttRes = NextResponse.json({ types, grouped })
+  ttRes.headers.set('Cache-Control', CACHE_STATIC)
+  return ttRes
 }
 
 export async function POST(req: NextRequest) {

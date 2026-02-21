@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { CACHE_STATIC } from '@/lib/cache'
 import bcrypt from 'bcryptjs'
 
 export async function GET() {
@@ -29,7 +30,9 @@ export async function GET() {
     return String(a.name || '').localeCompare(String(b.name || ''))
   })
 
-  return NextResponse.json({ staff })
+  const staffRes = NextResponse.json({ staff })
+  staffRes.headers.set('Cache-Control', CACHE_STATIC)
+  return staffRes
 }
 
 export async function POST(req: NextRequest) {

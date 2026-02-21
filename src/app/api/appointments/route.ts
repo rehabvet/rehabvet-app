@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { CACHE_SHORT } from '@/lib/cache'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
@@ -46,7 +47,9 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  return NextResponse.json({ appointments })
+  const apptRes = NextResponse.json({ appointments })
+  apptRes.headers.set('Cache-Control', CACHE_SHORT)
+  return apptRes
 }
 
 export async function POST(req: NextRequest) {

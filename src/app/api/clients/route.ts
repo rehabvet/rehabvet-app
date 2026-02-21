@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { CACHE_MEDIUM } from '@/lib/cache'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
@@ -24,13 +25,14 @@ export async function GET(req: NextRequest) {
     include: { _count: { select: { patients: true } } },
   })
 
-  return NextResponse.json({
+  const cliRes = NextResponse.json({
     clients: clients.map((c) => {
-      // Keep existing API shape used by the UI
       const { _count, ...rest } = c as any
       return { ...rest, patient_count: _count?.patients ?? 0 }
     }),
   })
+  cliRes.headers.set('Cache-Control', CACHE_MEDIUM)
+  return cliRes
 }
 
 export async function POST(req: NextRequest) {

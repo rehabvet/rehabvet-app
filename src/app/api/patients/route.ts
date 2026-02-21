@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { CACHE_MEDIUM } from '@/lib/cache'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
@@ -44,7 +45,9 @@ export async function GET(req: NextRequest) {
     return { ...rest, client_name, client_phone, active_plans }
   })
 
-  return NextResponse.json({ patients })
+  const pRes = NextResponse.json({ patients })
+  pRes.headers.set('Cache-Control', CACHE_MEDIUM)
+  return pRes
 }
 
 export async function POST(req: NextRequest) {
