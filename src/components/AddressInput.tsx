@@ -17,18 +17,28 @@ interface AddressInputProps {
 }
 
 function parseAddress(full: string): AddressData {
-  // Try to parse existing address string back into components
   const data: AddressData = { postalCode: '', block: '', street: '', building: '', unit: '' }
   if (!full) return data
-  
-  // Extract postal code (6 digits at end)
-  const postalMatch = full.match(/(\d{6})$/)
-  if (postalMatch) data.postalCode = postalMatch[1]
-  
-  // Extract unit number (#xx-xx pattern)
-  const unitMatch = full.match(/#([\w-]+)/)
-  if (unitMatch) data.unit = unitMatch[1]
-  
+
+  const parts = full.split(',').map(p => p.trim()).filter(Boolean)
+
+  // Postal code: handles "Singapore 123456" or just "123456"
+  const postalPart = parts.find(p => /(?:Singapore\s+)?\d{6}$/i.test(p))
+  if (postalPart) {
+    const m = postalPart.match(/(\d{6})$/)
+    if (m) data.postalCode = m[1]
+  }
+
+  // Unit: #01-23
+  const unitPart = parts.find(p => /^#/.test(p))
+  if (unitPart) data.unit = unitPart.replace(/^#/, '')
+
+  // First non-special part as block, second as street, third as building
+  const normalParts = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
+  if (normalParts[0]) data.block = normalParts[0]
+  if (normalParts[1]) data.street = normalParts[1]
+  if (normalParts[2]) data.building = normalParts[2]
+
   return data
 }
 
@@ -54,13 +64,12 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
     unit: ''
   })
 
-  // Sync internal state when value changes externally
+  // Sync internal state when value changes externally (load existing address for editing)
   useEffect(() => {
-    if (!value && data.postalCode) {
-      // Value was cleared, reset
-      setData({ postalCode: '', block: '', street: '', building: '', unit: '' })
-      setFound(false)
-    }
+    const parsed = parseAddress(value || '')
+    setData(parsed)
+    setFound(Boolean(parsed.postalCode))
+    setError('')
   }, [value])
 
   function updateField(field: keyof AddressData, val: string) {
