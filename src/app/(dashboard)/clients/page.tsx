@@ -127,8 +127,8 @@ export default function ClientsPage() {
               </Link>
             ))}
           </div>
-          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => setPage(p)} />
         )}
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => setPage(p)} />
       </div>
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Client">
