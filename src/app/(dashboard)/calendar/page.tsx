@@ -240,46 +240,128 @@ export default function CalendarPage() {
     )
   }
 
-  // Day View
+  // Day View — Provider column layout
   function renderDayView() {
     const dateStr = currentDate.toISOString().split('T')[0]
     const dayAppts = apptsByDate[dateStr] || []
-    const hours = Array.from({ length: 12 }, (_, i) => i + 8)
+    const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8:00 – 20:00
+
+    // Build provider columns from appointments (only providers with appts that day)
+    const providerMap: Record<string, { id: string; name: string; role: string; photo_url?: string }> = {}
+    for (const a of dayAppts) {
+      if (a.therapist_id && a.therapist_name) {
+        providerMap[a.therapist_id] = { id: a.therapist_id, name: a.therapist_name, role: a.therapist_role || '', photo_url: a.therapist_photo }
+      }
+    }
+    const providers = Object.values(providerMap)
+    const hasUnassigned = dayAppts.some((a: any) => !a.therapist_id)
+    if (hasUnassigned) providers.push({ id: '__unassigned__', name: 'Unassigned', role: '' })
+
+    const roleLabel: Record<string, string> = {
+      veterinarian: 'Veterinarian', senior_therapist: 'Sr. Therapist',
+      assistant_therapist: 'Asst. Therapist', hydrotherapist: 'Hydrotherapist',
+      marketing: 'Marketing', office_manager: 'Office Manager',
+      administrator: 'Administrator', vet: 'Veterinarian', therapist: 'Therapist',
+    }
+    const roleBadgeColor: Record<string, string> = {
+      veterinarian: 'bg-green-100 text-green-700', senior_therapist: 'bg-blue-100 text-blue-700',
+      assistant_therapist: 'bg-sky-100 text-sky-700', hydrotherapist: 'bg-cyan-100 text-cyan-700',
+      administrator: 'bg-red-100 text-red-700', office_manager: 'bg-pink-100 text-pink-700',
+      vet: 'bg-green-100 text-green-700', therapist: 'bg-blue-100 text-blue-700',
+    }
+
+    const CELL_HEIGHT = 72 // px per hour
+
+    function timeToMinutes(t: string) {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + m
+    }
 
     return (
-      <div className="flex-1 overflow-auto">
-        <div className="bg-white rounded-lg border border-gray-200 min-w-[400px]">
-          {hours.map(hour => {
-            const hourAppts = dayAppts.filter((a: any) => {
-              const apptHour = parseInt(a.start_time?.split(':')[0] || '0')
-              return apptHour === hour
-            })
-            return (
-              <div key={hour} className="flex border-b border-gray-100 last:border-0">
-                <div className="w-20 p-3 text-sm text-gray-500 text-right border-r border-gray-100 flex-shrink-0">
-                  {hour}:00
+      <div className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/* Provider header row */}
+        <div className="flex sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+          <div className="w-16 flex-shrink-0 border-r border-gray-100" />
+          {providers.length === 0 ? (
+            <div className="flex-1 p-4 text-sm text-gray-400 text-center">No appointments today</div>
+          ) : providers.map(p => (
+            <div key={p.id} className="flex-1 min-w-[160px] px-3 py-2.5 border-r border-gray-100 last:border-r-0 text-center">
+              <div className="flex items-center justify-center gap-2">
+                {p.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover border border-gray-200" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-xs font-bold flex-shrink-0">
+                    {p.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                  </div>
+                )}
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 leading-tight">{p.name}</p>
+                  {p.role && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadgeColor[p.role] || 'bg-gray-100 text-gray-600'}`}>
+                      {roleLabel[p.role] || p.role}
+                    </span>
+                  )}
                 </div>
-                <div className="flex-1 p-2 min-h-[70px]">
-                  {hourAppts.map((a: any) => (
+              </div>
+              {/* Appointment count */}
+              <p className="text-[10px] text-gray-400 mt-1">
+                {dayAppts.filter((a: any) => p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id).length} appts
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Time grid */}
+        <div className="relative flex" style={{ minHeight: `${CELL_HEIGHT * hours.length}px` }}>
+          {/* Hour lines + labels */}
+          <div className="w-16 flex-shrink-0 border-r border-gray-100 relative z-10">
+            {hours.map(hour => (
+              <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
+                <span className="text-xs text-gray-400">{String(hour).padStart(2,'0')}:00</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Provider columns */}
+          {providers.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">
+              No appointments scheduled
+            </div>
+          ) : providers.map(p => {
+            const colAppts = dayAppts.filter((a: any) =>
+              p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id
+            )
+            return (
+              <div key={p.id} className="flex-1 min-w-[160px] border-r border-gray-100 last:border-r-0 relative">
+                {/* Hour grid lines */}
+                {hours.map(hour => (
+                  <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100" />
+                ))}
+                {/* Appointments (absolutely positioned) */}
+                {colAppts.map((a: any) => {
+                  const startMins = timeToMinutes(a.start_time || '08:00')
+                  const endMins = timeToMinutes(a.end_time || (a.start_time || '08:00'))
+                  const gridStartMins = 8 * 60
+                  const top = ((startMins - gridStartMins) / 60) * CELL_HEIGHT
+                  const heightMins = Math.max(endMins - startMins, 30)
+                  const height = (heightMins / 60) * CELL_HEIGHT - 2
+                  const color = treatmentColors[a.modality] || 'bg-gray-400'
+
+                  return (
                     <button
                       key={a.id}
                       onClick={() => openEditModal(a)}
-                      className={`block w-full text-left text-sm text-white px-3 py-2 rounded mb-1 hover:opacity-90 transition-opacity ${treatmentColors[a.modality] || 'bg-gray-400'}`}
+                      style={{ top: `${top}px`, height: `${height}px`, left: '4px', right: '4px' }}
+                      className={`absolute text-left text-white px-2 py-1 rounded-lg hover:opacity-90 hover:shadow-md transition-all text-xs overflow-hidden ${color}`}
+                      title={`${a.start_time} - ${a.end_time}\n${a.modality}\n${a.patient_name} (${a.client_name})\n${a.client_phone}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{a.start_time?.slice(0, 5)}</span>
-                        <span className="opacity-90">{a.modality}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span>{a.client_name}</span>
-                        <span>•</span>
-                        <span className="font-medium">{a.patient_name}</span>
-                        <span className="opacity-75">({a.therapist_name || 'Unassigned'})</span>
-                      </div>
-                      <div className="text-xs opacity-75 mt-0.5">{a.client_phone}</div>
+                      <div className="font-semibold leading-tight">{a.start_time?.slice(0,5)} {a.modality}</div>
+                      <div className="opacity-90 leading-tight mt-0.5 truncate">{a.client_name} • <span className="font-medium">{a.patient_name}</span></div>
+                      {height > 50 && <div className="opacity-75 text-[10px] mt-0.5">{a.client_phone}</div>}
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
             )
           })}
