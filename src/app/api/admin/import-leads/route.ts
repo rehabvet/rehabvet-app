@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// Simple admin token for bulk imports — not user-facing
 const IMPORT_SECRET = process.env.IMPORT_SECRET || 'rv-import-2024'
 
+function checkAuth(req: NextRequest) {
+  return req.headers.get('x-import-secret') === IMPORT_SECRET
+}
+
+// DELETE — wipe all leads (for re-import)
+export async function DELETE(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const count = await prisma.leads.deleteMany({})
+  return NextResponse.json({ deleted: count.count })
+}
+
+// POST — bulk insert leads preserving original timestamps via raw SQL
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get('x-import-secret')
-  if (auth !== IMPORT_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let rows: any[]
   try {
@@ -23,46 +31,55 @@ export async function POST(req: NextRequest) {
 
   for (const r of rows) {
     try {
-      // Check for duplicate by email + pet_name + created_at (csv ID as notes fallback)
-      const existing = await prisma.leads.findFirst({
-        where: {
-          owner_email: r.owner_email,
-          pet_name: r.pet_name,
-          created_at: r.created_at ? { gte: new Date(new Date(r.created_at).getTime() - 60000), lte: new Date(new Date(r.created_at).getTime() + 60000) } : undefined,
-        },
-      })
-      if (existing) {
-        results.skipped++
-        continue
+      // Parse dates from CSV (format: "YYYY-MM-DD HH:mm:ss")
+      const parseDate = (s: string | null): Date => {
+        if (!s) return new Date()
+        // Replace space with T for ISO 8601 compatibility, treat as UTC+8 (SGT)
+        const iso = s.replace(' ', 'T') + '+08:00'
+        const d = new Date(iso)
+        return isNaN(d.getTime()) ? new Date() : d
       }
 
-      await prisma.leads.create({
-        data: {
-          owner_name: r.owner_name || 'Unknown',
-          owner_email: r.owner_email || '',
-          owner_phone: r.owner_phone || '',
-          post_code: r.post_code || null,
-          how_heard: r.how_heard || null,
-          pet_name: r.pet_name || 'Unknown',
-          species: r.species || 'Unknown',
-          breed: r.breed || null,
-          age: r.age || null,
-          pet_gender: r.pet_gender || null,
-          vet_friendly: r.vet_friendly ?? null,
-          reactive_to_pets: r.reactive_to_pets ?? null,
-          condition: r.condition || null,
-          has_pain: r.has_pain ?? null,
-          clinic_name: r.clinic_name || null,
-          attending_vet: r.attending_vet || null,
-          notes: r.notes || null,
-          status: 'new',
-          created_at: r.created_at ? new Date(r.created_at) : new Date(),
-          updated_at: r.updated_at ? new Date(r.updated_at) : new Date(),
-        },
-      })
+      const createdAt = parseDate(r.created_at)
+      const updatedAt = parseDate(r.updated_at)
+
+      // Use raw SQL to bypass Prisma's @default(now()) override
+      await prisma.$executeRaw`
+        INSERT INTO leads (
+          id, owner_name, owner_email, owner_phone, post_code, how_heard,
+          pet_name, species, breed, age, pet_gender,
+          vet_friendly, reactive_to_pets,
+          condition, has_pain, clinic_name, attending_vet,
+          notes, status, first_visit,
+          created_at, updated_at
+        ) VALUES (
+          gen_random_uuid(),
+          ${r.owner_name || 'Unknown'},
+          ${r.owner_email || ''},
+          ${r.owner_phone || ''},
+          ${r.post_code || null},
+          ${r.how_heard || null},
+          ${r.pet_name || 'Unknown'},
+          ${r.species || 'Unknown'},
+          ${r.breed || null},
+          ${r.age || null},
+          ${r.pet_gender || null},
+          ${r.vet_friendly ?? null},
+          ${r.reactive_to_pets ?? null},
+          ${r.condition || null},
+          ${r.has_pain ?? null},
+          ${r.clinic_name || null},
+          ${r.attending_vet || null},
+          ${r.notes || null},
+          'new',
+          true,
+          ${createdAt},
+          ${updatedAt}
+        )
+      `
       results.inserted++
     } catch (e: any) {
-      results.errors.push(`Row ${r.owner_name}/${r.pet_name}: ${e.message}`)
+      results.errors.push(`${r.owner_name}/${r.pet_name}: ${e.message}`)
     }
   }
 
