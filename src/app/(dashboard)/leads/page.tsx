@@ -55,6 +55,7 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
   const [loading, setLoading] = useState(true)
+  const [rowAddresses, setRowAddresses] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [viewLead, setViewLead] = useState<Lead | null>(null)
@@ -85,6 +86,23 @@ export default function LeadsPage() {
 
   // Reset to page 1 when search or filter changes
   useEffect(() => { setPage(1) }, [search, filterStatus])
+
+  // Batch-resolve postcodes for all rows on current page
+  useEffect(() => {
+    const codes = [...new Set(leads.map(l => l.post_code).filter(Boolean) as string[])]
+    if (codes.length === 0) return
+    setRowAddresses({})
+    Promise.all(
+      codes.map(async code => {
+        const addr = await lookupPostcode(code)
+        return [code, addr] as [string, string | null]
+      })
+    ).then(results => {
+      const map: Record<string, string> = {}
+      for (const [code, addr] of results) if (addr) map[code] = addr
+      setRowAddresses(map)
+    })
+  }, [leads])
 
   // Resolve postcode → address whenever a lead is opened
   useEffect(() => {
@@ -189,7 +207,7 @@ export default function LeadsPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Received (SGT)</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Owner</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Postal Code</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Address</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pet</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
@@ -214,11 +232,16 @@ export default function LeadsPage() {
                           {lead.owner_phone}
                         </a>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 max-w-[200px]">
                         {lead.post_code ? (
-                          <span className="text-sm text-gray-700 flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            {lead.post_code}
+                          <span className="text-sm text-gray-700 flex items-start gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                            <span className="leading-tight">
+                              {rowAddresses[lead.post_code]
+                                ? rowAddresses[lead.post_code]
+                                : <span className="text-gray-400 italic text-xs">S({lead.post_code})</span>
+                              }
+                            </span>
                           </span>
                         ) : (
                           <span className="text-xs text-gray-300">—</span>
