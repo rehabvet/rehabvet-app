@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, Edit2, Save, X } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, CalendarClock, Edit2, Save, X } from 'lucide-react'
 import AddressInput from '@/components/AddressInput'
 
 function splitAddress(full?: string) {
@@ -50,7 +50,7 @@ export default function ClientDetailPage() {
 
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
 
-  const { client, patients, invoices } = data
+  const { client, patients, invoices, appointments } = data
   const addr = splitAddress(client.address)
 
   return (
@@ -134,6 +134,39 @@ export default function ClientDetailPage() {
         )}
       </div>
 
+      {/* Previous Appointments */}
+      <div className="card">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><CalendarClock className="w-5 h-5 text-brand-gold" /> Previous Appointments</h2>
+        {appointments?.length === 0 ? (
+          <p className="text-gray-400 text-sm">No appointments found</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr className="border-b border-gray-200">
+                <th className="table-header">Date</th>
+                <th className="table-header">Time</th>
+                <th className="table-header">Pet</th>
+                <th className="table-header">Provider</th>
+                <th className="table-header">Treatment</th>
+                <th className="table-header">Status</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-100">
+                {(appointments || []).map((a: any) => (
+                  <tr key={a.id} className="hover:bg-gray-50">
+                    <td className="table-cell">{a.date}</td>
+                    <td className="table-cell">{a.start_time} - {a.end_time}</td>
+                    <td className="table-cell">{a.patient?.name || '—'}</td>
+                    <td className="table-cell">{a.therapist?.name || 'Unassigned'}</td>
+                    <td className="table-cell"><span className="badge-purple">{a.modality}</span></td>
+                    <td className="table-cell"><ApptStatusBadge status={a.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Invoices */}
       <div className="card">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><FileText className="w-5 h-5 text-brand-pink" /> Invoices</h2>
@@ -166,6 +199,11 @@ export default function ClientDetailPage() {
       </div>
     </div>
   )
+}
+
+function ApptStatusBadge({ status }: { status: string }) {
+  const s: Record<string, string> = { scheduled: 'badge-blue', confirmed: 'badge-green', in_progress: 'badge-yellow', completed: 'badge-gray', cancelled: 'badge-red', no_show: 'badge-red' }
+  return <span className={s[status] || 'badge-gray'}>{String(status || '').replace('_', ' ')}</span>
 }
 
 function StatusBadge({ status }: { status: string }) {

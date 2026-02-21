@@ -9,12 +9,20 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const client = await prisma.clients.findUnique({ where: { id: params.id } })
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const [patients, invoices] = await Promise.all([
+  const [patients, invoices, appointments] = await Promise.all([
     prisma.patients.findMany({ where: { client_id: params.id }, orderBy: { name: 'asc' } }),
     prisma.invoices.findMany({ where: { client_id: params.id }, orderBy: { date: 'desc' } }),
+    prisma.appointments.findMany({
+      where: { client_id: params.id },
+      include: {
+        patient: { select: { name: true } },
+        therapist: { select: { name: true } },
+      },
+      orderBy: [{ date: 'desc' }, { start_time: 'desc' }],
+    }),
   ])
 
-  return NextResponse.json({ client, patients, invoices })
+  return NextResponse.json({ client, patients, invoices, appointments })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
