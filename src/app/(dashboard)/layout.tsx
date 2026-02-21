@@ -52,13 +52,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 
-  const filteredNav = nav.filter(n => user && n.roles.includes(user.role))
+  const roleMap: Record<string, 'admin' | 'vet' | 'therapist' | 'receptionist'> = {
+    administrator: 'admin',
+    office_manager: 'admin',
+    marketing: 'admin',
+    veterinarian: 'vet',
+    senior_therapist: 'therapist',
+    assistant_therapist: 'therapist',
+    hydrotherapist: 'therapist',
+  }
+  const effectiveRole = user ? (roleMap[user.role] || user.role) : ''
+  const filteredNav = nav.filter(n => user && n.roles.includes(effectiveRole))
 
   const roleLabel: Record<string, string> = {
     admin: 'Office Manager',
     vet: 'Veterinarian',
     therapist: 'Therapist',
     receptionist: 'Receptionist',
+    administrator: 'Office Manager',
+    office_manager: 'Office Manager',
+    veterinarian: 'Veterinarian',
+    senior_therapist: 'Therapist',
+    assistant_therapist: 'Therapist',
+    hydrotherapist: 'Therapist',
   }
 
   return (
