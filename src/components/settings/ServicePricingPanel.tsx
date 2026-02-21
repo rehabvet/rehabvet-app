@@ -9,7 +9,7 @@ interface PricingEntry {
   label: string
   sessions: number
   price: number
-  service: { id: string; name: string; category: string; color: string }
+  service: { id: string; name: string; category: string; color: string; duration: number }
 }
 
 const EMPTY_FORM = { service_id: '', label: '', sessions: '1', price: '' }
@@ -115,6 +115,7 @@ export default function ServicePricingPanel() {
                       <tr>
                         <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Label / Type</th>
                         <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">No. of Sessions</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
                         <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price (S$)</th>
                         <th className="w-20"></th>
                       </tr>
@@ -124,6 +125,9 @@ export default function ServicePricingPanel() {
                         <tr key={p.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800">{p.label}</td>
                           <td className="px-4 py-3 text-gray-600">{p.sessions}</td>
+                          <td className="px-4 py-3 text-gray-500 text-xs">
+                            {p.service?.duration > 0 ? `${p.service.duration} mins` : '—'}
+                          </td>
                           <td className="px-4 py-3 font-semibold text-gray-800">S${p.price.toFixed(2)}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">

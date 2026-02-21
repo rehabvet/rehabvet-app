@@ -16,7 +16,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       sessions: sessions ? parseInt(sessions) : 1,
       price: parseFloat(price),
     },
-    include: { service: { select: { id: true, name: true, category: true, color: true } } },
+    include: { service: { select: { id: true, name: true, category: true, color: true, duration: true } } },
   })
 
   return NextResponse.json({ entry })

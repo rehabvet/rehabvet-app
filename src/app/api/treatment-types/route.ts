@@ -26,7 +26,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  if (!user || !['admin','administrator','office_manager'].includes(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
   const { name, category, description, duration, price, sessions_in_package, color } = body

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const pricing = await prisma.service_pricing.findMany({
     where,
-    include: { service: { select: { id: true, name: true, category: true, color: true } } },
+    include: { service: { select: { id: true, name: true, category: true, color: true, duration: true } } },
     orderBy: [{ service: { name: 'asc' } }, { sessions: 'asc' }],
   })
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       sessions: sessions ? parseInt(sessions) : 1,
       price: parseFloat(price),
     },
-    include: { service: { select: { id: true, name: true, category: true, color: true } } },
+    include: { service: { select: { id: true, name: true, category: true, color: true, duration: true } } },
   })
 
   return NextResponse.json({ entry }, { status: 201 })
