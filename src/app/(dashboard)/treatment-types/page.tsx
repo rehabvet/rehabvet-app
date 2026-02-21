@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Clock } from 'lucide-react'
+import { Plus, Pencil, Trash2, Clock, DollarSign, Tag } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 const COLOR_OPTIONS = [
@@ -33,14 +33,16 @@ const COLOR_OPTIONS = [
 
 const CATEGORIES = ['Uncategorized', 'Pet Rehabilitation', 'Other Services', 'Consultation & Assessment']
 
-export default function SettingsPage() {
+const EMPTY_FORM = { name: '', description: '', category: 'Pet Rehabilitation', duration: 60, price: '', color: 'bg-cyan-500' }
+
+export default function ServicesPage() {
   const [types, setTypes] = useState<any[]>([])
   const [grouped, setGrouped] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState<any>(null)
   const [showDelete, setShowDelete] = useState<any>(null)
-  const [form, setForm] = useState({ name: '', category: 'Pet Rehabilitation', duration: 60, color: 'bg-cyan-500' })
+  const [form, setForm] = useState({ ...EMPTY_FORM })
 
   async function fetchTypes() {
     setLoading(true)
@@ -61,7 +63,7 @@ export default function SettingsPage() {
       body: JSON.stringify(form)
     })
     if (res.ok) {
-      setForm({ name: '', category: 'Pet Rehabilitation', duration: 60, color: 'bg-cyan-500' })
+      setForm({ ...EMPTY_FORM })
       setShowAdd(false)
       fetchTypes()
     } else {
@@ -78,9 +80,11 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: showEdit.name,
+        description: showEdit.description,
         category: showEdit.category,
         duration: showEdit.duration,
-        color: showEdit.color
+        price: showEdit.price,
+        color: showEdit.color,
       })
     })
     if (res.ok) {
@@ -106,77 +110,146 @@ export default function SettingsPage() {
     return `${mins}min`
   }
 
+  const totalServices = types.length
+  const pricedServices = types.filter(t => t.price != null).length
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Treatment Types</h1>
-          <p className="text-gray-500 text-sm">Manage treatment categories, durations and colours</p>
+          <h1 className="text-2xl font-bold text-gray-900">Services & Pricing</h1>
+          <p className="text-gray-500 text-sm">Manage services, durations, pricing and calendar colours</p>
+        </div>
+        <button onClick={() => { setForm({ ...EMPTY_FORM }); setShowAdd(true) }} className="btn-primary text-sm">
+          <Plus className="w-4 h-4 mr-1" /> Add Service
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="card py-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Tag className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{totalServices}</p>
+            <p className="text-xs text-gray-500">Active Services</p>
+          </div>
+        </div>
+        <div className="card py-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <DollarSign className="w-5 h-5 text-green-500" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{pricedServices}</p>
+            <p className="text-xs text-gray-500">With Pricing Set</p>
+          </div>
+        </div>
+        <div className="card py-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Clock className="w-5 h-5 text-orange-500" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{totalServices - pricedServices}</p>
+            <p className="text-xs text-gray-500">Pricing Pending</p>
+          </div>
         </div>
       </div>
 
-      {/* Treatment Types Section */}
+      {/* Services by Category */}
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Treatment Types</h2>
-          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">
-            <Plus className="w-4 h-4 mr-1" /> Add Treatment
-          </button>
-        </div>
-
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" />
           </div>
         ) : (
-          <div className="space-y-6">
-            {CATEGORIES.map(category => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{category}</h3>
-                <div className="space-y-2">
-                  {(grouped[category] || []).map(t => (
-                    <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded ${t.color}`} />
-                        <span className="font-medium text-gray-800">{t.name}</span>
-                        <span className="text-sm text-gray-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {formatDuration(t.duration)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setShowEdit({ ...t })}
-                          className="p-2 text-gray-400 hover:text-brand-pink hover:bg-white rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setShowDelete(t)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+          <div className="space-y-8">
+            {CATEGORIES.map(category => {
+              const items = grouped[category] || []
+              return (
+                <div key={category}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{category}</h3>
+                    <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{items.length}</span>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic py-2 pl-2">No services in this category</p>
+                  ) : (
+                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                          <tr>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-4"></th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 hidden sm:table-cell">Description</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price</th>
+                            <th className="w-20"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {items.map(t => (
+                            <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className={`w-3 h-3 rounded-full ${t.color}`} />
+                              </td>
+                              <td className="px-4 py-3 font-medium text-gray-800">{t.name}</td>
+                              <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">
+                                {t.description || <span className="italic text-gray-300">—</span>}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> {formatDuration(t.duration)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                {t.price != null ? (
+                                  <span className="font-semibold text-gray-800">S${t.price.toFixed(2)}</span>
+                                ) : (
+                                  <span className="text-xs text-orange-400 bg-orange-50 px-2 py-0.5 rounded-full">Not set</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => setShowEdit({ ...t, price: t.price ?? '' })}
+                                    className="p-1.5 text-gray-400 hover:text-brand-pink hover:bg-white rounded-lg transition-colors"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowDelete(t)}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                  {(!grouped[category] || grouped[category].length === 0) && (
-                    <p className="text-sm text-gray-400 italic py-2">No treatments in this category</p>
                   )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
 
       {/* Add Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Treatment Type">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Service">
         <form onSubmit={handleAdd} className="space-y-4">
           <div>
-            <label className="label">Name *</label>
-            <input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            <label className="label">Service Name *</label>
+            <input className="input" placeholder="e.g. Hydrotherapy Session" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input" rows={2} placeholder="Brief description shown to staff..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
           </div>
           <div>
             <label className="label">Category *</label>
@@ -184,19 +257,25 @@ export default function SettingsPage() {
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div>
-            <label className="label">Duration (minutes) *</label>
-            <input type="number" className="input" min="5" step="5" value={form.duration} onChange={e => setForm({...form, duration: parseInt(e.target.value)})} required />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Duration (minutes) *</label>
+              <input type="number" className="input" min="5" step="5" value={form.duration} onChange={e => setForm({...form, duration: parseInt(e.target.value)})} required />
+            </div>
+            <div>
+              <label className="label">Price (S$)</label>
+              <input type="number" className="input" min="0" step="0.01" placeholder="e.g. 120.00" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
+            </div>
           </div>
           <div>
-            <label className="label">Color</label>
-            <div className="grid grid-cols-6 gap-2 mt-1">
+            <label className="label">Calendar Colour</label>
+            <div className="grid grid-cols-8 gap-2 mt-1">
               {COLOR_OPTIONS.map(c => (
                 <button
                   key={c.value}
                   type="button"
                   onClick={() => setForm({...form, color: c.value})}
-                  className={`w-8 h-8 rounded-full ${c.preview} ${form.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
+                  className={`w-7 h-7 rounded-full ${c.preview} ${form.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
                   title={c.label}
                 />
               ))}
@@ -204,18 +283,22 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Add Treatment</button>
+            <button type="submit" className="btn-primary">Add Service</button>
           </div>
         </form>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Treatment Type">
+      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Service">
         {showEdit && (
           <form onSubmit={handleEdit} className="space-y-4">
             <div>
-              <label className="label">Name *</label>
+              <label className="label">Service Name *</label>
               <input className="input" value={showEdit.name} onChange={e => setShowEdit({...showEdit, name: e.target.value})} required />
+            </div>
+            <div>
+              <label className="label">Description</label>
+              <textarea className="input" rows={2} placeholder="Brief description shown to staff..." value={showEdit.description || ''} onChange={e => setShowEdit({...showEdit, description: e.target.value})} />
             </div>
             <div>
               <label className="label">Category *</label>
@@ -223,19 +306,25 @@ export default function SettingsPage() {
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div>
-              <label className="label">Duration (minutes) *</label>
-              <input type="number" className="input" min="5" step="5" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)})} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Duration (minutes) *</label>
+                <input type="number" className="input" min="5" step="5" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)})} required />
+              </div>
+              <div>
+                <label className="label">Price (S$)</label>
+                <input type="number" className="input" min="0" step="0.01" placeholder="e.g. 120.00" value={showEdit.price ?? ''} onChange={e => setShowEdit({...showEdit, price: e.target.value})} />
+              </div>
             </div>
             <div>
-              <label className="label">Color</label>
-              <div className="grid grid-cols-6 gap-2 mt-1">
+              <label className="label">Calendar Colour</label>
+              <div className="grid grid-cols-8 gap-2 mt-1">
                 {COLOR_OPTIONS.map(c => (
                   <button
                     key={c.value}
                     type="button"
                     onClick={() => setShowEdit({...showEdit, color: c.value})}
-                    className={`w-8 h-8 rounded-full ${c.preview} ${showEdit.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
+                    className={`w-7 h-7 rounded-full ${c.preview} ${showEdit.color === c.value ? 'ring-2 ring-offset-2 ring-brand-pink' : ''}`}
                     title={c.label}
                   />
                 ))}
@@ -250,17 +339,17 @@ export default function SettingsPage() {
       </Modal>
 
       {/* Delete Confirmation */}
-      <Modal open={!!showDelete} onClose={() => setShowDelete(null)} title="Delete Treatment Type">
+      <Modal open={!!showDelete} onClose={() => setShowDelete(null)} title="Remove Service">
         {showDelete && (
           <div className="space-y-4">
             <p className="text-gray-600">
-              Are you sure you want to delete <strong>{showDelete.name}</strong>?
+              Are you sure you want to remove <strong>{showDelete.name}</strong>?
             </p>
-            <p className="text-sm text-red-600">Existing appointments using this treatment type will not be affected.</p>
+            <p className="text-sm text-red-600">Existing appointments using this service will not be affected.</p>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowDelete(null)} className="btn-secondary">Cancel</button>
               <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-                Delete
+                Remove Service
               </button>
             </div>
           </div>

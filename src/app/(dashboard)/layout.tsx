@@ -26,7 +26,7 @@ const nav = [
   { href: '/leads', label: 'Leads', icon: Megaphone, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet', 'administrator', 'office_manager', 'veterinarian'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
-  { href: '/treatment-types', label: 'Treatment Types', icon: Stethoscope, roles: ['admin', 'administrator', 'office_manager'] },
+  { href: '/treatment-types', label: 'Services & Pricing', icon: Stethoscope, roles: ['admin', 'administrator', 'office_manager'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin', 'administrator', 'office_manager'] },
 ]
 

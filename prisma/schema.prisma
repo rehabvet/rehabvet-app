@@ -421,7 +421,9 @@ model treatment_types {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique
   category    String
+  description String?
   duration    Int      @default(60)
+  price       Float?
   color       String?  @default("bg-gray-400")
   active      Boolean  @default(true)
   sort_order  Int      @default(0)

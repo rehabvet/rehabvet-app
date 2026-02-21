@@ -7,11 +7,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
-  const { name, category, duration, color } = body
+  const { name, category, description, duration, price, color } = body
 
   const type = await prisma.treatment_types.update({
     where: { id: params.id },
-    data: { name, category, duration, color },
+    data: {
+      name,
+      category,
+      description: description || null,
+      duration,
+      price: price !== undefined && price !== '' ? parseFloat(price) : null,
+      color,
+    },
   })
 
   return NextResponse.json({ type })
