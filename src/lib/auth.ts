@@ -8,7 +8,7 @@ export interface AuthUser {
   id: string
   email: string
   name: string
-  role: 'admin' | 'vet' | 'therapist' | 'receptionist'
+  role: string
 }
 
 export async function hashPassword(password: string): Promise<string> {
