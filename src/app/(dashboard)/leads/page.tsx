@@ -1,16 +1,36 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Search, ChevronDown, Eye, CheckCircle, Calendar, Trash2, X, Phone, Mail, PawPrint, Megaphone } from 'lucide-react'
+import { Users, Search, ChevronDown, Eye, CheckCircle, Calendar, Trash2, Phone, Mail, PawPrint, Megaphone, MapPin, Stethoscope, AlertCircle } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 interface Lead {
   id: string
   owner_name: string; owner_email: string; owner_phone: string; how_heard: string | null
-  pet_name: string; species: string; breed: string | null; age: string | null; weight: string | null
+  post_code: string | null
+  pet_name: string; species: string; breed: string | null; age: string | null
+  pet_gender: string | null; weight: string | null
+  vet_friendly: boolean | null; reactive_to_pets: boolean | null
   service: string | null; condition: string | null; preferred_date: string | null
+  has_pain: boolean | null; clinic_name: string | null; attending_vet: string | null
   first_visit: boolean; notes: string | null; status: string; staff_notes: string | null
   created_at: string
+}
+
+// OneMap postcode → address lookup (Singapore)
+async function lookupPostcode(postcode: string): Promise<string | null> {
+  if (!postcode || postcode.length < 5) return null
+  try {
+    const res = await fetch(
+      `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${postcode}&returnGeom=N&getAddrDetails=Y&pageNum=1`
+    )
+    const data = await res.json()
+    if (data.results && data.results.length > 0) {
+      const r = data.results[0]
+      return r.ADDRESS || null
+    }
+  } catch {}
+  return null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -34,6 +54,8 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [viewLead, setViewLead] = useState<Lead | null>(null)
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null)
+  const [addressLoading, setAddressLoading] = useState(false)
   const [convertLead, setConvertLead] = useState<Lead | null>(null)
   const [convertDate, setConvertDate] = useState('')
   const [converting, setConverting] = useState(false)
@@ -53,6 +75,16 @@ export default function LeadsPage() {
   }, [search, filterStatus])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
+
+  // Resolve postcode → address whenever a lead is opened
+  useEffect(() => {
+    if (!viewLead?.post_code) { setResolvedAddress(null); return }
+    setAddressLoading(true)
+    lookupPostcode(viewLead.post_code).then(addr => {
+      setResolvedAddress(addr)
+      setAddressLoading(false)
+    })
+  }, [viewLead?.post_code])
 
   async function updateStatus(id: string, status: string) {
     await fetch(`/api/leads/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
@@ -166,7 +198,11 @@ export default function LeadsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.pet_name}</p>
-                        <p className="text-xs text-gray-400">{lead.species && lead.species !== 'Unknown' ? lead.species : ''}{lead.breed ? `${lead.species && lead.species !== 'Unknown' ? ' · ' : ''}${lead.breed}` : ''}</p>
+                        <p className="text-xs text-gray-400">
+                          {lead.breed || ''}
+                          {lead.breed && lead.pet_gender ? ' · ' : ''}
+                          {lead.pet_gender || ''}
+                        </p>
                       </td>
                       <td className="px-4 py-3">
                         <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value)}
@@ -201,48 +237,124 @@ export default function LeadsPage() {
       {/* View Lead Modal */}
       <Modal open={!!viewLead} onClose={() => setViewLead(null)} title="Lead Details">
         {viewLead && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Owner</p>
-                <p className="font-semibold text-gray-900">{viewLead.owner_name}</p>
-                <p className="text-sm text-gray-600 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400" />{viewLead.owner_email}</p>
-                <p className="text-sm text-gray-600 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" />{viewLead.owner_phone}</p>
-                {viewLead.how_heard && <p className="text-xs text-gray-400">Via: {viewLead.how_heard}</p>}
+          <div className="space-y-4">
+
+            {/* ── Owner ── */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Owner
+              </p>
+              <p className="font-semibold text-gray-900">{viewLead.owner_name}</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <a href={`mailto:${viewLead.owner_email}`} className="hover:underline">{viewLead.owner_email}</a>
+              </p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <a href={`tel:${viewLead.owner_phone}`} className="hover:underline">{viewLead.owner_phone}</a>
+              </p>
+              {/* Postcode + resolved address */}
+              {viewLead.post_code && (
+                <p className="text-sm text-gray-600 flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-mono text-gray-700">{viewLead.post_code}</span>
+                    {addressLoading && <span className="text-gray-400 ml-2 text-xs">Looking up…</span>}
+                    {resolvedAddress && <span className="text-gray-500 ml-2 text-xs">{resolvedAddress}</span>}
+                  </span>
+                </p>
+              )}
+              {viewLead.how_heard && (
+                <p className="text-xs text-gray-400 flex items-center gap-1">
+                  <Megaphone className="w-3 h-3" /> Via: {viewLead.how_heard}
+                </p>
+              )}
+            </div>
+
+            {/* ── Pet ── */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                <PawPrint className="w-3.5 h-3.5" /> Pet
+              </p>
+              <p className="font-semibold text-gray-900">{viewLead.pet_name}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                {viewLead.breed && <span>Breed: <strong>{viewLead.breed}</strong></span>}
+                {viewLead.pet_gender && <span>Gender: <strong>{viewLead.pet_gender}</strong></span>}
+                {viewLead.age && <span>Age: <strong>{viewLead.age}</strong></span>}
+                {viewLead.weight && <span>Weight: <strong>{viewLead.weight}</strong></span>}
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><PawPrint className="w-3.5 h-3.5" /> Pet</p>
-                <p className="font-semibold text-gray-900">{viewLead.pet_name}</p>
-                <p className="text-sm text-gray-600">{viewLead.species}{viewLead.breed ? ` · ${viewLead.breed}` : ''}</p>
-                {viewLead.age && <p className="text-xs text-gray-500">Age: {viewLead.age}</p>}
-                {viewLead.weight && <p className="text-xs text-gray-500">Weight: {viewLead.weight}</p>}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {viewLead.vet_friendly !== null && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${viewLead.vet_friendly ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {viewLead.vet_friendly ? '✓ Vet friendly' : '⚠ Not vet friendly'}
+                  </span>
+                )}
+                {viewLead.reactive_to_pets !== null && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${viewLead.reactive_to_pets ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {viewLead.reactive_to_pets ? '⚠ Reactive to pets' : '✓ Non-reactive'}
+                  </span>
+                )}
+                {viewLead.has_pain !== null && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${viewLead.has_pain ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {viewLead.has_pain ? '🔴 Pain symptoms' : 'No pain symptoms'}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Visit Request</p>
-              <p className="text-sm text-gray-700"><span className="font-medium">Service:</span> {SERVICE_LABELS[viewLead.service || ''] || viewLead.service || '—'}</p>
+            {/* ── Vet / Clinic ── */}
+            {(viewLead.clinic_name || viewLead.attending_vet) && (
+              <div className="bg-gray-50 rounded-xl p-4 space-y-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <Stethoscope className="w-3.5 h-3.5" /> Referring Vet
+                </p>
+                {viewLead.clinic_name && <p className="text-sm text-gray-700"><span className="font-medium">Clinic:</span> {viewLead.clinic_name}</p>}
+                {viewLead.attending_vet && <p className="text-sm text-gray-700"><span className="font-medium">Vet:</span> {viewLead.attending_vet}</p>}
+              </div>
+            )}
+
+            {/* ── Condition / Mobility Issue ── */}
+            {viewLead.condition && (
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5" /> Mobility / Condition
+                </p>
+                <p className="text-sm text-gray-700 bg-white rounded-lg p-3 border border-gray-200 leading-relaxed whitespace-pre-wrap">{viewLead.condition}</p>
+              </div>
+            )}
+
+            {/* ── Visit info (service, first visit) ── */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> Visit Request
+              </p>
+              {viewLead.service && <p className="text-sm text-gray-700"><span className="font-medium">Service:</span> {SERVICE_LABELS[viewLead.service] || viewLead.service}</p>}
               {viewLead.preferred_date && <p className="text-sm text-gray-700"><span className="font-medium">Preferred date:</span> {viewLead.preferred_date}</p>}
               <p className="text-sm text-gray-700"><span className="font-medium">First visit:</span> {viewLead.first_visit ? 'Yes' : 'No'}</p>
-              {viewLead.condition && <div><p className="text-sm font-medium text-gray-700 mb-1">Condition / Notes:</p><p className="text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">{viewLead.condition}</p></div>}
+              {viewLead.notes && (
+                <p className="text-xs text-gray-400 pt-1 italic">{viewLead.notes}</p>
+              )}
             </div>
 
+            {/* ── Status ── */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-gray-700">Status</p>
-              </div>
+              <p className="text-sm font-medium text-gray-700 mb-1.5">Status</p>
               <select value={viewLead.status} onChange={e => updateStatus(viewLead.id, e.target.value)} className="input w-full">
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
 
+            {/* ── Staff Notes ── */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Staff Notes</p>
-              <textarea rows={3} className="input w-full resize-none" placeholder="Internal notes..." value={staffNote} onChange={e => setStaffNote(e.target.value)} />
-              <button onClick={saveNote} disabled={savingNote} className="mt-2 btn-secondary text-sm">{savingNote ? 'Saving...' : 'Save Note'}</button>
+              <p className="text-sm font-medium text-gray-700 mb-1.5">Staff Notes</p>
+              <textarea rows={3} className="input w-full resize-none" placeholder="Internal notes…" value={staffNote} onChange={e => setStaffNote(e.target.value)} />
+              <button onClick={saveNote} disabled={savingNote} className="mt-2 btn-secondary text-sm">
+                {savingNote ? 'Saving…' : 'Save Note'}
+              </button>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            {/* ── Actions ── */}
+            <div className="flex gap-2 pt-1">
               {viewLead.status !== 'converted' && (
                 <button onClick={() => { setConvertLead(viewLead); setViewLead(null) }} className="btn-primary flex items-center gap-2 flex-1 justify-center">
                   <CheckCircle className="w-4 h-4" /> Convert to Appointment
