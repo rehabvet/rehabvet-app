@@ -71,7 +71,7 @@ export default function AppointmentPage() {
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
-    first_name: '', last_name: '', owner_email: '', owner_phone: '', post_code: '',
+    first_name: '', last_name: '', owner_email: '', owner_phone: '+65 ', post_code: '',
     pet_name: '', breed: '', age: '', pet_gender: '',
     vet_friendly: null as boolean | null,
     reactive_to_pets: null as boolean | null,
@@ -82,7 +82,7 @@ export default function AppointmentPage() {
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
-  const canNext1 = form.first_name && form.last_name && form.owner_email && form.owner_phone && form.post_code
+  const canNext1 = form.first_name && form.last_name && form.owner_email && form.owner_phone.trim().length > 4 && form.post_code
   const canNext2 = form.pet_name && form.breed && form.age && form.pet_gender && form.vet_friendly !== null && form.reactive_to_pets !== null
   const canSubmit = form.clinic_name && form.attending_vet && form.has_pain !== null && form.how_heard
 
@@ -176,7 +176,7 @@ export default function AppointmentPage() {
               </Field>
 
               <Field label="Phone Number" required>
-                <input type="tel" className={inputClass} placeholder="+65 9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
+                <input type="tel" className={inputClass} placeholder="9123 4567" value={form.owner_phone} onChange={e => set('owner_phone', e.target.value)} />
               </Field>
 
               <Field label="Postal Code" required>
