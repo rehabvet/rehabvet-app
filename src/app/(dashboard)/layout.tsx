@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, Users, PawPrint, ClipboardList,
-  FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X,
+  FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package,
   Stethoscope, UserCog
 } from 'lucide-react'
 
@@ -22,6 +22,7 @@ const nav = [
   { href: '/treatment-plans', label: 'Treatment Plans', icon: Stethoscope, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/sessions', label: 'Sessions', icon: FileText, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
+  { href: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'vet', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet', 'administrator', 'office_manager', 'veterinarian'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
   { href: '/treatment-types', label: 'Treatment Types', icon: Stethoscope, roles: ['admin', 'administrator', 'office_manager'] },
