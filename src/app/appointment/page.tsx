@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronRight, ChevronLeft, CheckCircle, Star, Phone } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ChevronRight, ChevronLeft, Star, Phone } from 'lucide-react'
 
 const HOW_HEARD = ['Google Search', 'Vet or clinic referred', 'Friend or Family', 'IG/FB/TikTok', 'Events and Expo', 'Other']
 const GENDERS = ['Male', 'Female', 'Male Neutered', 'Female Neutered']
@@ -25,8 +26,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 const inp = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EC6496]/20 focus:border-[#EC6496] transition-colors bg-white'
 
 export default function AppointmentPage() {
+  const router = useRouter()
   const [step, setStep] = useState(1)
-  const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [reviewIdx, setReviewIdx] = useState(0)
@@ -97,25 +98,9 @@ export default function AppointmentPage() {
         body: JSON.stringify({ ...form, owner_name: `${form.first_name} ${form.last_name}`.trim() }),
       })
       if (!res.ok) throw new Error()
-      setSubmitted(true)
+      router.push('/appointment/thank-you')
     } catch { setError('Something went wrong. Please try again or call us at 6291 6881.') }
     finally { setLoading(false) }
-  }
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <img src="/rehabvet-logo.jpg" alt="RehabVet" className="h-14 object-contain mb-10" />
-        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-6">
-          <CheckCircle className="w-8 h-8 text-green-500" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Request Received!</h1>
-        <p className="text-gray-500 max-w-sm mb-6">We'll review your request and be in touch within <strong>1 business day</strong> to confirm your appointment.</p>
-        <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-5 py-3">
-          <Phone className="w-4 h-4" /> Need us sooner? Call <a href="tel:62916881" className="font-semibold text-gray-800">6291 6881</a>
-        </div>
-      </div>
-    )
   }
 
   const progress = ((step - 1) / 2) * 100
