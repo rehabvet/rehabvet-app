@@ -179,6 +179,7 @@ export default function LeadsPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Received (SGT)</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Owner</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Postal Code</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Pet</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
@@ -202,6 +203,16 @@ export default function LeadsPage() {
                           <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                           {lead.owner_phone}
                         </a>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {lead.post_code ? (
+                          <span className="text-sm text-gray-700 flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                            {lead.post_code}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.pet_name}</p>
