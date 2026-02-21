@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronRight, ChevronLeft, CheckCircle, Star, Shield, Award, Clock } from 'lucide-react'
 
 const HOW_HEARD = [
@@ -14,31 +14,17 @@ const HOW_HEARD = [
 
 const GENDERS = ['Male', 'Female', 'Male Neutered', 'Female Neutered']
 
-const REVIEWS = [
-  {
-    name: 'Sarah T.',
-    pet: 'Labrador owner',
-    stars: 5,
-    text: 'After Max\'s surgery, we were told he might never walk normally again. After 8 sessions at RehabVet, he\'s running on the beach. The team is incredible.',
-  },
-  {
-    name: 'James L.',
-    pet: 'Golden Retriever owner',
-    stars: 5,
-    text: 'Our vet referred us here and it was the best decision. Buddy had severe hip dysplasia and the hydrotherapy sessions transformed his quality of life.',
-  },
-  {
-    name: 'Priya M.',
-    pet: 'Dachshund owner',
-    stars: 5,
-    text: 'Cookie had IVDD and could barely move. The rehab team was so patient and professional. 3 months later she\'s back to her cheeky self.',
-  },
+const FALLBACK_REVIEWS = [
+  { author: 'Logan Wooferine', rating: 5, time: 'a month ago', photo: '', text: 'Met RehabVet at Pet Expo years ago and have trusted them with my dog ever since. Dr. Sara and the team\'s explanations on joint care were very helpful and when my dog was injured recently, the treatment and home care really helped his recovery. Kind team and a lovely newly renovated space!' },
+  { author: 'Shalene Lim', rating: 5, time: '2 months ago', photo: '', text: 'Scotty pulled his hind right knee as a puppy. Eventually arthritis and lots of hobbling and limping caught up. After consulting RehabVet, we saw huge improvements. The therapists are so detailed and patient — couldn\'t recommend them more highly.' },
+  { author: 'Cherly K', rating: 5, time: '3 months ago', photo: '', text: 'Haru has been going to RehabVet since Nov 2025 to manage his mobility caused by luxating patellar and hip dysplasia. We witnessed huge improvements through ultrasound/laser therapy, land exercises and hydrotherapy. Exceptional care all round!' },
+  { author: 'Jas Sim', rating: 5, time: '4 months ago', photo: '', text: 'Truly grateful to Dr. Sara, the entire RehabVet team, and especially Xan, who has been exceptionally detailed and patient. Milo was diagnosed with IVDD Grade 3 in late June 2025. The whole team has shown such genuine care throughout his recovery journey.' },
+  { author: 'Henrietta Tan', rating: 5, time: '5 months ago', photo: '', text: 'Always a pleasant experience here at RehabVet — clean area, calm ambience and super patient therapists. Staff are very willing to share tips on home care massages and explain in detail how our pups\' muscles work.' },
 ]
 
-const STATS = [
+const BASE_STATS = [
   { value: '10+', label: 'Years of Experience' },
   { value: '5000+', label: 'Pets Rehabilitated' },
-  { value: '4.9★', label: 'Google Rating' },
   { value: 'SG\'s 1st', label: 'Vet Rehab Clinic' },
 ]
 
@@ -61,6 +47,19 @@ export default function AppointmentPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [reviewIdx, setReviewIdx] = useState(0)
+  const [reviews, setReviews] = useState(FALLBACK_REVIEWS)
+  const [googleRating, setGoogleRating] = useState({ rating: 4.8, total: 193 })
+
+  // Fetch live Google reviews
+  useEffect(() => {
+    fetch('/api/google-reviews')
+      .then(r => r.json())
+      .then(d => {
+        if (d.reviews?.length > 0) setReviews(d.reviews)
+        if (d.rating) setGoogleRating({ rating: d.rating, total: d.total })
+      })
+      .catch(() => {})
+  }, [])
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', owner_email: '', owner_phone: '+65 ', post_code: '',
@@ -120,13 +119,13 @@ export default function AppointmentPage() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <img src="/rehabvet-logo.jpg" alt="RehabVet" className="h-10 object-contain" />
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <a href="https://g.page/r/ChIJY_ZBds8Z2jERjMFPzYxwLxI/review" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
             <div className="flex">
               {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
             </div>
-            <span className="font-semibold text-gray-700">4.9</span>
-            <span className="hidden sm:inline">· Google Reviews</span>
-          </div>
+            <span className="font-semibold text-gray-700">{googleRating.rating}</span>
+            <span className="hidden sm:inline text-gray-400">· {googleRating.total} Google Reviews</span>
+          </a>
         </div>
       </div>
 
@@ -151,7 +150,7 @@ export default function AppointmentPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {STATS.map(s => (
+              {[...BASE_STATS, { value: `${googleRating.rating}★`, label: 'Google Rating' }].map(s => (
                 <div key={s.label} className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm">
                   <p className="text-xl font-extrabold text-brand-pink">{s.value}</p>
                   <p className="text-xs text-gray-500 mt-0.5 leading-tight">{s.label}</p>
@@ -177,24 +176,34 @@ export default function AppointmentPage() {
 
             {/* Review carousel */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex mb-3">
-                {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex">
+                  {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+                </div>
+                <span className="text-xs text-gray-400">{reviews[reviewIdx]?.time}</span>
               </div>
-              <p className="text-gray-700 text-sm leading-relaxed mb-4 min-h-[60px]">"{REVIEWS[reviewIdx].text}"</p>
+              <p className="text-gray-700 text-sm leading-relaxed mb-4 min-h-[72px]">"{reviews[reviewIdx]?.text}"</p>
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{REVIEWS[reviewIdx].name}</p>
-                  <p className="text-xs text-gray-400">{REVIEWS[reviewIdx].pet}</p>
+                <div className="flex items-center gap-2">
+                  {reviews[reviewIdx]?.photo ? (
+                    <img src={reviews[reviewIdx].photo} className="w-7 h-7 rounded-full object-cover" alt="" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-brand-pink/20 flex items-center justify-center text-brand-pink text-xs font-bold">
+                      {reviews[reviewIdx]?.author?.[0]}
+                    </div>
+                  )}
+                  <p className="font-semibold text-gray-900 text-sm">{reviews[reviewIdx]?.author}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  {REVIEWS.map((_, i) => (
+                  {reviews.map((_, i) => (
                     <button key={i} onClick={() => setReviewIdx(i)}
                       className={`w-2 h-2 rounded-full transition-all ${i === reviewIdx ? 'bg-brand-pink' : 'bg-gray-200'}`} />
                   ))}
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
-                <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" /> Google Review
+              <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
+                <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
+                <span>Verified Google Review</span>
               </p>
             </div>
 
