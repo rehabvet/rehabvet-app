@@ -11,6 +11,13 @@ enum UserRole {
   vet
   therapist
   receptionist
+  veterinarian
+  senior_therapist
+  assistant_therapist
+  hydrotherapist
+  marketing
+  office_manager
+  administrator
 }
 
 enum PatientSex {
