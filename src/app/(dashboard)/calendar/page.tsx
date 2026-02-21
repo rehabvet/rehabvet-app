@@ -9,6 +9,11 @@ import TimePicker from '@/components/TimePicker'
 
 type ViewType = 'day' | 'week' | 'month'
 
+// Always derive date strings in SGT — en-CA locale gives YYYY-MM-DD format
+function toSGTDateStr(d: Date) {
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+}
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('day')
@@ -26,8 +31,8 @@ export default function CalendarPage() {
   const month = currentDate.getMonth()
 
   useEffect(() => {
-    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0]
-    const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0]
+    const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+    const endDate = toSGTDateStr(new Date(year, month + 2, 0))
     fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
       .then(r => r.json()).then(d => setAppointments(d.appointments || []))
     fetch('/api/staff')
@@ -70,7 +75,7 @@ export default function CalendarPage() {
   }
 
   const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = toSGTDateStr(today)
 
   const apptsByDate: Record<string, any[]> = {}
   for (const a of appointments) {
@@ -135,8 +140,8 @@ export default function CalendarPage() {
         body: JSON.stringify(editForm)
       })
       // Refresh appointments
-      const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0]
-      const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0]
+      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
       const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
       const data = await res.json()
       setAppointments(data.appointments || [])
@@ -223,13 +228,13 @@ export default function CalendarPage() {
         <div className="grid grid-cols-8 gap-px bg-gray-200 rounded-lg overflow-hidden min-w-[800px]">
           <div className="bg-gray-50 p-2" />
           {weekDays.map(d => {
-            const dateStr = d.toISOString().split('T')[0]
+            const dateStr = toSGTDateStr(d)
             const isToday = dateStr === todayStr
             return (
               <div key={dateStr} className={`bg-gray-50 p-2 text-center ${isToday ? 'bg-pink-50' : ''}`}>
-                <div className="text-xs text-gray-500">{d.toLocaleDateString('en-SG', { weekday: 'short' })}</div>
+                <div className="text-xs text-gray-500">{d.toLocaleDateString('en-SG', { weekday: 'short', timeZone: 'Asia/Singapore' })}</div>
                 <div className={`text-lg font-semibold ${isToday ? 'bg-brand-pink text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto' : 'text-gray-800'}`}>
-                  {d.getDate()}
+                  {parseInt(dateStr.split('-')[2])}
                 </div>
               </div>
             )
@@ -240,7 +245,7 @@ export default function CalendarPage() {
                 {hour}:00
               </div>
               {weekDays.map(d => {
-                const dateStr = d.toISOString().split('T')[0]
+                const dateStr = toSGTDateStr(d)
                 const dayAppts = apptsByDate[dateStr] || []
                 const hourAppts = dayAppts.filter((a: any) => {
                   const apptHour = parseInt(a.start_time?.split(':')[0] || '0')
@@ -262,7 +267,7 @@ export default function CalendarPage() {
 
   // Day View — Provider column layout
   function renderDayView() {
-    const dateStr = currentDate.toISOString().split('T')[0]
+    const dateStr = toSGTDateStr(currentDate)
     const dayAppts = apptsByDate[dateStr] || []
     const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8:00 – 20:00
 
