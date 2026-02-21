@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const lowStockCount = allActive.filter((i: any) => i.stock_on_hand <= i.stock_min).length
 
   // Get distinct categories
-  const categories = [...new Set(allActive.map((i: any) => i.category))].sort()
+  const categories = Array.from(new Set(allActive.map((i: any) => i.category))).sort()
 
   return NextResponse.json({
     items: filtered,
