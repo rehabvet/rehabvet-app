@@ -168,8 +168,8 @@ export default function AppointmentPage() {
             {/* Hero */}
             <div>
               <span className="inline-block text-xs font-bold tracking-widest text-[#EC6496] uppercase mb-3">Singapore's First Vet Rehab Clinic</span>
-              <h1 className="text-3xl sm:text-4xl lg:text-[52px] font-extrabold text-[#EC6496] leading-[1.1] tracking-tight mb-4">
-                Proven Steps to<br />Pain Free Mobility
+              <h1 className="text-2xl sm:text-3xl lg:text-[38px] font-extrabold text-gray-900 leading-[1.25] tracking-tight mb-4">
+                Proven Steps to<br className="block" />Pain Free Mobility
               </h1>
               <p className="text-gray-500 text-base sm:text-lg leading-relaxed max-w-md">
                 Personalised physiotherapy, hydrotherapy and rehabilitation plans — helping pets recover from surgery, manage pain, and move freely again.
@@ -233,7 +233,7 @@ export default function AppointmentPage() {
 
           {/* ── RIGHT: Form — appears FIRST on mobile ── */}
           <div id="book" className="lg:sticky lg:top-24 order-1 lg:order-2">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-xl border-2 border-gray-200 overflow-hidden">
 
               {/* Form top */}
               <div className="px-4 sm:px-6 pt-6 sm:pt-7 pb-5 border-b border-gray-100">
