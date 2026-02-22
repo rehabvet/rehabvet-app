@@ -99,16 +99,19 @@ export default function CalendarPage() {
     }
   }
 
-  function getTitle() {
+  function getTitle(compact = false) {
     if (view === 'day') {
+      if (compact) return currentDate.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })
       return currentDate.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     } else if (view === 'week') {
       const startOfWeek = new Date(currentDate)
       startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 6)
-      return `${startOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      if (compact) return `${startOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} – ${endOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}`
+      return `${startOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} – ${endOfWeek.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
     }
+    if (compact) return currentDate.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })
     return currentDate.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
   }
 
@@ -185,23 +188,34 @@ export default function CalendarPage() {
 
     return (
       <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden flex-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} className="bg-gray-50 px-2 py-3 text-center text-sm font-semibold text-gray-600">{d}</div>
+        {[['S','Sun'],['M','Mon'],['T','Tue'],['W','Wed'],['T','Thu'],['F','Fri'],['S','Sat']].map(([short, full]) => (
+          <div key={full} className="bg-gray-50 px-1 py-2 text-center font-semibold text-gray-600">
+            <span className="hidden sm:inline text-sm">{full}</span>
+            <span className="sm:hidden text-xs">{short}</span>
+          </div>
         ))}
         {days.map((day, i) => {
-          if (day === null) return <div key={`empty-${i}`} className="bg-white min-h-[120px]" />
+          if (day === null) return <div key={`empty-${i}`} className="bg-white min-h-[60px] sm:min-h-[100px]" />
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
           const dayAppts = apptsByDate[dateStr] || []
           const isToday = dateStr === todayStr
 
           return (
             <div key={dateStr}
-              className={`bg-white min-h-[120px] p-2 ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
-              <div className={`text-sm font-medium mb-1 ${isToday ? 'bg-brand-pink text-white w-7 h-7 rounded-full flex items-center justify-center' : 'text-gray-700'}`}>{day}</div>
-              <div className="space-y-1">
-                {dayAppts.slice(0, 4).map(a => renderAppointment(a))}
-                {dayAppts.length > 4 && (
-                  <div className="text-xs text-gray-500 px-1">+{dayAppts.length - 4} more</div>
+              className={`bg-white min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
+              <div className={`text-xs sm:text-sm font-medium mb-1 ${isToday ? 'bg-brand-pink text-white w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-sm' : 'text-gray-700'}`}>{day}</div>
+              {/* Mobile: dots only */}
+              <div className="flex flex-wrap gap-0.5 sm:hidden">
+                {dayAppts.slice(0, 3).map(a => (
+                  <div key={a.id} className={`w-1.5 h-1.5 rounded-full ${treatmentColors[a.modality] || 'bg-gray-400'}`} />
+                ))}
+                {dayAppts.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
+              </div>
+              {/* Desktop: full appointment cards */}
+              <div className="hidden sm:block space-y-1">
+                {dayAppts.slice(0, 3).map(a => renderAppointment(a))}
+                {dayAppts.length > 3 && (
+                  <div className="text-xs text-gray-500 px-1">+{dayAppts.length - 3} more</div>
                 )}
               </div>
             </div>
@@ -224,16 +238,16 @@ export default function CalendarPage() {
     const hours = Array.from({ length: 12 }, (_, i) => i + 8)
 
     return (
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-8 gap-px bg-gray-200 rounded-lg overflow-hidden min-w-[800px]">
-          <div className="bg-gray-50 p-2" />
+      <div className="flex-1 overflow-auto rounded-xl border border-gray-200">
+        <div className="grid grid-cols-8 gap-px bg-gray-200 rounded-lg overflow-hidden min-w-[600px]">
+          <div className="bg-gray-50 p-2 w-10 sm:w-14" />
           {weekDays.map(d => {
             const dateStr = toSGTDateStr(d)
             const isToday = dateStr === todayStr
             return (
-              <div key={dateStr} className={`bg-gray-50 p-2 text-center ${isToday ? 'bg-pink-50' : ''}`}>
-                <div className="text-xs text-gray-500">{d.toLocaleDateString('en-SG', { weekday: 'short', timeZone: 'Asia/Singapore' })}</div>
-                <div className={`text-lg font-semibold ${isToday ? 'bg-brand-pink text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto' : 'text-gray-800'}`}>
+              <div key={dateStr} className={`bg-gray-50 p-1 sm:p-2 text-center ${isToday ? 'bg-pink-50' : ''}`}>
+                <div className="text-[10px] sm:text-xs text-gray-500">{d.toLocaleDateString('en-SG', { weekday: 'short', timeZone: 'Asia/Singapore' })}</div>
+                <div className={`text-sm sm:text-lg font-semibold ${isToday ? 'bg-brand-pink text-white w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mx-auto text-xs sm:text-base' : 'text-gray-800'}`}>
                   {parseInt(dateStr.split('-')[2])}
                 </div>
               </div>
@@ -241,7 +255,7 @@ export default function CalendarPage() {
           })}
           {hours.map(hour => (
             <>
-              <div key={`hour-${hour}`} className="bg-white p-2 text-xs text-gray-500 text-right pr-3 border-t border-gray-100">
+              <div key={`hour-${hour}`} className="bg-white text-[10px] sm:text-xs text-gray-500 text-right pr-1 sm:pr-3 border-t border-gray-100 w-10 sm:w-14 flex items-start justify-end pt-1">
                 {hour}:00
               </div>
               {weekDays.map(d => {
@@ -253,7 +267,7 @@ export default function CalendarPage() {
                 })
                 const isToday = dateStr === todayStr
                 return (
-                  <div key={`${dateStr}-${hour}`} className={`bg-white min-h-[60px] p-1 border-t border-gray-100 ${isToday ? 'bg-pink-50/30' : ''}`}>
+                  <div key={`${dateStr}-${hour}`} className={`bg-white min-h-[44px] sm:min-h-[60px] p-0.5 sm:p-1 border-t border-gray-100 ${isToday ? 'bg-pink-50/30' : ''}`}>
                     {hourAppts.map(a => renderAppointment(a))}
                   </div>
                 )
@@ -316,27 +330,26 @@ export default function CalendarPage() {
           {providers.length === 0 ? (
             <div className="flex-1 p-4 text-sm text-gray-400 text-center">No appointments today</div>
           ) : providers.map(p => (
-            <div key={p.id} className="flex-1 min-w-[160px] px-3 py-2.5 border-r border-gray-100 last:border-r-0 text-center">
-              <div className="flex items-center justify-center gap-2">
+            <div key={p.id} className="flex-1 min-w-[120px] sm:min-w-[160px] px-2 sm:px-3 py-2 border-r border-gray-100 last:border-r-0 text-center">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                 {p.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photo_url} alt={p.name} className="w-7 h-7 rounded-full object-cover border border-gray-200" />
+                  <img src={p.photo_url} alt={p.name} className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-xs font-bold flex-shrink-0">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-[10px] sm:text-xs font-bold flex-shrink-0">
                     {p.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                   </div>
                 )}
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-gray-900 leading-tight">{p.name}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-tight truncate max-w-[80px] sm:max-w-none">{p.name.split(' ')[0]}<span className="hidden sm:inline"> {p.name.split(' ').slice(1).join(' ')}</span></p>
                   {p.role && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadgeColor[p.role] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadgeColor[p.role] || 'bg-gray-100 text-gray-600'}`}>
                       {roleLabel[p.role] || p.role}
                     </span>
                   )}
                 </div>
               </div>
-              {/* Appointment count */}
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-400 mt-0.5">
                 {dayAppts.filter((a: any) => p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id).length} appts
               </p>
             </div>
@@ -349,7 +362,7 @@ export default function CalendarPage() {
           {isToday && nowMins >= gridStartMins && nowMins <= gridStartMins + (hours.length * 60) && (
             <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${timeIndicatorTop}px` }}>
               <div className="flex items-center">
-                <div className="w-16 flex justify-end pr-1 flex-shrink-0">
+                <div className="w-10 sm:w-16 flex justify-end pr-1 flex-shrink-0">
                   <span className="text-[10px] font-bold text-red-500 bg-white px-1 rounded leading-none">
                     {String(currentTime.getHours()).padStart(2,'0')}:{String(currentTime.getMinutes()).padStart(2,'0')}
                   </span>
@@ -361,10 +374,10 @@ export default function CalendarPage() {
             </div>
           )}
           {/* Hour lines + labels */}
-          <div className="w-16 flex-shrink-0 border-r border-gray-100 relative z-10">
+          <div className="w-10 sm:w-16 flex-shrink-0 border-r border-gray-100 relative z-10">
             {hours.map(hour => (
-              <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
-                <span className="text-xs text-gray-400">{String(hour).padStart(2,'0')}:00</span>
+              <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-1 sm:pr-2 pt-1">
+                <span className="text-[10px] sm:text-xs text-gray-400">{String(hour).padStart(2,'0')}:00</span>
               </div>
             ))}
           </div>
@@ -419,30 +432,36 @@ export default function CalendarPage() {
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <button onClick={goToToday} className="btn-secondary text-sm">Today</button>
+      <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+        {/* Left: Today + nav + title */}
+        <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+          <button onClick={goToToday} className="btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap">Today</button>
           <div className="flex items-center">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <button onClick={() => navigate(-1)} className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
-            <button onClick={() => navigate(1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+            <button onClick={() => navigate(1)} className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">{getTitle()}</h1>
+          <h1 className="text-sm sm:text-xl font-bold text-gray-900 truncate">
+            <span className="sm:hidden">{getTitle(true)}</span>
+            <span className="hidden sm:inline">{getTitle()}</span>
+          </h1>
         </div>
-        
-        <div className="flex bg-gray-100 rounded-lg p-1">
+
+        {/* Right: View switcher */}
+        <div className="flex bg-gray-100 rounded-lg p-0.5 sm:p-1 flex-shrink-0">
           {(['day', 'week', 'month'] as ViewType[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize ${
+              className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 view === v ? 'bg-white text-brand-pink shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {v}
+              <span className="sm:hidden capitalize">{v[0].toUpperCase()}</span>
+              <span className="hidden sm:inline capitalize">{v}</span>
             </button>
           ))}
         </div>
@@ -456,12 +475,12 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      {view === 'month' && (
-        <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
-          {treatmentTypes.slice(0, 12).map(t => (
-            <div key={t.name} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded ${t.color}`} />
-              <span className="text-xs text-gray-500">{t.name}</span>
+      {view === 'month' && treatmentTypes.length > 0 && (
+        <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 pt-3 border-t border-gray-100">
+          {treatmentTypes.filter(t => !['Admin','Lunch','OFF','On Leave','Half Day Off','DO NOT BOOK'].includes(t.name)).slice(0, 12).map(t => (
+            <div key={t.name} className="flex items-center gap-1 sm:gap-1.5">
+              <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${t.color}`} />
+              <span className="text-[10px] sm:text-xs text-gray-500">{t.name}</span>
             </div>
           ))}
         </div>
