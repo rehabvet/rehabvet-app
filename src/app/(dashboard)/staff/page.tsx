@@ -34,6 +34,7 @@ export default function StaffPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
+  const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
   async function fetchStaff() {
     setLoading(true)
@@ -159,6 +160,16 @@ export default function StaffPage() {
     reader.readAsDataURL(file)
   }
 
+  function onAddPhotoSelected(file?: File) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      if (result) setForm(f => ({ ...f, photo_url: result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
   const roleLabel: Record<string, string> = {
     admin: 'Administrator',
     vet: 'Veterinarian',
@@ -259,6 +270,39 @@ export default function StaffPage() {
       {/* Add Staff Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Staff Member">
         <form onSubmit={handleAdd} className="space-y-4">
+
+          {/* Photo upload — top of form */}
+          <div className="flex flex-col items-center gap-3 pb-2">
+            <div className="relative">
+              {form.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.photo_url} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-brand-pink/30" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-3xl font-bold border-2 border-dashed border-brand-pink/30">
+                  {form.name ? form.name.split(' ').map(n => n[0]).join('').substring(0, 2) : '?'}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => addPhotoInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-brand-pink text-white flex items-center justify-center shadow-md hover:bg-brand-pink/90 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="text-center">
+              <button type="button" onClick={() => addPhotoInputRef.current?.click()} className="text-sm text-brand-pink hover:underline font-medium">
+                {form.photo_url ? 'Change photo' : 'Upload photo'}
+              </button>
+              {form.photo_url && (
+                <button type="button" onClick={() => setForm({...form, photo_url: ''})} className="ml-3 text-sm text-gray-400 hover:text-red-500">Remove</button>
+              )}
+              <p className="text-xs text-gray-400 mt-0.5">Optional · JPG, PNG</p>
+            </div>
+            <input ref={addPhotoInputRef} type="file" accept="image/*" className="hidden"
+              onChange={e => onAddPhotoSelected(e.target.files?.[0])} />
+          </div>
+
           <div>
             <label className="label">Full Name *</label>
             <input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
@@ -284,11 +328,6 @@ export default function StaffPage() {
               <label className="label">Password</label>
               <input type="password" className="input" placeholder="Default: password123" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
             </div>
-          </div>
-          <div>
-            <label className="label">Photo URL</label>
-            <input className="input" placeholder="https://..." value={form.photo_url} onChange={e => setForm({...form, photo_url: e.target.value})} />
-            <p className="text-xs text-gray-500 mt-1">Optional. If set, it will show as the staff avatar.</p>
           </div>
           <div>
             <label className="label">Specializations</label>

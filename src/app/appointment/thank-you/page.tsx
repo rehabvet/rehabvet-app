@@ -87,13 +87,13 @@ export default function ThankYouPage() {
         <div className="mb-10">
           <p className="text-sm text-gray-400 mb-4">Follow us for pet health tips & patient success stories</p>
           <div className="flex items-center justify-center gap-3">
-            <a href="https://www.instagram.com/rehabvetsg/" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.instagram.com/rehabvet_sg/" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 bg-white border border-gray-200 hover:border-pink-300 text-gray-600 hover:text-pink-500 font-medium text-sm px-4 py-2.5 rounded-xl transition-colors shadow-sm">
-              <Instagram className="w-4 h-4" /> @rehabvetsg
+              <Instagram className="w-4 h-4" /> @rehabvet_sg
             </a>
-            <a href="https://www.facebook.com/rehabvetsg" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.facebook.com/rehabvet.sg" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 text-gray-600 hover:text-blue-500 font-medium text-sm px-4 py-2.5 rounded-xl transition-colors shadow-sm">
-              <Facebook className="w-4 h-4" /> RehabVet
+              <Facebook className="w-4 h-4" /> RehabVet SG
             </a>
           </div>
         </div>

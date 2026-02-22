@@ -23,6 +23,35 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   )
 }
 
+function RadioGroup({ label, name, options, value, onChange, required }: {
+  label: string; name: string; options: { value: string | boolean; label: string }[];
+  value: any; onChange: (v: any) => void; required?: boolean
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-500 block mb-2">
+        {label} {required && <span className="text-[#EC6496]">*</span>}
+      </label>
+      <div className="flex flex-col gap-2">
+        {options.map(opt => (
+          <label key={String(opt.value)} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+            value === opt.value ? 'border-[#EC6496] bg-[#EC6496]/5' : 'border-gray-200 bg-white hover:border-gray-300'
+          }`}>
+            <input
+              type="radio"
+              name={name}
+              checked={value === opt.value}
+              onChange={() => onChange(opt.value)}
+              className="w-4 h-4 accent-[#EC6496]"
+            />
+            <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const inp = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EC6496]/20 focus:border-[#EC6496] transition-colors bg-white'
 
 export default function AppointmentPage() {
@@ -90,7 +119,8 @@ export default function AppointmentPage() {
     return () => clearInterval(t)
   }, [])
 
-  const ok1 = form.first_name && form.last_name && form.owner_email && form.owner_phone.trim().length > 4 && form.post_code
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.owner_email)
+  const ok1 = form.first_name && form.last_name && emailValid && form.owner_phone.trim().length > 4 && form.post_code
   const ok2 = form.pet_name && form.breed && form.age && form.pet_gender && form.vet_friendly !== null && form.reactive_to_pets !== null
   const ok3 = form.clinic_name && form.attending_vet && form.has_pain !== null && form.how_heard
 
@@ -138,10 +168,13 @@ export default function AppointmentPage() {
             {/* Hero */}
             <div>
               <span className="inline-block text-xs font-bold tracking-widest text-[#EC6496] uppercase mb-4">Singapore's First Vet Rehab Clinic</span>
-              <h1 className="text-4xl lg:text-[52px] font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-5">
+              <h1 className="text-4xl lg:text-[52px] font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-3">
                 Give Your Pet<br />
                 <span className="text-[#EC6496]">Their Life Back.</span>
               </h1>
+              <p className="text-[#EC6496] font-semibold text-base mb-4 italic">
+                Proven Steps to Pain Free Mobility
+              </p>
               <p className="text-gray-500 text-lg leading-relaxed max-w-md">
                 Personalised physiotherapy, hydrotherapy and rehabilitation plans — helping pets recover from surgery, manage pain, and move freely again.
               </p>
@@ -164,20 +197,29 @@ export default function AppointmentPage() {
 
             {/* Review */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-[#FDC61C] text-[#FDC61C]" />)}</div>
-                <span className="text-xs text-gray-400">{reviews[reviewIdx]?.time || ''}</span>
+              {/* Reviewer photo at top */}
+              <div className="flex items-center gap-3 mb-4">
+                {reviews[reviewIdx]?.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={reviews[reviewIdx].photo} alt={reviews[reviewIdx].author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-[#EC6496]/10 flex items-center justify-center text-[#EC6496] text-sm font-bold flex-shrink-0">
+                    {reviews[reviewIdx]?.author?.[0] || '?'}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">{reviews[reviewIdx]?.author}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#FDC61C] text-[#FDC61C]" />)}</div>
+                    <span className="text-xs text-gray-400">{reviews[reviewIdx]?.time || ''}</span>
+                  </div>
+                </div>
               </div>
               <p className="text-gray-700 text-sm leading-relaxed mb-5 min-h-[56px]">
                 "{reviews[reviewIdx]?.text}"
               </p>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#EC6496]/10 flex items-center justify-center text-[#EC6496] text-xs font-bold flex-shrink-0">
-                    {reviews[reviewIdx]?.author?.[0] || '?'}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800">{reviews[reviewIdx]?.author}</span>
-                </div>
+                <div />
                 <div className="flex gap-1.5">
                   {reviews.slice(0, 5).map((_, i) => (
                     <button key={i} onClick={() => setReviewIdx(i)}
@@ -200,7 +242,7 @@ export default function AppointmentPage() {
               {/* Form top */}
               <div className="px-6 pt-7 pb-5 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-900">Book Your Assessment</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Free · No commitment · We'll confirm within 1 day</p>
+                <p className="text-sm text-gray-400 mt-0.5">Free · No commitment · We'll confirm with you within a day</p>
 
                 {/* Progress bar */}
                 <div className="mt-4">
@@ -225,8 +267,13 @@ export default function AppointmentPage() {
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Last Name <span className="text-[#EC6496]">*</span></label>
                       <input className={inp} placeholder="Smith" value={form.last_name} onChange={e => s('last_name', e.target.value)} /></div>
                   </div>
-                  <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Email <span className="text-[#EC6496]">*</span></label>
-                    <input type="email" className={inp} placeholder="jane@email.com" value={form.owner_email} onChange={e => s('owner_email', e.target.value)} /></div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 block mb-1.5">Email <span className="text-[#EC6496]">*</span></label>
+                    <input type="email" className={inp} placeholder="jane@email.com" value={form.owner_email} onChange={e => s('owner_email', e.target.value)} autoComplete="off" />
+                    {form.owner_email && !emailValid && (
+                      <p className="text-xs text-red-400 mt-1.5">Please enter a valid email address</p>
+                    )}
+                  </div>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Phone <span className="text-[#EC6496]">*</span></label>
                     <input type="tel" className={inp} placeholder="9123 4567" value={form.owner_phone} onChange={e => s('owner_phone', e.target.value)} /></div>
                   <div>
@@ -270,21 +317,41 @@ export default function AppointmentPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Breed <span className="text-[#EC6496]">*</span></label>
                       <input className={inp} placeholder="Golden Retriever" value={form.breed} onChange={e => s('breed', e.target.value)} /></div>
-                    <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Age <span className="text-[#EC6496]">*</span></label>
-                      <input className={inp} placeholder="3 years" value={form.age} onChange={e => s('age', e.target.value)} /></div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 block mb-1.5">Age (years) <span className="text-[#EC6496]">*</span></label>
+                      <input
+                        className={inp}
+                        placeholder="e.g. 3"
+                        inputMode="numeric"
+                        value={form.age}
+                        onChange={e => s('age', e.target.value.replace(/[^0-9]/g, ''))}
+                      />
+                    </div>
                   </div>
-                  <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Gender <span className="text-[#EC6496]">*</span></label>
-                    <div className="grid grid-cols-2 gap-2">{GENDERS.map(g => <Chip key={g} active={form.pet_gender === g} onClick={() => s('pet_gender', g)}>{g}</Chip>)}</div></div>
-                  <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Vet Friendly? <span className="text-[#EC6496]">*</span></label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Chip active={form.vet_friendly === true} onClick={() => s('vet_friendly', true)}>Yes</Chip>
-                      <Chip active={form.vet_friendly === false} onClick={() => s('vet_friendly', false)}>No (Aggressive)</Chip>
-                    </div></div>
-                  <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Reactive to Other Pets? <span className="text-[#EC6496]">*</span></label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Chip active={form.reactive_to_pets === true} onClick={() => s('reactive_to_pets', true)}>Yes</Chip>
-                      <Chip active={form.reactive_to_pets === false} onClick={() => s('reactive_to_pets', false)}>No</Chip>
-                    </div></div>
+                  <RadioGroup
+                    label="Gender"
+                    name="pet_gender"
+                    required
+                    options={GENDERS.map(g => ({ value: g, label: g }))}
+                    value={form.pet_gender}
+                    onChange={v => s('pet_gender', v)}
+                  />
+                  <RadioGroup
+                    label="Vet Friendly?"
+                    name="vet_friendly"
+                    required
+                    options={[{ value: true, label: 'Yes' }, { value: false, label: 'No (Aggressive)' }]}
+                    value={form.vet_friendly}
+                    onChange={v => s('vet_friendly', v)}
+                  />
+                  <RadioGroup
+                    label="Reactive to Other Pets?"
+                    name="reactive_to_pets"
+                    required
+                    options={[{ value: true, label: 'Yes' }, { value: false, label: 'No' }]}
+                    value={form.reactive_to_pets}
+                    onChange={v => s('reactive_to_pets', v)}
+                  />
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(1)} className="flex-none w-10 h-11 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
                       <ChevronLeft className="w-4 h-4" /></button>
@@ -305,11 +372,14 @@ export default function AppointmentPage() {
                   </div>
                   <div className="space-y-3 pt-1">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Mobility Condition</p>
-                    <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Showing pain symptoms? <span className="text-[#EC6496]">*</span></label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Chip active={form.has_pain === true} onClick={() => s('has_pain', true)}>Yes</Chip>
-                        <Chip active={form.has_pain === false} onClick={() => s('has_pain', false)}>No</Chip>
-                      </div></div>
+                    <RadioGroup
+                      label="Showing pain symptoms?"
+                      name="has_pain"
+                      required
+                      options={[{ value: true, label: 'Yes' }, { value: false, label: 'No' }]}
+                      value={form.has_pain}
+                      onChange={v => s('has_pain', v)}
+                    />
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Current issue</label>
                       <textarea className={inp + ' resize-none'} rows={3} placeholder="Describe your pet's condition…" value={form.condition} onChange={e => s('condition', e.target.value)} /></div>
                   </div>
