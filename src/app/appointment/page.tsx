@@ -32,9 +32,9 @@ function RadioGroup({ label, name, options, value, onChange, required }: {
       <label className="text-xs font-semibold text-gray-500 block mb-2">
         {label} {required && <span className="text-[#EC6496]">*</span>}
       </label>
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {options.map(opt => (
-          <label key={String(opt.value)} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+          <label key={String(opt.value)} className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all select-none ${
             value === opt.value ? 'border-[#EC6496] bg-[#EC6496]/5' : 'border-gray-200 bg-white hover:border-gray-300'
           }`}>
             <input
@@ -42,9 +42,9 @@ function RadioGroup({ label, name, options, value, onChange, required }: {
               name={name}
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
-              className="w-4 h-4 accent-[#EC6496]"
+              className="w-4 h-4 accent-[#EC6496] flex-shrink-0"
             />
-            <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+            <span className="text-sm font-medium text-gray-700 leading-tight">{opt.label}</span>
           </label>
         ))}
       </div>
