@@ -235,7 +235,8 @@ export default function AppointmentPage() {
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      autoComplete="postal-code"
+                      autoComplete="off"
+                      name="rv-postal"
                       className={inp}
                       placeholder="e.g. 218154"
                       value={form.post_code}

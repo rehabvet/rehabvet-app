@@ -176,7 +176,7 @@ export default function ClientsPage() {
       </div>
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Client">
-        <form onSubmit={handleAdd} className="space-y-4">
+        <form onSubmit={handleAdd} className="space-y-4" autoComplete="off">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Owner Details</h3>
           <div>
             <label className="label">Owner Name *</label>

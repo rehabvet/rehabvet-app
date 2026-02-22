@@ -143,7 +143,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
             value={data.postalCode}
             onChange={handlePostalChange}
             maxLength={6}
-            autoComplete="postal-code"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            name="rv-postal-code"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {loading ? (
@@ -169,9 +173,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
           <input
             type="text"
             className="input"
-            placeholder="e.g. 123"
+            placeholder="e.g. 513"
             value={data.block}
             onChange={e => updateField('block', e.target.value)}
+            autoComplete="off"
+            name="rv-block"
           />
         </div>
         <div>
@@ -182,6 +188,8 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
             placeholder="e.g. 01-23"
             value={data.unit}
             onChange={e => updateField('unit', e.target.value)}
+            autoComplete="off"
+            name="rv-unit"
           />
         </div>
       </div>
@@ -191,9 +199,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         <input
           type="text"
           className="input"
-          placeholder="e.g. Orchard Road"
+          placeholder="e.g. Serangoon Road"
           value={data.street}
           onChange={e => updateField('street', e.target.value)}
+          autoComplete="off"
+          name="rv-street"
         />
       </div>
 
@@ -202,9 +212,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         <input
           type="text"
           className="input"
-          placeholder="e.g. ION Orchard"
+          placeholder="e.g. The Venue Shoppes"
           value={data.building}
           onChange={e => updateField('building', e.target.value)}
+          autoComplete="off"
+          name="rv-building"
         />
       </div>
     </div>
