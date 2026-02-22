@@ -31,6 +31,7 @@ export default function CalendarPage() {
   const [newApptForm, setNewApptForm] = useState<any>(null)
   const [newApptSaving, setNewApptSaving] = useState(false)
   const [patients, setPatients] = useState<any[]>([])
+  const [patientSearch, setPatientSearch] = useState('')
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
 
@@ -140,9 +141,9 @@ export default function CalendarPage() {
     const roundedM = m < 15 ? 0 : m < 45 ? 30 : 0
     const roundedH = m >= 45 ? h + 1 : h
     const start = `${String(roundedH).padStart(2,'0')}:${String(roundedM).padStart(2,'0')}`
-    const endH = roundedM === 30 ? roundedH + 1 : roundedH
-    const endM = roundedM === 30 ? 0 : 30
-    const end = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`
+    // Default end = start + 1 hour
+    const endTotal = roundedH * 60 + roundedM + 60
+    const end = `${String(Math.floor(endTotal / 60)).padStart(2,'0')}:${String(endTotal % 60).padStart(2,'0')}`
     setNewApptForm({ date, start_time: start, end_time: end, therapist_id: therapistId, patient_id: '', client_id: '', modality: '', notes: '' })
   }
 
@@ -676,32 +677,88 @@ export default function CalendarPage() {
       )}
 
       {/* New Appointment Modal (double-click) */}
-      <Modal open={!!newApptForm} onClose={() => setNewApptForm(null)} title="New Appointment">
+      <Modal open={!!newApptForm} onClose={() => { setNewApptForm(null); setPatientSearch('') }} title="New Appointment">
         {newApptForm && (
           <div className="space-y-4">
-            {/* Date + times */}
-            <DatePicker label="Date" value={newApptForm.date} onChange={date => setNewApptForm({...newApptForm, date})} />
-            <div className="grid grid-cols-2 gap-4">
-              <TimePicker label="Start Time" value={newApptForm.start_time} onChange={t => setNewApptForm({...newApptForm, start_time: t})} />
-              <TimePicker label="End Time" value={newApptForm.end_time} onChange={t => setNewApptForm({...newApptForm, end_time: t})} minTime={newApptForm.start_time} />
-            </div>
 
-            {/* Patient */}
+            {/* 1. Provider — top */}
             <div>
-              <label className="label">Patient *</label>
-              <select className="input" value={newApptForm.patient_id}
-                onChange={e => {
-                  const p = patients.find((x: any) => x.id === e.target.value)
-                  setNewApptForm({...newApptForm, patient_id: e.target.value, client_id: p?.client_id || ''})
-                }} required>
-                <option value="">Select patient...</option>
-                {patients.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.client_name || p.species})</option>
+              <label className="label">Provider</label>
+              <select className="input" value={newApptForm.therapist_id} onChange={e => setNewApptForm({...newApptForm, therapist_id: e.target.value})}>
+                <option value="">Select provider...</option>
+                {staff.filter(s => ['therapist','vet','veterinarian','senior_therapist','assistant_therapist','hydrotherapist'].includes(s.role)).map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
             </div>
 
-            {/* Treatment Type */}
+            {/* 2. Date + times */}
+            <DatePicker label="Date" value={newApptForm.date} onChange={date => setNewApptForm({...newApptForm, date})} />
+            <div className="grid grid-cols-2 gap-4">
+              <TimePicker label="Start Time" value={newApptForm.start_time} onChange={t => {
+                const [sh, sm] = t.split(':').map(Number)
+                const endTotal = sh * 60 + sm + 60
+                const autoEnd = `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`
+                setNewApptForm({...newApptForm, start_time: t, end_time: autoEnd})
+              }} />
+              <TimePicker label="End Time" value={newApptForm.end_time} onChange={t => setNewApptForm({...newApptForm, end_time: t})} minTime={newApptForm.start_time} />
+            </div>
+
+            {/* 3. Patient search */}
+            <div className="relative">
+              <label className="label">Patient *</label>
+              {newApptForm.patient_id ? (
+                <div className="input flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-900">
+                    {patients.find((p: any) => p.id === newApptForm.patient_id)?.name}
+                    <span className="text-gray-400 font-normal ml-1.5">
+                      {patients.find((p: any) => p.id === newApptForm.patient_id)?.client_name}
+                    </span>
+                  </span>
+                  <button type="button" onClick={() => { setNewApptForm({...newApptForm, patient_id: '', client_id: ''}); setPatientSearch('') }}
+                    className="text-gray-400 hover:text-red-400 ml-2 text-xs">✕ Change</button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    className="input"
+                    placeholder="Search by pet or owner name..."
+                    value={patientSearch}
+                    onChange={e => setPatientSearch(e.target.value)}
+                    autoComplete="off"
+                  />
+                  {patientSearch.length >= 1 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                      {patients
+                        .filter((p: any) =>
+                          p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                          p.client_name?.toLowerCase().includes(patientSearch.toLowerCase())
+                        )
+                        .slice(0, 10)
+                        .map((p: any) => (
+                          <button key={p.id} type="button"
+                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                            onClick={() => {
+                              setNewApptForm({...newApptForm, patient_id: p.id, client_id: p.client_id || ''})
+                              setPatientSearch('')
+                            }}>
+                            <span className="font-semibold text-sm text-gray-900">{p.name}</span>
+                            <span className="text-xs text-gray-400 ml-2">{p.client_name} · {p.species}</span>
+                          </button>
+                        ))}
+                      {patients.filter((p: any) =>
+                        p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                        p.client_name?.toLowerCase().includes(patientSearch.toLowerCase())
+                      ).length === 0 && (
+                        <p className="px-4 py-3 text-sm text-gray-400">No patients found</p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* 4. Treatment Type */}
             <div>
               <label className="label">Treatment Type *</label>
               <select className="input" value={newApptForm.modality}
@@ -710,9 +767,7 @@ export default function CalendarPage() {
                   if (t) {
                     const [sh, sm] = newApptForm.start_time.split(':').map(Number)
                     const endTotal = sh * 60 + sm + (t.duration || 60)
-                    const endH = Math.floor(endTotal / 60)
-                    const endM = endTotal % 60
-                    setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`})
+                    setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`})
                   } else {
                     setNewApptForm({...newApptForm, modality: e.target.value})
                   }
@@ -728,25 +783,14 @@ export default function CalendarPage() {
               </select>
             </div>
 
-            {/* Therapist */}
-            <div>
-              <label className="label">Provider</label>
-              <select className="input" value={newApptForm.therapist_id} onChange={e => setNewApptForm({...newApptForm, therapist_id: e.target.value})}>
-                <option value="">Select provider...</option>
-                {staff.filter(s => ['therapist','vet','veterinarian','senior_therapist','assistant_therapist','hydrotherapist'].includes(s.role)).map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Notes */}
+            {/* 5. Notes */}
             <div>
               <label className="label">Notes</label>
               <textarea className="input" rows={2} value={newApptForm.notes} onChange={e => setNewApptForm({...newApptForm, notes: e.target.value})} placeholder="Optional notes..." />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setNewApptForm(null)} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setNewApptForm(null); setPatientSearch('') }} className="btn-secondary">Cancel</button>
               <button onClick={saveNewAppt} disabled={newApptSaving || !newApptForm.patient_id || !newApptForm.modality} className="btn-primary">
                 {newApptSaving ? 'Saving...' : 'Create Appointment'}
               </button>
