@@ -1,6 +1,14 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: 'hello@rehabvet.com',
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+})
 
 export interface AppointmentEmailData {
   owner_name: string
@@ -126,19 +134,19 @@ function appointmentConfirmationHtml(data: AppointmentEmailData): string {
 }
 
 export async function sendAppointmentConfirmation(data: AppointmentEmailData) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping email')
+  if (!process.env.GMAIL_APP_PASSWORD) {
+    console.warn('[email] GMAIL_APP_PASSWORD not set — skipping email')
     return
   }
 
   try {
-    const result = await resend.emails.send({
-      from: 'RehabVet <hello@rehabvet.com>',
+    const result = await transporter.sendMail({
+      from: '"RehabVet" <hello@rehabvet.com>',
       to: data.owner_email,
       subject: `We've received your request for ${data.pet_name} 🐾`,
       html: appointmentConfirmationHtml(data),
     })
-    console.log('[email] Sent appointment confirmation:', result)
+    console.log('[email] Sent appointment confirmation:', result.messageId)
     return result
   } catch (err) {
     console.error('[email] Failed to send:', err)
