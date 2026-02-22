@@ -245,7 +245,7 @@ export default function AppointmentPage() {
               {/* Form top */}
               <div className="px-4 sm:px-6 pt-6 sm:pt-7 pb-5 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-900">Book Your Assessment</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Free · No commitment · We'll confirm with you within a day</p>
+                <p className="text-sm text-gray-400 mt-0.5">We'll confirm with you within a day</p>
 
                 {/* Progress bar */}
                 <div className="mt-4">
