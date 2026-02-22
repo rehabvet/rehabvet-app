@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendAppointmentConfirmation } from '@/lib/email'
+import { sendLeadEmails } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -39,16 +39,26 @@ export async function POST(req: NextRequest) {
     }
   })
 
-  // Send confirmation email to customer (non-blocking)
-  sendAppointmentConfirmation({
-    owner_name,
-    owner_email,
+  // Send both emails (customer confirmation + internal notification) — non-blocking
+  sendLeadEmails({
+    owner_name, owner_email,
+    owner_phone: owner_phone || undefined,
+    post_code: post_code || undefined,
+    how_heard: how_heard || undefined,
     pet_name,
     breed: breed || undefined,
+    age: age || undefined,
+    pet_gender: pet_gender || undefined,
+    vet_friendly: vet_friendly !== undefined ? vet_friendly : undefined,
+    reactive_to_pets: reactive_to_pets !== undefined ? reactive_to_pets : undefined,
+    has_pain: has_pain !== undefined ? has_pain : undefined,
+    condition: condition || undefined,
     clinic_name: clinic_name || undefined,
     attending_vet: attending_vet || undefined,
-    condition: condition || undefined,
-  }).catch(err => console.error('[email] sendAppointmentConfirmation error:', err))
+    preferred_date: preferred_date || undefined,
+    service: service || undefined,
+    notes: notes || undefined,
+  }).catch(err => console.error('[email] sendLeadEmails error:', err))
 
   return NextResponse.json({ success: true, id: lead.id }, { status: 201 })
 }
