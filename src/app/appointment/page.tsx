@@ -32,19 +32,22 @@ function RadioGroup({ label, name, options, value, onChange, required }: {
       <label className="text-xs font-semibold text-gray-500 block mb-2">
         {label} {required && <span className="text-[#EC6496]">*</span>}
       </label>
-      <div className="grid grid-cols-2 gap-2">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
         {options.map(opt => (
-          <label key={String(opt.value)} className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all select-none ${
-            value === opt.value ? 'border-[#EC6496] bg-[#EC6496]/5' : 'border-gray-200 bg-white hover:border-gray-300'
-          }`}>
+          <label key={String(opt.value)} style={{
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+            borderRadius: '12px', cursor: 'pointer', userSelect: 'none', transition: 'all 0.15s',
+            border: `1.5px solid ${value === opt.value ? '#EC6496' : '#e5e7eb'}`,
+            background: value === opt.value ? 'rgba(236,100,150,0.05)' : '#fff',
+          }}>
             <input
               type="radio"
               name={name}
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
-              className="w-4 h-4 accent-[#EC6496] flex-shrink-0"
+              style={{ width: 16, height: 16, accentColor: '#EC6496', flexShrink: 0 }}
             />
-            <span className="text-sm font-medium text-gray-700 leading-tight">{opt.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#374151', lineHeight: 1.3 }}>{opt.label}</span>
           </label>
         ))}
       </div>
