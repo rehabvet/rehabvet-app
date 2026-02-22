@@ -31,7 +31,10 @@ export default function CalendarPage() {
   const [newApptForm, setNewApptForm] = useState<any>(null)
   const [newApptSaving, setNewApptSaving] = useState(false)
   const [patients, setPatients] = useState<any[]>([])
-  const [patientSearch, setPatientSearch] = useState('')
+  const [clients, setClients] = useState<any[]>([])
+  const [clientSearch, setClientSearch] = useState('')
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [clientPatients, setClientPatients] = useState<any[]>([])
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
 
@@ -59,6 +62,8 @@ export default function CalendarPage() {
       .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
     fetch('/api/patients?per_page=999')
       .then(r => r.json()).then(d => setPatients(d.patients || []))
+    fetch('/api/clients?per_page=999')
+      .then(r => r.json()).then(d => setClients(d.clients || []))
   }, [year, month])
 
   // Update current time every minute
@@ -133,6 +138,26 @@ export default function CalendarPage() {
     }
     if (compact) return currentDate.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })
     return currentDate.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
+  }
+
+  function selectNewApptClient(client: any) {
+    setSelectedClient(client)
+    setClientSearch('')
+    const pets = patients.filter((p: any) => p.client_id === client.id)
+    setClientPatients(pets)
+    // Auto-select if only 1 pet
+    if (pets.length === 1) {
+      setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: pets[0].id }))
+    } else {
+      setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: '' }))
+    }
+  }
+
+  function resetNewApptModal() {
+    setNewApptForm(null)
+    setClientSearch('')
+    setSelectedClient(null)
+    setClientPatients([])
   }
 
   function openNewApptModal(date: string, time: string, therapistId = '') {
@@ -677,7 +702,7 @@ export default function CalendarPage() {
       )}
 
       {/* New Appointment Modal (double-click) */}
-      <Modal open={!!newApptForm} onClose={() => { setNewApptForm(null); setPatientSearch('') }} title="New Appointment">
+      <Modal open={!!newApptForm} onClose={resetNewApptModal} title="New Appointment">
         {newApptForm && (
           <div className="space-y-4">
 
@@ -704,59 +729,67 @@ export default function CalendarPage() {
               <TimePicker label="End Time" value={newApptForm.end_time} onChange={t => setNewApptForm({...newApptForm, end_time: t})} minTime={newApptForm.start_time} />
             </div>
 
-            {/* 3. Patient search */}
+            {/* 3. Client search */}
             <div className="relative">
-              <label className="label">Patient *</label>
-              {newApptForm.patient_id ? (
+              <label className="label">Client *</label>
+              {selectedClient ? (
                 <div className="input flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900">
-                    {patients.find((p: any) => p.id === newApptForm.patient_id)?.name}
-                    <span className="text-gray-400 font-normal ml-1.5">
-                      {patients.find((p: any) => p.id === newApptForm.patient_id)?.client_name}
-                    </span>
+                  <span className="text-sm font-semibold text-gray-900">{selectedClient.name}
+                    {selectedClient.phone && <span className="text-gray-400 font-normal ml-2 text-xs">{selectedClient.phone}</span>}
                   </span>
-                  <button type="button" onClick={() => { setNewApptForm({...newApptForm, patient_id: '', client_id: ''}); setPatientSearch('') }}
-                    className="text-gray-400 hover:text-red-400 ml-2 text-xs">✕ Change</button>
+                  <button type="button" onClick={() => { setSelectedClient(null); setClientPatients([]); setNewApptForm({...newApptForm, client_id: '', patient_id: ''}); setClientSearch('') }}
+                    className="text-gray-400 hover:text-red-400 ml-2 text-xs flex-shrink-0">✕ Change</button>
                 </div>
               ) : (
                 <>
-                  <input
-                    className="input"
-                    placeholder="Search by pet or owner name..."
-                    value={patientSearch}
-                    onChange={e => setPatientSearch(e.target.value)}
-                    autoComplete="off"
-                  />
-                  {patientSearch.length >= 1 && (
+                  <input className="input" placeholder="Search by client name or phone..."
+                    value={clientSearch} onChange={e => setClientSearch(e.target.value)} autoComplete="off" />
+                  {clientSearch.length >= 1 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
-                      {patients
-                        .filter((p: any) =>
-                          p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-                          p.client_name?.toLowerCase().includes(patientSearch.toLowerCase())
-                        )
-                        .slice(0, 10)
-                        .map((p: any) => (
-                          <button key={p.id} type="button"
-                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                            onClick={() => {
-                              setNewApptForm({...newApptForm, patient_id: p.id, client_id: p.client_id || ''})
-                              setPatientSearch('')
-                            }}>
-                            <span className="font-semibold text-sm text-gray-900">{p.name}</span>
-                            <span className="text-xs text-gray-400 ml-2">{p.client_name} · {p.species}</span>
-                          </button>
-                        ))}
-                      {patients.filter((p: any) =>
-                        p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-                        p.client_name?.toLowerCase().includes(patientSearch.toLowerCase())
-                      ).length === 0 && (
-                        <p className="px-4 py-3 text-sm text-gray-400">No patients found</p>
-                      )}
+                      {clients.filter((c: any) =>
+                        c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                        c.phone?.includes(clientSearch) ||
+                        c.email?.toLowerCase().includes(clientSearch.toLowerCase())
+                      ).slice(0, 10).map((c: any) => (
+                        <button key={c.id} type="button"
+                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                          onClick={() => selectNewApptClient(c)}>
+                          <span className="font-semibold text-sm text-gray-900">{c.name}</span>
+                          <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
+                        </button>
+                      ))}
+                      {clients.filter((c: any) =>
+                        c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                        c.phone?.includes(clientSearch)
+                      ).length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No clients found</p>}
                     </div>
                   )}
                 </>
               )}
             </div>
+
+            {/* 4. Patient — dropdown filtered to selected client, auto-selected if only 1 */}
+            {selectedClient && (
+              <div>
+                <label className="label">Patient *</label>
+                {clientPatients.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">No pets found for this client</p>
+                ) : clientPatients.length === 1 ? (
+                  <div className="input bg-gray-50 text-sm font-semibold text-gray-900">
+                    {clientPatients[0].name} <span className="text-gray-400 font-normal">· {clientPatients[0].breed || clientPatients[0].species}</span>
+                    <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Auto-selected</span>
+                  </div>
+                ) : (
+                  <select className="input" value={newApptForm.patient_id}
+                    onChange={e => setNewApptForm({...newApptForm, patient_id: e.target.value})} required>
+                    <option value="">Select pet...</option>
+                    {clientPatients.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.breed || p.species})</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {/* 4. Treatment Type */}
             <div>
@@ -790,7 +823,7 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => { setNewApptForm(null); setPatientSearch('') }} className="btn-secondary">Cancel</button>
+              <button onClick={resetNewApptModal} className="btn-secondary">Cancel</button>
               <button onClick={saveNewAppt} disabled={newApptSaving || !newApptForm.patient_id || !newApptForm.modality} className="btn-primary">
                 {newApptSaving ? 'Saving...' : 'Create Appointment'}
               </button>
