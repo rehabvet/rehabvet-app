@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2, Check } from 'lucide-react'
 
 interface AddressData {
@@ -56,16 +56,17 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
   const [loading, setLoading] = useState(false)
   const [found, setFound] = useState(false)
   const [error, setError] = useState('')
-  const [data, setData] = useState<AddressData>({
-    postalCode: '',
-    block: '',
-    street: '',
-    building: '',
-    unit: ''
-  })
+  const [data, setData] = useState<AddressData>(() => parseAddress(value || ''))
+  // Track whether the last onChange call came from inside this component.
+  // If so, skip re-syncing from the prop — prevents the typing→reset loop.
+  const internalChange = useRef(false)
 
-  // Sync internal state when value changes externally (load existing address for editing)
+  // Sync internal state ONLY when value changes from an external source (e.g. parent loads existing record)
   useEffect(() => {
+    if (internalChange.current) {
+      internalChange.current = false
+      return
+    }
     const parsed = parseAddress(value || '')
     setData(parsed)
     setFound(Boolean(parsed.postalCode))
@@ -75,6 +76,7 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
   function updateField(field: keyof AddressData, val: string) {
     const newData = { ...data, [field]: val }
     setData(newData)
+    internalChange.current = true
     onChange(buildAddress(newData))
   }
 
@@ -106,6 +108,7 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         const fullAddress = r.ADDRESS && r.ADDRESS !== 'NIL'
           ? r.ADDRESS
           : buildAddress(newData)
+        internalChange.current = true
         onChange(fullAddress)
         setFound(true)
       } else {

@@ -86,8 +86,8 @@ export default function ClientDetailPage() {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {editing ? (
             <>
-              <div><label className="label">Phone</label><input className="input" value={form.phone||''} onChange={e => setForm({...form, phone: e.target.value})} /></div>
-              <div><label className="label">Email</label><input className="input" value={form.email||''} onChange={e => setForm({...form, email: e.target.value})} /></div>
+              <div><label className="label">Phone</label><input className="input" autoComplete="off" value={form.phone||''} onChange={e => setForm({...form, phone: e.target.value})} /></div>
+              <div><label className="label">Email</label><input className="input" autoComplete="off" value={form.email||''} onChange={e => setForm({...form, email: e.target.value})} /></div>
               <div className="sm:col-span-3">
                 <label className="label">Address</label>
                 <AddressInput value={form.address||''} onChange={v => setForm({...form, address: v})} />
