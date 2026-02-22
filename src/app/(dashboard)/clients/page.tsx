@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Phone, Mail, MapPin } from 'lucide-react'
+import { Plus, Search, Phone, Mail, MapPin, Trash2 } from 'lucide-react'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import PhoneInput from '@/components/PhoneInput'
