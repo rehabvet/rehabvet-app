@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Plus, Search, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Search } from 'lucide-react'
 import Modal from '@/components/Modal'
 import BreedSearch from '@/components/BreedSearch'
 import Pagination from '@/components/Pagination'
@@ -15,7 +15,20 @@ const SEX_OPTIONS = [
   { value: 'spayed_female', label: 'Spayed Female' },
 ]
 
+function calcAge(dob: string | null) {
+  if (!dob) return '—'
+  const birth = new Date(dob)
+  const now = new Date()
+  let years = now.getFullYear() - birth.getFullYear()
+  let months = now.getMonth() - birth.getMonth()
+  if (months < 0) { years--; months += 12 }
+  if (years === 0) return `${months}mo`
+  if (years < 2) return `${years}y ${months}mo`
+  return `${years}y`
+}
+
 export default function PatientsPage() {
+  const router = useRouter()
   const [patients, setPatients] = useState<any[]>([])
   const [clients, setClients] = useState<any[]>([])
   const [total, setTotal] = useState(0)
@@ -71,30 +84,68 @@ export default function PatientsPage() {
         <input type="text" placeholder="Search patients..." className="input pl-10" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      <div className="card p-0 overflow-x-auto">
         {loading ? (
           <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" /></div>
         ) : patients.length === 0 ? (
           <p className="text-gray-400 text-sm py-8 text-center">No patients found</p>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {patients.map(p => (
-              <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-brand-gold/10 flex items-center justify-center text-lg">
-                  {speciesEmoji[p.species] || '🐾'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                  <p className="text-xs text-gray-500">{p.species} · {p.breed || 'Unknown breed'} · Owner: {p.client_name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {p.active_plans > 0 && <span className="badge-green">{p.active_plans} active plan{p.active_plans > 1 ? 's' : ''}</span>}
-                  {p.weight && <span className="text-xs text-gray-400">{p.weight}kg</span>}
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300" />
-              </Link>
-            ))}
-          </div>
+          <table className="w-full text-sm min-w-[520px]">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Patient</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Breed</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Age</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Weight</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Plans</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {patients.map(p => (
+                <tr
+                  key={p.id}
+                  onClick={() => router.push(`/patients/${p.id}`)}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  {/* Patient name + species */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">{speciesEmoji[p.species] || '🐾'}</span>
+                      <span className="font-semibold text-gray-900">{p.name}</span>
+                    </div>
+                  </td>
+
+                  {/* Breed */}
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <span className="text-gray-600">{p.breed || <span className="text-gray-300">—</span>}</span>
+                  </td>
+
+                  {/* Owner */}
+                  <td className="px-4 py-3">
+                    <span className="text-gray-700">{p.client_name}</span>
+                  </td>
+
+                  {/* Age */}
+                  <td className="px-4 py-3">
+                    <span className="text-gray-700 font-medium">{calcAge(p.date_of_birth)}</span>
+                  </td>
+
+                  {/* Weight */}
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <span className="text-gray-500">{p.weight ? `${p.weight} kg` : <span className="text-gray-300">—</span>}</span>
+                  </td>
+
+                  {/* Active plans */}
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {p.active_plans > 0
+                      ? <span className="badge-green">{p.active_plans} active</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={p => setPage(p)} />
       </div>

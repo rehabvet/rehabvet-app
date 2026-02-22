@@ -38,9 +38,9 @@ export async function GET() {
   const scheduleRows = await prisma.appointments.findMany({
     where: { date: today },
     include: {
-      patient: { select: { name: true } },
-      client: { select: { name: true } },
-      therapist: { select: { name: true } },
+      patient: { select: { name: true, species: true, breed: true } },
+      client: { select: { name: true, phone: true } },
+      therapist: { select: { name: true, role: true } },
     },
     orderBy: { start_time: 'asc' },
   })
@@ -50,8 +50,12 @@ export async function GET() {
     return {
       ...rest,
       patient_name: patient?.name,
+      patient_species: patient?.species,
+      patient_breed: patient?.breed,
       client_name: client?.name,
+      client_phone: client?.phone ?? null,
       therapist_name: therapist?.name ?? null,
+      therapist_role: therapist?.role ?? null,
     }
   })
 

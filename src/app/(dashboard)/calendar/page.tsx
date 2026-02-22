@@ -25,16 +25,29 @@ export default function CalendarPage() {
   const [editForm, setEditForm] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const dayScrollRef = useRef<HTMLDivElement>(null)
+  // Simple in-memory cache: key = `${year}-${month}` → appointments[]
+  const apptCache = useRef<Map<string, any[]>>(new Map())
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
   useEffect(() => {
-    const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-    const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-    fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
-      .then(r => r.json()).then(d => setAppointments(d.appointments || []))
+    const cacheKey = `${year}-${month}`
+    if (apptCache.current.has(cacheKey)) {
+      setAppointments(apptCache.current.get(cacheKey)!)
+    } else {
+      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
+      fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
+        .then(r => r.json())
+        .then(d => {
+          const appts = d.appointments || []
+          apptCache.current.set(cacheKey, appts)
+          setAppointments(appts)
+        })
+    }
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
     fetch('/api/treatment-types')
@@ -142,12 +155,15 @@ export default function CalendarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
       })
-      // Refresh appointments
+      // Invalidate cache and refresh
+      apptCache.current.delete(`${year}-${month}`)
       const startDate = toSGTDateStr(new Date(year, month - 1, 1))
       const endDate = toSGTDateStr(new Date(year, month + 2, 0))
       const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
       const data = await res.json()
-      setAppointments(data.appointments || [])
+      const fresh = data.appointments || []
+      apptCache.current.set(`${year}-${month}`, fresh)
+      setAppointments(fresh)
       closeModal()
     } catch (err) {
       console.error(err)
@@ -215,13 +231,52 @@ export default function CalendarPage() {
               <div className="hidden sm:block space-y-1">
                 {dayAppts.slice(0, 3).map(a => renderAppointment(a))}
                 {dayAppts.length > 3 && (
-                  <div className="text-xs text-gray-500 px-1">+{dayAppts.length - 3} more</div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
+                    className="text-xs text-brand-pink hover:underline px-1 font-medium"
+                  >
+                    +{dayAppts.length - 3} more
+                  </button>
                 )}
               </div>
+              {/* Mobile: tap dot area to expand */}
+              {dayAppts.length > 0 && (
+                <button
+                  className="sm:hidden absolute inset-0 w-full h-full opacity-0"
+                  onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
+                  aria-label={`View ${dayAppts.length} appointments`}
+                />
+              )}
             </div>
           )
         })}
       </div>
+
+      {/* Day detail modal for month view */}
+      <Modal open={!!expandedDay} onClose={() => setExpandedDay(null)} title={expandedDay ? new Date(expandedDay + 'T00:00').toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}>
+        {expandedDay && (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {(apptsByDate[expandedDay] || []).length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">No appointments</p>
+            ) : (apptsByDate[expandedDay] || []).map((a: any) => (
+              <div key={a.id} className={`flex gap-3 p-3 rounded-xl bg-gray-50 border-l-4 ${treatmentColors[a.modality] ? '' : 'border-l-gray-300'}`}
+                   style={{ borderLeftColor: '' }}>
+                <div className="min-w-[44px] text-center">
+                  <p className="text-sm font-bold text-gray-900">{a.start_time?.slice(0,5)}</p>
+                  <p className="text-xs text-gray-400">{a.end_time?.slice(0,5)}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{a.patient_name}</p>
+                  <p className="text-xs text-gray-500">{a.client_name} · {a.modality}</p>
+                  {a.client_phone && <p className="text-xs font-mono text-brand-pink">{a.client_phone}</p>}
+                  {a.therapist_name && <p className="text-xs text-gray-400">Provider: {a.therapist_name}</p>}
+                </div>
+                <button onClick={() => { setExpandedDay(null); openEditModal(a) }} className="text-xs text-brand-pink hover:underline flex-shrink-0">Edit</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     )
   }
 
@@ -235,45 +290,105 @@ export default function CalendarPage() {
       d.setDate(startOfWeek.getDate() + i)
       weekDays.push(d)
     }
-    const hours = Array.from({ length: 12 }, (_, i) => i + 8)
+    const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
+    const CELL_H = 60      // px per hour
+    const TIME_W = 48      // px — time label column
+    const MIN_DAY_W = 80   // px — minimum day column width
+
+    const gridCols = `${TIME_W}px repeat(7, 1fr)`
+    const minW     = TIME_W + 7 * MIN_DAY_W
+
+    // Current time indicator
+    const nowMins = currentTime.getHours() * 60 + currentTime.getMinutes()
+    const gridStartMins = 8 * 60
+    const timeTop = ((nowMins - gridStartMins) / 60) * CELL_H
+    const todayInWeek = weekDays.some(d => toSGTDateStr(d) === todayStr)
 
     return (
-      <div className="flex-1 overflow-auto rounded-xl border border-gray-200">
-        <div className="grid grid-cols-8 gap-px bg-gray-200 rounded-lg overflow-hidden min-w-[600px]">
-          <div className="bg-gray-50 p-2 w-10 sm:w-14" />
+      <div className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/* Sticky header row */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm"
+             style={{ display: 'grid', gridTemplateColumns: gridCols, minWidth: `${minW}px` }}>
+          <div className="border-r border-gray-100" />
           {weekDays.map(d => {
             const dateStr = toSGTDateStr(d)
             const isToday = dateStr === todayStr
             return (
-              <div key={dateStr} className={`bg-gray-50 p-1 sm:p-2 text-center ${isToday ? 'bg-pink-50' : ''}`}>
-                <div className="text-[10px] sm:text-xs text-gray-500">{d.toLocaleDateString('en-SG', { weekday: 'short', timeZone: 'Asia/Singapore' })}</div>
-                <div className={`text-sm sm:text-lg font-semibold ${isToday ? 'bg-brand-pink text-white w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center mx-auto text-xs sm:text-base' : 'text-gray-800'}`}>
+              <div key={dateStr} className={`border-r border-gray-100 last:border-r-0 p-1 sm:p-2 text-center ${isToday ? 'bg-pink-50' : ''}`}>
+                <div className="text-[10px] sm:text-xs text-gray-500 uppercase">{d.toLocaleDateString('en-SG', { weekday: 'short', timeZone: 'Asia/Singapore' })}</div>
+                <div className={`text-sm sm:text-base font-bold mx-auto w-fit px-1.5 rounded-full ${isToday ? 'bg-brand-pink text-white' : 'text-gray-800'}`}>
                   {parseInt(dateStr.split('-')[2])}
                 </div>
               </div>
             )
           })}
-          {hours.map(hour => (
-            <>
-              <div key={`hour-${hour}`} className="bg-white text-[10px] sm:text-xs text-gray-500 text-right pr-1 sm:pr-3 border-t border-gray-100 w-10 sm:w-14 flex items-start justify-end pt-1">
-                {hour}:00
+        </div>
+
+        {/* Body — same grid */}
+        <div className="relative"
+             style={{ display: 'grid', gridTemplateColumns: gridCols, minWidth: `${minW}px`, minHeight: `${CELL_H * hours.length}px` }}>
+
+          {/* Red time indicator */}
+          {todayInWeek && nowMins >= gridStartMins && nowMins <= gridStartMins + hours.length * 60 && (
+            <div className="absolute z-30 pointer-events-none" style={{ top: `${timeTop}px`, left: 0, right: 0 }}>
+              <div className="flex items-center" style={{ marginLeft: `${TIME_W}px` }}>
+                <div className="absolute right-full flex justify-end pr-1 w-12">
+                  <span className="text-[10px] font-bold text-red-500 bg-white rounded leading-none">
+                    {String(currentTime.getHours()).padStart(2,'0')}:{String(currentTime.getMinutes()).padStart(2,'0')}
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-red-400">
+                  <div className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-red-500" />
+                </div>
               </div>
-              {weekDays.map(d => {
-                const dateStr = toSGTDateStr(d)
-                const dayAppts = apptsByDate[dateStr] || []
-                const hourAppts = dayAppts.filter((a: any) => {
-                  const apptHour = parseInt(a.start_time?.split(':')[0] || '0')
-                  return apptHour === hour
-                })
-                const isToday = dateStr === todayStr
-                return (
-                  <div key={`${dateStr}-${hour}`} className={`bg-white min-h-[44px] sm:min-h-[60px] p-0.5 sm:p-1 border-t border-gray-100 ${isToday ? 'bg-pink-50/30' : ''}`}>
-                    {hourAppts.map(a => renderAppointment(a))}
-                  </div>
-                )
-              })}
-            </>
-          ))}
+            </div>
+          )}
+
+          {/* Time labels column */}
+          <div className="border-r border-gray-100">
+            {hours.map(h => (
+              <div key={h} style={{ height: CELL_H }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
+                <span className="text-[10px] sm:text-xs text-gray-400">{String(h).padStart(2,'0')}:00</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {weekDays.map(d => {
+            const dateStr = toSGTDateStr(d)
+            const dayAppts = apptsByDate[dateStr] || []
+            const isToday = dateStr === todayStr
+            return (
+              <div key={dateStr} className={`border-r border-gray-100 last:border-r-0 relative ${isToday ? 'bg-pink-50/20' : ''}`}>
+                {/* Hour grid lines */}
+                {hours.map(h => (
+                  <div key={h} style={{ height: CELL_H }} className="border-b border-gray-100" />
+                ))}
+                {/* Appointments */}
+                {dayAppts.map((a: any) => {
+                  const [sh, sm] = (a.start_time || '08:00').split(':').map(Number)
+                  const [eh, em] = (a.end_time || a.start_time || '08:00').split(':').map(Number)
+                  const startMins = sh * 60 + sm
+                  const endMins = eh * 60 + em
+                  const top = ((startMins - gridStartMins) / 60) * CELL_H
+                  const height = Math.max((endMins - startMins) / 60, 0.5) * CELL_H - 2
+                  const color = treatmentColors[a.modality] || 'bg-gray-400'
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => openEditModal(a)}
+                      style={{ top: `${top}px`, height: `${height}px`, left: 2, right: 2, position: 'absolute' }}
+                      className={`text-left text-white px-1 py-0.5 rounded hover:opacity-90 transition-opacity text-xs overflow-hidden ${color}`}
+                      title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
+                    >
+                      <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs">{a.start_time?.slice(0,5)} {a.modality}</div>
+                      <div className="opacity-90 truncate text-[10px]">{a.patient_name}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
     )
@@ -309,8 +424,8 @@ export default function CalendarPage() {
     }
 
     const CELL_HEIGHT = 72
-    const TIME_COL = 40   // px — time label column width
-    const MIN_COL  = 130  // px — minimum provider column width
+    const TIME_COL = 48   // px — time label column width (wide enough for "08:00")
+    const MIN_COL  = 140  // px — minimum provider column width
     const numCols  = providers.length || 1
 
     // Both header and body share EXACTLY this grid template → columns always aligned
@@ -342,9 +457,9 @@ export default function CalendarPage() {
               <div className="flex items-center justify-center gap-1.5">
                 {p.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photo_url} alt={p.name} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                  <img src={p.photo_url} alt={p.name} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-gray-200 flex-shrink-0" />
                 ) : (
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-[10px] sm:text-xs font-bold flex-shrink-0">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-sm sm:text-base font-bold flex-shrink-0">
                     {p.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                   </div>
                 )}
@@ -372,7 +487,7 @@ export default function CalendarPage() {
           {isToday && nowMins >= gridStartMins && nowMins <= gridStartMins + (hours.length * 60) && (
             <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${timeIndicatorTop}px` }}>
               <div className="flex items-center" style={{ marginLeft: `${TIME_COL}px` }}>
-                <div className="absolute right-full pr-1">
+                <div className="absolute right-full flex justify-end pr-1 w-14">
                   <span className="text-[10px] font-bold text-red-500 bg-white px-1 rounded leading-none whitespace-nowrap">
                     {String(currentTime.getHours()).padStart(2,'0')}:{String(currentTime.getMinutes()).padStart(2,'0')}
                   </span>

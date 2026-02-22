@@ -209,7 +209,7 @@ export default function AppointmentsPage() {
       )}
 
       {/* Appointments List */}
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-x-auto shadow-sm">
         {loading ? (
           <div className="space-y-0">
             {[1,2,3,4,5].map(i => (
@@ -231,61 +231,81 @@ export default function AppointmentsPage() {
             <button onClick={openAdd} className="mt-3 text-sm text-brand-pink hover:underline">+ Add one</button>
           </div>
         ) : (
-          <div>
-            {appointments.map((a, idx) => (
-              <div
-                key={a.id}
-                onClick={() => openEdit(a)}
-                className={`flex items-center gap-0 cursor-pointer hover:bg-gray-50/80 transition-colors border-l-4 ${modalityBorder[a.modality] || 'border-l-gray-200'} ${idx !== 0 ? 'border-t border-t-gray-100' : ''}`}
-              >
-                {/* Time */}
-                <div className="w-20 flex-shrink-0 px-3 py-3 text-center border-r border-gray-100">
-                  <p className="text-sm font-bold text-gray-800 leading-tight">{a.start_time}</p>
-                  <p className="text-xs text-gray-400 leading-tight">{a.end_time}</p>
-                </div>
+          <table className="w-full text-sm min-w-[640px]">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Time</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Treatment</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Patient</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Mobile</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Provider</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {appointments.map((a) => (
+                <tr
+                  key={a.id}
+                  onClick={() => openEdit(a)}
+                  className={`cursor-pointer hover:bg-gray-50/80 transition-colors border-l-4 ${modalityBorder[a.modality] || 'border-l-gray-200'}`}
+                >
+                  {/* Time */}
+                  <td className="px-4 py-3">
+                    <p className="font-bold text-gray-800 leading-tight">{a.start_time?.slice(0,5)}</p>
+                    <p className="text-xs text-gray-400 leading-tight">{a.end_time?.slice(0,5)}</p>
+                  </td>
 
-                {/* Patient + Owner + Provider */}
-                <div className="flex-1 min-w-0 px-3 py-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-900">{a.patient_name}</span>
-                    <span className="text-xs text-gray-400">({a.species}{a.breed ? ` · ${a.breed}` : ''})</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {a.client_name} · <span className="font-mono">{a.client_phone}</span>
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-xs text-gray-400">Provider:</span>
-                    <span className="text-xs text-gray-600 font-medium">{a.therapist_name || 'Unassigned'}</span>
-                    {a.therapist_role && <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${roleBadge[a.therapist_role] || 'badge-gray'}`}>{roleLabel[a.therapist_role] || a.therapist_role}</span>}
-                  </div>
-                </div>
+                  {/* Treatment */}
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${modalityBg[a.modality] || 'bg-gray-50 text-gray-700'}`}>
+                      {a.modality}
+                    </span>
+                  </td>
 
-                {/* Modality */}
-                <div className="px-3 py-3 hidden sm:block">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${modalityBg[a.modality] || 'bg-gray-50 text-gray-700'}`}>
-                    {a.modality}
-                  </span>
-                </div>
+                  {/* Patient + Owner */}
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-gray-900">{a.patient_name}</p>
+                    <p className="text-xs text-gray-500">{a.client_name}</p>
+                  </td>
 
-                {/* Status + Actions */}
-                <div className="flex items-center gap-2 px-3 py-3" onClick={e => e.stopPropagation()}>
-                  <ApptStatusBadge status={a.status} />
-                  <select
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 cursor-pointer hover:border-gray-300 outline-none"
-                    value={a.status}
-                    onChange={e => updateStatus(a.id, e.target.value)}
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="no_show">No Show</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
+                  {/* Mobile */}
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    {a.client_phone ? (
+                      <a href={`tel:${a.client_phone.replace(/[\s-]/g, '')}`} className="font-mono text-brand-pink hover:underline text-xs">
+                        {a.client_phone}
+                      </a>
+                    ) : <span className="text-gray-300">—</span>}
+                  </td>
+
+                  {/* Provider */}
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <p className="text-gray-800 font-medium">{a.therapist_name || <span className="text-gray-300">Unassigned</span>}</p>
+                    {a.therapist_role && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadge[a.therapist_role] || 'badge-gray'}`}>
+                        {roleLabel[a.therapist_role] || a.therapist_role}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <select
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 cursor-pointer hover:border-gray-300 outline-none"
+                      value={a.status}
+                      onChange={e => updateStatus(a.id, e.target.value)}
+                    >
+                      <option value="scheduled">Scheduled</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="no_show">No Show</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
