@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendAppointmentConfirmation } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -37,6 +38,17 @@ export async function POST(req: NextRequest) {
       status: 'new',
     }
   })
+
+  // Send confirmation email to customer (non-blocking)
+  sendAppointmentConfirmation({
+    owner_name,
+    owner_email,
+    pet_name,
+    breed: breed || undefined,
+    clinic_name: clinic_name || undefined,
+    attending_vet: attending_vet || undefined,
+    condition: condition || undefined,
+  }).catch(err => console.error('[email] sendAppointmentConfirmation error:', err))
 
   return NextResponse.json({ success: true, id: lead.id }, { status: 201 })
 }
