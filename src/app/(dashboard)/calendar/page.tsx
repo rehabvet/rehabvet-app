@@ -279,13 +279,12 @@ export default function CalendarPage() {
     )
   }
 
-  // Day View — Provider column layout
+  // Day View — Provider column layout (CSS Grid for perfect column alignment)
   function renderDayView() {
     const dateStr = toSGTDateStr(currentDate)
     const dayAppts = apptsByDate[dateStr] || []
     const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8:00 – 20:00
 
-    // Build provider columns from appointments (only providers with appts that day)
     const providerMap: Record<string, { id: string; name: string; role: string; photo_url?: string }> = {}
     for (const a of dayAppts) {
       if (a.therapist_id && a.therapist_name) {
@@ -296,27 +295,33 @@ export default function CalendarPage() {
     const hasUnassigned = dayAppts.some((a: any) => !a.therapist_id)
     if (hasUnassigned) providers.push({ id: '__unassigned__', name: 'Unassigned', role: '' })
 
-    const roleLabel: Record<string, string> = {
-      veterinarian: 'Veterinarian', senior_therapist: 'Sr. Therapist',
-      assistant_therapist: 'Asst. Therapist', hydrotherapist: 'Hydrotherapist',
-      marketing: 'Marketing', office_manager: 'Office Manager',
-      administrator: 'Administrator', vet: 'Veterinarian', therapist: 'Therapist',
-    }
     const roleBadgeColor: Record<string, string> = {
       veterinarian: 'bg-green-100 text-green-700', senior_therapist: 'bg-blue-100 text-blue-700',
       assistant_therapist: 'bg-sky-100 text-sky-700', hydrotherapist: 'bg-cyan-100 text-cyan-700',
       administrator: 'bg-red-100 text-red-700', office_manager: 'bg-pink-100 text-pink-700',
       vet: 'bg-green-100 text-green-700', therapist: 'bg-blue-100 text-blue-700',
     }
+    const roleLabel: Record<string, string> = {
+      veterinarian: 'Veterinarian', senior_therapist: 'Sr. Therapist',
+      assistant_therapist: 'Asst. Therapist', hydrotherapist: 'Hydrotherapist',
+      marketing: 'Marketing', office_manager: 'Office Manager',
+      administrator: 'Administrator', vet: 'Veterinarian', therapist: 'Therapist',
+    }
 
-    const CELL_HEIGHT = 72 // px per hour
+    const CELL_HEIGHT = 72
+    const TIME_COL = 40   // px — time label column width
+    const MIN_COL  = 130  // px — minimum provider column width
+    const numCols  = providers.length || 1
+
+    // Both header and body share EXACTLY this grid template → columns always aligned
+    const gridCols = `${TIME_COL}px repeat(${numCols}, 1fr)`
+    const minW     = TIME_COL + numCols * MIN_COL
 
     function timeToMinutes(t: string) {
       const [h, m] = t.split(':').map(Number)
       return h * 60 + m
     }
 
-    // Current time indicator
     const isToday = dateStr === todayStr
     const nowMins = currentTime.getHours() * 60 + currentTime.getMinutes()
     const gridStartMins = 8 * 60
@@ -324,26 +329,29 @@ export default function CalendarPage() {
 
     return (
       <div ref={dayScrollRef} className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        {/* Provider header row */}
-        <div className="flex sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-          <div className="w-16 flex-shrink-0 border-r border-gray-100" />
+
+        {/* ── HEADER (sticky) — identical gridTemplateColumns to body ── */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm"
+             style={{ display: 'grid', gridTemplateColumns: gridCols, minWidth: `${minW}px` }}>
+          {/* Empty time label cell */}
+          <div className="border-r border-gray-100" />
           {providers.length === 0 ? (
-            <div className="flex-1 p-4 text-sm text-gray-400 text-center">No appointments today</div>
+            <div className="p-4 text-sm text-gray-400 text-center">No appointments today</div>
           ) : providers.map(p => (
-            <div key={p.id} className="flex-1 min-w-[120px] sm:min-w-[160px] px-2 sm:px-3 py-2 border-r border-gray-100 last:border-r-0 text-center">
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <div key={p.id} className="border-r border-gray-100 last:border-r-0 px-2 py-2 text-center overflow-hidden">
+              <div className="flex items-center justify-center gap-1.5">
                 {p.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photo_url} alt={p.name} className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                  <img src={p.photo_url} alt={p.name} className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                 ) : (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-[10px] sm:text-xs font-bold flex-shrink-0">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-[10px] sm:text-xs font-bold flex-shrink-0">
                     {p.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                   </div>
                 )}
-                <div className="text-left">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-tight truncate max-w-[80px] sm:max-w-none">{p.name.split(' ')[0]}<span className="hidden sm:inline"> {p.name.split(' ').slice(1).join(' ')}</span></p>
+                <div className="text-left min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-tight truncate">{p.name}</p>
                   {p.role && (
-                    <span className={`hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadgeColor[p.role] || 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleBadgeColor[p.role] || 'bg-gray-100 text-gray-600'}`}>
                       {roleLabel[p.role] || p.role}
                     </span>
                   )}
@@ -356,27 +364,30 @@ export default function CalendarPage() {
           ))}
         </div>
 
-        {/* Time grid */}
-        <div className="relative flex" style={{ minHeight: `${CELL_HEIGHT * hours.length}px` }}>
-          {/* Current time indicator */}
+        {/* ── BODY — same gridTemplateColumns as header ── */}
+        <div className="relative"
+             style={{ display: 'grid', gridTemplateColumns: gridCols, minWidth: `${minW}px`, minHeight: `${CELL_HEIGHT * hours.length}px` }}>
+
+          {/* Current time indicator (absolutely positioned over the whole body) */}
           {isToday && nowMins >= gridStartMins && nowMins <= gridStartMins + (hours.length * 60) && (
             <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${timeIndicatorTop}px` }}>
-              <div className="flex items-center">
-                <div className="w-10 sm:w-16 flex justify-end pr-1 flex-shrink-0">
-                  <span className="text-[10px] font-bold text-red-500 bg-white px-1 rounded leading-none">
+              <div className="flex items-center" style={{ marginLeft: `${TIME_COL}px` }}>
+                <div className="absolute right-full pr-1">
+                  <span className="text-[10px] font-bold text-red-500 bg-white px-1 rounded leading-none whitespace-nowrap">
                     {String(currentTime.getHours()).padStart(2,'0')}:{String(currentTime.getMinutes()).padStart(2,'0')}
                   </span>
                 </div>
-                <div className="flex-1 h-px bg-red-400 relative">
+                <div className="flex-1 h-px bg-red-400">
                   <div className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-red-500" />
                 </div>
               </div>
             </div>
           )}
-          {/* Hour lines + labels */}
-          <div className="w-10 sm:w-16 flex-shrink-0 border-r border-gray-100 relative z-10">
+
+          {/* Time labels column */}
+          <div className="border-r border-gray-100">
             {hours.map(hour => (
-              <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-1 sm:pr-2 pt-1">
+              <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
                 <span className="text-[10px] sm:text-xs text-gray-400">{String(hour).padStart(2,'0')}:00</span>
               </div>
             ))}
@@ -384,7 +395,7 @@ export default function CalendarPage() {
 
           {/* Provider columns */}
           {providers.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">
+            <div className="flex items-center justify-center text-gray-300 text-sm" style={{ gridColumn: `2 / ${numCols + 2}` }}>
               No appointments scheduled
             </div>
           ) : providers.map(p => {
@@ -392,32 +403,29 @@ export default function CalendarPage() {
               p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id
             )
             return (
-              <div key={p.id} className="flex-1 min-w-[160px] border-r border-gray-100 last:border-r-0 relative">
+              <div key={p.id} className="border-r border-gray-100 last:border-r-0 relative overflow-hidden">
                 {/* Hour grid lines */}
                 {hours.map(hour => (
                   <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100" />
                 ))}
-                {/* Appointments (absolutely positioned) */}
+                {/* Appointments — absolutely positioned within this column */}
                 {colAppts.map((a: any) => {
                   const startMins = timeToMinutes(a.start_time || '08:00')
-                  const endMins = timeToMinutes(a.end_time || (a.start_time || '08:00'))
-                  const gridStartMins = 8 * 60
-                  const top = ((startMins - gridStartMins) / 60) * CELL_HEIGHT
-                  const heightMins = Math.max(endMins - startMins, 30)
-                  const height = (heightMins / 60) * CELL_HEIGHT - 2
-                  const color = treatmentColors[a.modality] || 'bg-gray-400'
-
+                  const endMins   = timeToMinutes(a.end_time   || a.start_time || '08:00')
+                  const top    = ((startMins - gridStartMins) / 60) * CELL_HEIGHT
+                  const height = Math.max((endMins - startMins) / 60, 0.5) * CELL_HEIGHT - 2
+                  const color  = treatmentColors[a.modality] || 'bg-gray-400'
                   return (
                     <button
                       key={a.id}
                       onClick={() => openEditModal(a)}
-                      style={{ top: `${top}px`, height: `${height}px`, left: '4px', right: '4px' }}
-                      className={`absolute text-left text-white px-2 py-1 rounded-lg hover:opacity-90 hover:shadow-md transition-all text-xs overflow-hidden ${color}`}
-                      title={`${a.start_time} - ${a.end_time}\n${a.modality}\n${a.patient_name} (${a.client_name})\n${a.client_phone}`}
+                      style={{ top: `${top}px`, height: `${height}px`, left: 3, right: 3, position: 'absolute' }}
+                      className={`text-left text-white px-1.5 py-1 rounded-lg hover:opacity-90 hover:shadow-md transition-all text-xs overflow-hidden ${color}`}
+                      title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
-                      <div className="font-semibold leading-tight">{a.start_time?.slice(0,5)} {a.modality}</div>
+                      <div className="font-semibold leading-tight truncate">{a.start_time?.slice(0,5)} {a.modality}</div>
                       <div className="opacity-90 leading-tight mt-0.5 truncate">{a.client_name} • <span className="font-medium">{a.patient_name}</span></div>
-                      {height > 50 && <div className="opacity-75 text-[10px] mt-0.5">{a.client_phone}</div>}
+                      {height > 52 && <div className="opacity-75 text-[10px] mt-0.5 truncate">{a.client_phone}</div>}
                     </button>
                   )
                 })}
