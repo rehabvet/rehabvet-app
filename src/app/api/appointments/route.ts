@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const status     = p.get('status')
   const q          = (p.get('q') || '').trim()
   const page       = Math.max(1, parseInt(p.get('page') || '1', 10))
-  const perPage    = Math.min(100, parseInt(p.get('per_page') || '20', 10))
+  const perPage    = Math.min(5000, parseInt(p.get('per_page') || '20', 10))
 
   const where: any = {}
 
