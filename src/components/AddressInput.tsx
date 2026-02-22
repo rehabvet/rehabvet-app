@@ -102,7 +102,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
           unit: data.unit // preserve existing unit
         }
         setData(newData)
-        onChange(buildAddress(newData))
+        // Use the full ADDRESS field from OneMap if available, otherwise build it
+        const fullAddress = r.ADDRESS && r.ADDRESS !== 'NIL'
+          ? r.ADDRESS
+          : buildAddress(newData)
+        onChange(fullAddress)
         setFound(true)
       } else {
         setError('Postal code not found')
@@ -132,11 +136,14 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         <div className="relative w-36 flex-shrink-0">
           <input
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             className="input pr-9 font-mono tracking-wider"
-            placeholder="Postal Code"
+            placeholder="e.g. 218154"
             value={data.postalCode}
             onChange={handlePostalChange}
             maxLength={6}
+            autoComplete="postal-code"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {loading ? (

@@ -62,7 +62,11 @@ export default function AppointmentPage() {
       const data = await res.json()
       if (data.found > 0) {
         const r = data.results[0]
-        const addr = [r.BLK_NO, r.ROAD_NAME, r.BUILDING].filter(Boolean).map((v: string) => v.trim()).filter(v => v && v !== 'NIL').join(', ')
+        // Use full ADDRESS field from OneMap (e.g. "BLK 513 SERANGOON RD SINGAPORE 218154")
+        const addr = (r.ADDRESS && r.ADDRESS !== 'NIL')
+          ? r.ADDRESS
+          : [r.BLK_NO, r.ROAD_NAME, r.BUILDING, `Singapore ${code}`]
+              .map((v: string) => v?.trim()).filter(v => v && v !== 'NIL').join(', ')
         s('address', addr)
         setAddressError('')
       } else {
@@ -228,11 +232,15 @@ export default function AppointmentPage() {
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1.5">Postal Code <span className="text-[#EC6496]">*</span></label>
                     <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="postal-code"
                       className={inp}
                       placeholder="e.g. 218154"
                       value={form.post_code}
                       maxLength={6}
-                      onChange={e => lookupPostal(e.target.value.replace(/\D/g, ''))}
+                      onChange={e => lookupPostal(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     />
                     {addressLoading && (
                       <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5">
