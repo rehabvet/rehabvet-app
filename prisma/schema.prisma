@@ -100,7 +100,7 @@ model clients {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
   email      String?
-  phone      String
+  phone      String?
   address    String?
   notes      String?
   created_at DateTime @default(now())
