@@ -203,6 +203,7 @@ export default function CalendarPage() {
     while (days.length % 7 !== 0) days.push(null)
 
     return (
+      <>
       <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden flex-1">
         {[['S','Sun'],['M','Mon'],['T','Tue'],['W','Wed'],['T','Thu'],['F','Fri'],['S','Sat']].map(([short, full]) => (
           <div key={full} className="bg-gray-50 px-1 py-2 text-center font-semibold text-gray-600">
@@ -277,6 +278,7 @@ export default function CalendarPage() {
           </div>
         )}
       </Modal>
+      </>
     )
   }
 
