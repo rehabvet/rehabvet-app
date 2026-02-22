@@ -27,6 +27,10 @@ export default function CalendarPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const dayScrollRef = useRef<HTMLDivElement>(null)
+  // New appointment via double-click
+  const [newApptForm, setNewApptForm] = useState<any>(null)
+  const [newApptSaving, setNewApptSaving] = useState(false)
+  const [patients, setPatients] = useState<any[]>([])
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
 
@@ -52,6 +56,8 @@ export default function CalendarPage() {
       .then(r => r.json()).then(d => setStaff(d.staff || []))
     fetch('/api/treatment-types')
       .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
+    fetch('/api/patients?per_page=999')
+      .then(r => r.json()).then(d => setPatients(d.patients || []))
   }, [year, month])
 
   // Update current time every minute
@@ -126,6 +132,42 @@ export default function CalendarPage() {
     }
     if (compact) return currentDate.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })
     return currentDate.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
+  }
+
+  function openNewApptModal(date: string, time: string, therapistId = '') {
+    // Round time to nearest 30 min
+    const [h, m] = time.split(':').map(Number)
+    const roundedM = m < 15 ? 0 : m < 45 ? 30 : 0
+    const roundedH = m >= 45 ? h + 1 : h
+    const start = `${String(roundedH).padStart(2,'0')}:${String(roundedM).padStart(2,'0')}`
+    const endH = roundedM === 30 ? roundedH + 1 : roundedH
+    const endM = roundedM === 30 ? 0 : 30
+    const end = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`
+    setNewApptForm({ date, start_time: start, end_time: end, therapist_id: therapistId, patient_id: '', client_id: '', modality: '', notes: '' })
+  }
+
+  async function saveNewAppt() {
+    if (!newApptForm || !newApptForm.patient_id || !newApptForm.modality) return
+    setNewApptSaving(true)
+    try {
+      const patient = patients.find((p: any) => p.id === newApptForm.patient_id)
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newApptForm, client_id: patient?.client_id || newApptForm.client_id }),
+      })
+      // Invalidate cache & reload
+      apptCache.current.delete(`${year}-${month}`)
+      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
+      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}`)
+      const data = await res.json()
+      const fresh = data.appointments || []
+      apptCache.current.set(`${year}-${month}`, fresh)
+      setAppointments(fresh)
+      setNewApptForm(null)
+    } catch (err) { console.error(err) }
+    finally { setNewApptSaving(false) }
   }
 
   function openEditModal(appt: any) {
@@ -361,7 +403,18 @@ export default function CalendarPage() {
             const dayAppts = apptsByDate[dateStr] || []
             const isToday = dateStr === todayStr
             return (
-              <div key={dateStr} className={`border-r border-gray-100 last:border-r-0 relative ${isToday ? 'bg-pink-50/20' : ''}`}>
+              <div
+                key={dateStr}
+                className={`border-r border-gray-100 last:border-r-0 relative cursor-pointer ${isToday ? 'bg-pink-50/20' : ''}`}
+                onDoubleClick={e => {
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  const yPx = e.clientY - rect.top
+                  const totalMins = gridStartMins + (yPx / CELL_H) * 60
+                  const hh = Math.floor(totalMins / 60)
+                  const mm = Math.floor(totalMins % 60)
+                  openNewApptModal(dateStr, `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`)
+                }}
+              >
                 {/* Hour grid lines */}
                 {hours.map(h => (
                   <div key={h} style={{ height: CELL_H }} className="border-b border-gray-100" />
@@ -520,7 +573,18 @@ export default function CalendarPage() {
               p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id
             )
             return (
-              <div key={p.id} className="border-r border-gray-100 last:border-r-0 relative overflow-hidden">
+              <div
+                key={p.id}
+                className="border-r border-gray-100 last:border-r-0 relative overflow-hidden cursor-pointer"
+                onDoubleClick={e => {
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  const yPx = e.clientY - rect.top
+                  const totalMins = gridStartMins + (yPx / CELL_HEIGHT) * 60
+                  const hh = Math.floor(totalMins / 60)
+                  const mm = Math.floor(totalMins % 60)
+                  openNewApptModal(dateStr, `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`, p.id === '__unassigned__' ? '' : p.id)
+                }}
+              >
                 {/* Hour grid lines */}
                 {hours.map(hour => (
                   <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100" />
@@ -610,6 +674,86 @@ export default function CalendarPage() {
           ))}
         </div>
       )}
+
+      {/* New Appointment Modal (double-click) */}
+      <Modal open={!!newApptForm} onClose={() => setNewApptForm(null)} title="New Appointment">
+        {newApptForm && (
+          <div className="space-y-4">
+            {/* Date + times */}
+            <DatePicker label="Date" value={newApptForm.date} onChange={date => setNewApptForm({...newApptForm, date})} />
+            <div className="grid grid-cols-2 gap-4">
+              <TimePicker label="Start Time" value={newApptForm.start_time} onChange={t => setNewApptForm({...newApptForm, start_time: t})} />
+              <TimePicker label="End Time" value={newApptForm.end_time} onChange={t => setNewApptForm({...newApptForm, end_time: t})} minTime={newApptForm.start_time} />
+            </div>
+
+            {/* Patient */}
+            <div>
+              <label className="label">Patient *</label>
+              <select className="input" value={newApptForm.patient_id}
+                onChange={e => {
+                  const p = patients.find((x: any) => x.id === e.target.value)
+                  setNewApptForm({...newApptForm, patient_id: e.target.value, client_id: p?.client_id || ''})
+                }} required>
+                <option value="">Select patient...</option>
+                {patients.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.client_name || p.species})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Treatment Type */}
+            <div>
+              <label className="label">Treatment Type *</label>
+              <select className="input" value={newApptForm.modality}
+                onChange={e => {
+                  const t = treatmentTypes.find((x: any) => x.name === e.target.value)
+                  if (t) {
+                    const [sh, sm] = newApptForm.start_time.split(':').map(Number)
+                    const endTotal = sh * 60 + sm + (t.duration || 60)
+                    const endH = Math.floor(endTotal / 60)
+                    const endM = endTotal % 60
+                    setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`})
+                  } else {
+                    setNewApptForm({...newApptForm, modality: e.target.value})
+                  }
+                }} required>
+                <option value="">Select treatment...</option>
+                {Object.entries(treatmentGrouped).map(([category, items]) => (
+                  <optgroup key={category} label={category}>
+                    {(items as any[]).map(t => (
+                      <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
+            {/* Therapist */}
+            <div>
+              <label className="label">Provider</label>
+              <select className="input" value={newApptForm.therapist_id} onChange={e => setNewApptForm({...newApptForm, therapist_id: e.target.value})}>
+                <option value="">Select provider...</option>
+                {staff.filter(s => ['therapist','vet','veterinarian','senior_therapist','assistant_therapist','hydrotherapist'].includes(s.role)).map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="label">Notes</label>
+              <textarea className="input" rows={2} value={newApptForm.notes} onChange={e => setNewApptForm({...newApptForm, notes: e.target.value})} placeholder="Optional notes..." />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setNewApptForm(null)} className="btn-secondary">Cancel</button>
+              <button onClick={saveNewAppt} disabled={newApptSaving || !newApptForm.patient_id || !newApptForm.modality} className="btn-primary">
+                {newApptSaving ? 'Saving...' : 'Create Appointment'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Edit Appointment Modal */}
       <Modal open={!!selectedAppt} onClose={closeModal} title="Edit Appointment">
