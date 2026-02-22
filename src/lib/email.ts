@@ -50,7 +50,7 @@ function badge(text: string, color: string, bg: string) {
 }
 
 function row(label: string, value: string | undefined | null, highlight = false) {
-  if (!value && value !== false && value !== 0) return ''
+  if (!value) return ''
   return `
   <tr>
     <td style="padding:7px 0;font-size:13px;color:${MUTED};width:42%;vertical-align:top;">${label}</td>
@@ -222,13 +222,15 @@ function internalHtml(d: LeadEmailData): string {
     <!-- Owner -->
     <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${PINK};">Owner Information</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #f3f4f6;border-radius:10px;overflow:hidden;">
-      ${[
-        ['Name', d.owner_name],
-        ['Email', `<a href="mailto:${d.owner_email}" style="color:${PINK};text-decoration:none;">${d.owner_email}</a>`],
-        ['Phone', d.owner_phone ? `<a href="tel:${d.owner_phone}" style="color:${PINK};text-decoration:none;">${d.owner_phone}</a>` : null],
-        ['Postal Code', d.post_code],
-        ['How they found us', d.how_heard],
-      ].filter(r => r[1]).map(([label, val], i) => `
+      ${(
+        [
+          ['Name', d.owner_name],
+          ['Email', `<a href="mailto:${d.owner_email}" style="color:${PINK};text-decoration:none;">${d.owner_email}</a>`],
+          ['Phone', d.owner_phone ? `<a href="tel:${d.owner_phone}" style="color:${PINK};text-decoration:none;">${d.owner_phone}</a>` : ''],
+          ['Postal Code', d.post_code || ''],
+          ['How they found us', d.how_heard || ''],
+        ] as [string, string][]
+      ).filter(r => r[1]).map(([label, val], i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : LIGHT_BG};">
         <td style="padding:9px 14px;font-size:13px;color:${MUTED};width:40%;">${label}</td>
         <td style="padding:9px 14px;font-size:13px;font-weight:600;color:${DARK};">${val}</td>
@@ -238,12 +240,14 @@ function internalHtml(d: LeadEmailData): string {
     <!-- Pet -->
     <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${PINK};">Pet Details</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #f3f4f6;border-radius:10px;overflow:hidden;">
-      ${[
-        ['Pet Name', d.pet_name],
-        ['Breed', d.breed],
-        ['Age', d.age],
-        ['Gender', d.pet_gender],
-      ].filter(r => r[1]).map(([label, val], i) => `
+      ${(
+        [
+          ['Pet Name', d.pet_name],
+          ['Breed', d.breed || ''],
+          ['Age', d.age || ''],
+          ['Gender', d.pet_gender || ''],
+        ] as [string, string][]
+      ).filter(r => r[1]).map(([label, val], i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : LIGHT_BG};">
         <td style="padding:9px 14px;font-size:13px;color:${MUTED};width:40%;">${label}</td>
         <td style="padding:9px 14px;font-size:13px;font-weight:600;color:${DARK};">${val}</td>
@@ -253,14 +257,16 @@ function internalHtml(d: LeadEmailData): string {
     <!-- Health -->
     <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${PINK};">Health & Mobility</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #f3f4f6;border-radius:10px;overflow:hidden;">
-      ${[
-        ['Showing pain', d.has_pain !== undefined ? yesNo(d.has_pain) : null],
-        ['Vet friendly', d.vet_friendly !== undefined ? yesNo(d.vet_friendly) : null],
-        ['Reactive to pets', d.reactive_to_pets !== undefined ? yesNo(d.reactive_to_pets) : null],
-        ['Current issue / condition', d.condition],
-        ['Referring clinic', d.clinic_name],
-        ['Attending vet', d.attending_vet],
-      ].filter(r => r[1]).map(([label, val], i) => `
+      ${(
+        [
+          ['Showing pain', d.has_pain !== undefined ? yesNo(d.has_pain) : ''],
+          ['Vet friendly', d.vet_friendly !== undefined ? yesNo(d.vet_friendly) : ''],
+          ['Reactive to pets', d.reactive_to_pets !== undefined ? yesNo(d.reactive_to_pets) : ''],
+          ['Current issue / condition', d.condition || ''],
+          ['Referring clinic', d.clinic_name || ''],
+          ['Attending vet', d.attending_vet || ''],
+        ] as [string, string][]
+      ).filter(r => r[1]).map(([label, val], i) => `
       <tr style="background:${i % 2 === 0 ? '#fff' : LIGHT_BG};">
         <td style="padding:9px 14px;font-size:13px;color:${MUTED};width:40%;vertical-align:top;">${label}</td>
         <td style="padding:9px 14px;font-size:13px;font-weight:600;color:${DARK};">${val}</td>
