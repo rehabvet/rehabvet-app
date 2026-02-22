@@ -159,29 +159,25 @@ export default function AppointmentPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 py-8 lg:py-14">
-        <div className="grid lg:grid-cols-[1fr_420px] gap-10 lg:gap-16 items-start">
+      <main className="max-w-5xl mx-auto px-4 sm:px-5 py-6 lg:py-14">
+        <div className="grid lg:grid-cols-[1fr_440px] gap-8 lg:gap-16 items-start">
 
-          {/* ── LEFT ── */}
-          <div className="space-y-10">
+          {/* ── LEFT ── hero + reviews — shows BELOW form on mobile */}
+          <div className="space-y-8 lg:space-y-10 order-2 lg:order-1">
 
             {/* Hero */}
             <div>
-              <span className="inline-block text-xs font-bold tracking-widest text-[#EC6496] uppercase mb-4">Singapore's First Vet Rehab Clinic</span>
-              <h1 className="text-4xl lg:text-[52px] font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-3">
-                Give Your Pet<br />
-                <span className="text-[#EC6496]">Their Life Back.</span>
+              <span className="inline-block text-xs font-bold tracking-widest text-[#EC6496] uppercase mb-3">Singapore's First Vet Rehab Clinic</span>
+              <h1 className="text-3xl sm:text-4xl lg:text-[52px] font-extrabold text-[#EC6496] leading-[1.1] tracking-tight mb-4">
+                Proven Steps to<br />Pain Free Mobility
               </h1>
-              <p className="text-[#EC6496] font-semibold text-base mb-4 italic">
-                Proven Steps to Pain Free Mobility
-              </p>
-              <p className="text-gray-500 text-lg leading-relaxed max-w-md">
+              <p className="text-gray-500 text-base sm:text-lg leading-relaxed max-w-md">
                 Personalised physiotherapy, hydrotherapy and rehabilitation plans — helping pets recover from surgery, manage pain, and move freely again.
               </p>
             </div>
 
             {/* Stats row */}
-            <div className="flex flex-wrap gap-6 lg:gap-10">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-4 sm:gap-6 lg:gap-10">
               {[
                 { n: '10+', l: 'Years' },
                 { n: '5,000+', l: 'Pets treated' },
@@ -235,12 +231,12 @@ export default function AppointmentPage() {
 
           </div>
 
-          {/* ── RIGHT: Form ── */}
-          <div className="lg:sticky lg:top-24">
+          {/* ── RIGHT: Form — appears FIRST on mobile ── */}
+          <div id="book" className="lg:sticky lg:top-24 order-1 lg:order-2">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
 
               {/* Form top */}
-              <div className="px-6 pt-7 pb-5 border-b border-gray-100">
+              <div className="px-4 sm:px-6 pt-6 sm:pt-7 pb-5 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-900">Book Your Assessment</h2>
                 <p className="text-sm text-gray-400 mt-0.5">Free · No commitment · We'll confirm with you within a day</p>
 
@@ -258,10 +254,10 @@ export default function AppointmentPage() {
               </div>
 
               {/* Form body */}
-              <div className="px-6 py-6 space-y-4">
+              <div className="px-4 sm:px-6 py-5 sm:py-6 space-y-4">
 
                 {step === 1 && <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">First Name <span className="text-[#EC6496]">*</span></label>
                       <input className={inp} placeholder="Jane" value={form.first_name} onChange={e => s('first_name', e.target.value)} /></div>
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Last Name <span className="text-[#EC6496]">*</span></label>
@@ -314,7 +310,7 @@ export default function AppointmentPage() {
                 {step === 2 && <>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Pet's Name <span className="text-[#EC6496]">*</span></label>
                     <input className={inp} placeholder="Buddy" value={form.pet_name} onChange={e => s('pet_name', e.target.value)} /></div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Breed <span className="text-[#EC6496]">*</span></label>
                       <input className={inp} placeholder="Golden Retriever" value={form.breed} onChange={e => s('breed', e.target.value)} /></div>
                     <div>
@@ -384,7 +380,7 @@ export default function AppointmentPage() {
                       <textarea className={inp + ' resize-none'} rows={3} placeholder="Describe your pet's condition…" value={form.condition} onChange={e => s('condition', e.target.value)} /></div>
                   </div>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">How did you hear about us? <span className="text-[#EC6496]">*</span></label>
-                    <div className="grid grid-cols-2 gap-2">{HOW_HEARD.map(h => <Chip key={h} active={form.how_heard === h} onClick={() => s('how_heard', h)}>{h}</Chip>)}</div></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{HOW_HEARD.map(h => <Chip key={h} active={form.how_heard === h} onClick={() => s('how_heard', h)}>{h}</Chip>)}</div></div>
                   {error && <p className="text-red-500 text-xs text-center">{error}</p>}
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(2)} className="flex-none w-10 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
@@ -399,7 +395,7 @@ export default function AppointmentPage() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 pb-5 text-center">
+              <div className="px-4 sm:px-6 pb-5 text-center">
                 <p className="text-xs text-gray-400">🔒 Your info is safe &nbsp;·&nbsp; No spam &nbsp;·&nbsp; Free to request</p>
               </div>
 
