@@ -1,43 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { CACHE_STATIC } from '@/lib/cache'
 import bcrypt from 'bcryptjs'
 
 function isAdminRole(role?: string) {
   return ['admin', 'administrator', 'office_manager'].includes(String(role || '').toLowerCase())
 }
 
+const STAFF_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  phone: true,
+  photo_url: true,
+  specializations: true,
+  schedule: true,
+  active: true,
+  created_at: true,
+}
+
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const staff = await prisma.users.findMany({
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      phone: true,
-      photo_url: true,
-      specializations: true,
-      active: true,
-      created_at: true,
-    },
-  })
+  const staff = await prisma.users.findMany({ select: STAFF_SELECT })
 
   const roleOrder: Record<string, number> = {
-    administrator: 1,
-    office_manager: 2,
-    marketing: 3,
-    veterinarian: 4,
-    senior_therapist: 5,
-    hydrotherapist: 6,
-    assistant_therapist: 7,
-    admin: 1,
-    vet: 4,
-    therapist: 5,
-    receptionist: 8,
+    administrator: 1, office_manager: 2, marketing: 3, veterinarian: 4,
+    senior_therapist: 5, hydrotherapist: 6, assistant_therapist: 7,
+    admin: 1, vet: 4, therapist: 5, receptionist: 8,
   }
   staff.sort((a: any, b: any) => {
     const ra = roleOrder[a.role] ?? 99
@@ -46,9 +38,8 @@ export async function GET() {
     return String(a.name || '').localeCompare(String(b.name || ''))
   })
 
-  const staffRes = NextResponse.json({ staff })
-  staffRes.headers.set('Cache-Control', CACHE_STATIC)
-  return staffRes
+  // No cache — schedule changes need to reflect immediately
+  return NextResponse.json({ staff })
 }
 
 export async function POST(req: NextRequest) {
@@ -66,25 +57,12 @@ export async function POST(req: NextRequest) {
 
   const staff = await prisma.users.create({
     data: {
-      name,
-      email,
-      password_hash: hash,
-      role,
+      name, email, password_hash: hash, role,
       phone: phone || null,
       photo_url: photo_url || null,
       specializations: specializations ? JSON.stringify(specializations) : '[]',
     },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      phone: true,
-      photo_url: true,
-      specializations: true,
-      active: true,
-      created_at: true,
-    },
+    select: STAFF_SELECT,
   })
 
   return NextResponse.json({ staff }, { status: 201 })
@@ -105,27 +83,14 @@ export async function PUT(req: NextRequest) {
   const staff = await prisma.users.update({
     where: { id },
     data: {
-      name,
-      email,
-      role,
+      name, email, role,
       phone: phone || null,
       photo_url: photo_url || null,
       specializations: specializations ? JSON.stringify(specializations) : '[]',
       active: typeof active === 'boolean' ? active : true,
       schedule: schedule ? JSON.stringify(schedule) : undefined,
     },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      phone: true,
-      photo_url: true,
-      specializations: true,
-      schedule: true,
-      active: true,
-      created_at: true,
-    },
+    select: STAFF_SELECT,
   })
 
   return NextResponse.json({ staff })
