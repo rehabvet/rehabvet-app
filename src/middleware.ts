@@ -7,7 +7,8 @@ const PUBLIC_PREFIXES = [
   '/thank-you',
   '/api/auth/login',
   '/api/auth/logout',
-  '/api/leads',             // public booking submission
+  '/api/leads',             // public booking submission (leads list used internally)
+  '/api/appointment',       // public booking form POST (note: singular, not /appointments)
   '/api/google-reviews',    // public widget
   '/api/health',
   '/_next',
