@@ -338,6 +338,7 @@ export default function CalendarPage() {
         <div className="font-semibold truncate">{time} {service}</div>
         <div className="opacity-90 truncate">{clientName} • {petName}</div>
         {a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
+        {phone && <div className="opacity-75 truncate text-[10px]">📱 {phone}</div>}
       </button>
     )
   }
@@ -368,7 +369,7 @@ export default function CalendarPage() {
 
           return (
             <div key={dateStr}
-              className={`group bg-white min-h-[60px] sm:h-[210px] p-1 sm:p-1.5 flex flex-col ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
+              className={`group bg-white min-h-[60px] sm:h-[250px] p-1 sm:p-1.5 flex flex-col ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
               {/* Date number */}
               <div className={`text-xs sm:text-sm font-medium mb-0.5 flex-shrink-0 ${isToday ? 'bg-brand-pink text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] sm:text-xs' : 'text-gray-700'}`}>{day}</div>
               {/* Mobile: dots only */}
