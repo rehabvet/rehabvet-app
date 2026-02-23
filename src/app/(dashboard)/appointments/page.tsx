@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, X, Trash2, AlertTriangle } from 'lucide-react'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -63,9 +63,11 @@ export default function AppointmentsPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Modals ──────────────────────────────────────────────────────────────────
-  const [showAdd,  setShowAdd]  = useState(false)
-  const [showEdit, setShowEdit] = useState(false)
-  const [editing,  setEditing]  = useState<any>(null)
+  const [showAdd,         setShowAdd]         = useState(false)
+  const [showEdit,        setShowEdit]        = useState(false)
+  const [editing,         setEditing]         = useState<any>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting,        setDeleting]        = useState(false)
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
   const [patients,         setPatients]         = useState<any[]>([])
@@ -170,6 +172,25 @@ export default function AppointmentsPage() {
       body: JSON.stringify({ status: newStatus }),
     })
     fetchAppts()
+  }
+
+  async function deleteAppt() {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/appointments/${confirmDeleteId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to delete')
+        return
+      }
+      setConfirmDeleteId(null)
+      // Close edit modal too if it was open for this appointment
+      if (editing?.id === confirmDeleteId) { setShowEdit(false); setEditing(null) }
+      fetchAppts()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openEdit(appt: any) {
@@ -294,6 +315,7 @@ export default function AppointmentsPage() {
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Treatment</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Provider</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="px-3 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -359,6 +381,17 @@ export default function AppointmentsPage() {
                       <option value="cancelled">Cancelled</option>
                       <option value="no_show">No Show</option>
                     </select>
+                  </td>
+
+                  {/* Delete */}
+                  <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setConfirmDeleteId(a.id)}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Delete appointment"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -569,12 +602,48 @@ export default function AppointmentsPage() {
               <textarea className="input" rows={2} value={editing.notes || ''} onChange={e => setEditing({...editing, notes: e.target.value})} />
             </div>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => { setShowEdit(false); setEditing(null) }} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Save Changes</button>
+            <div className="flex justify-between items-center pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowEdit(false); setEditing(null); setConfirmDeleteId(editing?.id ?? null) }}
+                className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setShowEdit(false); setEditing(null) }} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary">Save Changes</button>
+              </div>
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* ── Confirm Delete Modal ── */}
+      <Modal open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} title="Delete Appointment">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">This cannot be undone</p>
+              <p className="text-sm text-red-600 mt-0.5">
+                The appointment will be permanently deleted from the system.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary" disabled={deleting}>
+              Keep it
+            </button>
+            <button
+              onClick={deleteAppt}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Yes, delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

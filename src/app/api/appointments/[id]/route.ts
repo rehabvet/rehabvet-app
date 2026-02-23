@@ -72,9 +72,12 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await prisma.appointments.update({
-    where: { id: params.id },
-    data: { status: 'cancelled' },
-  })
+  // Only admins / office managers can permanently delete
+  const allowed = ['admin', 'administrator', 'office_manager']
+  if (!allowed.includes(user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  await prisma.appointments.delete({ where: { id: params.id } })
   return NextResponse.json({ ok: true })
 }

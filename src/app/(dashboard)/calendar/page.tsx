@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle } from 'lucide-react'
 import { useRef } from 'react'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
@@ -23,7 +23,9 @@ export default function CalendarPage() {
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
   const [selectedAppt, setSelectedAppt] = useState<any>(null)
   const [editForm, setEditForm] = useState<any>(null)
-  const [saving, setSaving] = useState(false)
+  const [saving,          setSaving]          = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting,        setDeleting]        = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const dayScrollRef = useRef<HTMLDivElement>(null)
@@ -237,6 +239,33 @@ export default function CalendarPage() {
       console.error(err)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/appointments/${confirmDeleteId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to delete')
+        return
+      }
+      setConfirmDeleteId(null)
+      // Close edit modal if it was for this appointment
+      if (selectedAppt?.id === confirmDeleteId) closeModal()
+      // Refresh calendar
+      apptCache.current.delete(`${year}-${month}`)
+      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
+      const res2 = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=1000`)
+      const data2 = await res2.json()
+      const fresh = data2.appointments || []
+      apptCache.current.set(`${year}-${month}`, fresh)
+      setAppointments(fresh)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -928,14 +957,49 @@ export default function CalendarPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={closeModal} className="btn-secondary">Cancel</button>
-              <button onClick={saveAppointment} disabled={saving} className="btn-primary">
-                {saving ? 'Saving...' : 'Save Changes'}
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={() => { setConfirmDeleteId(selectedAppt.id) }}
+                className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
               </button>
+              <div className="flex gap-2">
+                <button onClick={closeModal} className="btn-secondary">Cancel</button>
+                <button onClick={saveAppointment} disabled={saving} className="btn-primary">
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── Confirm Delete Modal ── */}
+      <Modal open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} title="Delete Appointment">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">This cannot be undone</p>
+              <p className="text-sm text-red-600 mt-0.5">
+                The appointment will be permanently deleted from the system.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary" disabled={deleting}>
+              Keep it
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Yes, delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
