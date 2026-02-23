@@ -66,6 +66,8 @@ export default function LeadsPage() {
   const [converting, setConverting] = useState(false)
   const [staffNote, setStaffNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchLeads = useCallback(async (p = page) => {
     setLoading(true)
@@ -141,11 +143,17 @@ export default function LeadsPage() {
     fetchLeads()
   }
 
-  async function deleteLead(id: string) {
-    if (!confirm('Delete this lead?')) return
-    await fetch(`/api/leads/${id}`, { method: 'DELETE' })
-    setViewLead(null)
-    fetchLeads()
+  async function confirmAndDelete() {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    try {
+      await fetch(`/api/leads/${confirmDeleteId}`, { method: 'DELETE' })
+      if (viewLead?.id === confirmDeleteId) setViewLead(null)
+      setConfirmDeleteId(null)
+      fetchLeads()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const totalLeads = total || Object.values(statusCounts).reduce((a, b) => a + b, 0)
@@ -271,7 +279,7 @@ export default function LeadsPage() {
                               <CheckCircle className="w-4 h-4" />
                             </button>
                           )}
-                          <button onClick={() => deleteLead(lead.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete">
+                          <button onClick={() => setConfirmDeleteId(lead.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -412,7 +420,7 @@ export default function LeadsPage() {
                   <CheckCircle className="w-4 h-4" /> Convert to Appointment
                 </button>
               )}
-              <button onClick={() => deleteLead(viewLead.id)} className="btn-secondary text-red-500 flex items-center gap-1.5">
+              <button onClick={() => setConfirmDeleteId(viewLead.id)} className="btn-secondary text-red-500 flex items-center gap-1.5">
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
@@ -442,6 +450,33 @@ export default function LeadsPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── Confirm Delete Lead Modal ── */}
+      <Modal open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} title="Delete Lead">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">This cannot be undone</p>
+              <p className="text-sm text-red-600 mt-0.5">
+                This lead and all its data will be permanently deleted.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary" disabled={deleting}>
+              Keep it
+            </button>
+            <button
+              onClick={confirmAndDelete}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Yes, delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

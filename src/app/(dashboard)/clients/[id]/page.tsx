@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, CalendarClock, Edit2, Save, X, Package, Plus, MinusCircle, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, CalendarClock, Edit2, Save, X, Package, Plus, MinusCircle, RotateCcw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
 import AddressInput from '@/components/AddressInput'
 import Modal from '@/components/Modal'
 
@@ -50,6 +50,8 @@ export default function ClientDetailPage() {
   const [deductForm, setDeductForm] = useState({ used_date: new Date().toISOString().split('T')[0], notes: '' })
   const [deducting, setDeducting] = useState(false)
   const [expandedPkg, setExpandedPkg] = useState<string | null>(null)
+  const [confirmUndoPkgId, setConfirmUndoPkgId] = useState<string | null>(null)
+  const [undoing, setUndoing] = useState(false)
 
   useEffect(() => {
     fetch(`/api/clients/${id}`).then(r => r.json()).then(d => {
@@ -114,10 +116,16 @@ export default function ClientDetailPage() {
     fetchPackages()
   }
 
-  async function handleUndoLast(pkgId: string) {
-    if (!confirm('Undo the last session deduction?')) return
-    await fetch(`/api/packages/${pkgId}/unuse`, { method: 'POST' })
-    fetchPackages()
+  async function doUndoLast() {
+    if (!confirmUndoPkgId) return
+    setUndoing(true)
+    try {
+      await fetch(`/api/packages/${confirmUndoPkgId}/unuse`, { method: 'POST' })
+      setConfirmUndoPkgId(null)
+      fetchPackages()
+    } finally {
+      setUndoing(false)
+    }
   }
 
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
@@ -273,7 +281,7 @@ export default function ClientDetailPage() {
                         </button>
                       )}
                       {pkg.sessions_used > 0 && (
-                        <button onClick={() => handleUndoLast(pkg.id)} className="p-1.5 text-gray-400 hover:text-amber-500 transition-colors" title="Undo last session">
+                        <button onClick={() => setConfirmUndoPkgId(pkg.id)} className="p-1.5 text-gray-400 hover:text-amber-500 transition-colors" title="Undo last session">
                           <RotateCcw className="w-4 h-4" />
                         </button>
                       )}
@@ -460,6 +468,26 @@ export default function ClientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ── Confirm Undo Session Modal ── */}
+      <Modal open={!!confirmUndoPkgId} onClose={() => setConfirmUndoPkgId(null)} title="Undo Last Session">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-orange-700">Undo last session deduction</p>
+              <p className="text-sm text-orange-600 mt-0.5">This will restore 1 session to the package.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmUndoPkgId(null)} className="btn-secondary" disabled={undoing}>Cancel</button>
+            <button onClick={doUndoLast} disabled={undoing}
+              className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
+              {undoing ? 'Undoing…' : 'Yes, undo'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -35,6 +35,9 @@ export default function PackagesPage() {
   const [useModal, setUseModal] = useState<any>(null)
   const [useForm, setUseForm] = useState({ used_date: new Date().toISOString().split('T')[0], notes: '' })
   const [saving, setSaving] = useState(false)
+  // Undo confirm
+  const [confirmUndoPkg, setConfirmUndoPkg] = useState<any>(null)
+  const [undoing, setUndoing] = useState(false)
 
   const fetchPackages = useCallback(async () => {
     setLoading(true)
@@ -114,10 +117,16 @@ export default function PackagesPage() {
     }
   }
 
-  async function handleUndo(pkg: any) {
-    if (!confirm(`Undo last session for ${pkg.client.name} / ${pkg.patient?.name || ''}?`)) return
-    await fetch(`/api/packages/${pkg.id}/unuse`, { method: 'POST' })
-    fetchPackages()
+  async function doUndo() {
+    if (!confirmUndoPkg) return
+    setUndoing(true)
+    try {
+      await fetch(`/api/packages/${confirmUndoPkg.id}/unuse`, { method: 'POST' })
+      setConfirmUndoPkg(null)
+      fetchPackages()
+    } finally {
+      setUndoing(false)
+    }
   }
 
   // Stats
@@ -289,7 +298,7 @@ export default function PackagesPage() {
                         </button>
                         {pkg.status === 'active' && pkg.sessions_used > 0 && (
                           <button
-                            onClick={() => handleUndo(pkg)}
+                            onClick={() => setConfirmUndoPkg(pkg)}
                             className="text-xs text-gray-400 hover:text-orange-500 flex items-center gap-1 transition-colors"
                             title="Undo last session"
                           >
@@ -428,6 +437,35 @@ export default function PackagesPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── Confirm Undo Modal ── */}
+      <Modal open={!!confirmUndoPkg} onClose={() => setConfirmUndoPkg(null)} title="Undo Last Session">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-orange-700">Undo last session use</p>
+              <p className="text-sm text-orange-600 mt-0.5">
+                This will restore 1 session for{' '}
+                <strong>{confirmUndoPkg?.client?.name}</strong>
+                {confirmUndoPkg?.patient?.name ? ` / ${confirmUndoPkg.patient.name}` : ''}.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setConfirmUndoPkg(null)} className="btn-secondary" disabled={undoing}>
+              Cancel
+            </button>
+            <button
+              onClick={doUndo}
+              disabled={undoing}
+              className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+            >
+              {undoing ? 'Undoing…' : 'Yes, undo'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
