@@ -332,12 +332,11 @@ export default function CalendarPage() {
       <button
         key={a.id}
         onClick={(e) => { e.preventDefault(); openEditModal(a) }}
-        className={`block w-full text-left text-xs text-white px-1.5 py-1 rounded hover:opacity-90 transition-opacity ${treatmentColors[a.modality] || 'bg-gray-400'}`}
+        className={`block w-full text-left text-[11px] leading-tight text-white px-1 py-0.5 rounded hover:opacity-90 transition-opacity ${treatmentColors[a.modality] || 'bg-gray-400'}`}
         title={`${time} • ${service}\n${clientName} - ${petName}\n${phone}`}
       >
-        <div className="font-medium">{time} {service}</div>
+        <div className="font-semibold truncate">{time} {service}</div>
         <div className="opacity-90 truncate">{clientName} • {petName}</div>
-        <div className="opacity-75 text-[10px]">{phone}</div>
       </button>
     )
   }
@@ -378,14 +377,14 @@ export default function CalendarPage() {
                 {dayAppts.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
               </div>
               {/* Desktop: full appointment cards */}
-              <div className="hidden sm:block space-y-1">
-                {dayAppts.slice(0, 3).map(a => renderAppointment(a))}
-                {dayAppts.length > 3 && (
+              <div className="hidden sm:block space-y-0.5">
+                {dayAppts.slice(0, 2).map(a => renderAppointment(a))}
+                {dayAppts.length > 2 && (
                   <button
                     onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
-                    className="text-xs text-brand-pink hover:underline px-1 font-medium"
+                    className="text-[11px] text-brand-pink hover:underline px-1 font-medium"
                   >
-                    +{dayAppts.length - 3} more
+                    +{dayAppts.length - 2} more
                   </button>
                 )}
               </div>
