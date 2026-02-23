@@ -111,7 +111,6 @@ export default function StaffPage() {
       active: !!s.active,
       schedule: sched,
     })
-    setActiveEditTab('profile')
     setShowEdit(s)
   }
 
