@@ -504,7 +504,7 @@ export default function CalendarPage() {
           <div className="border-r border-gray-100">
             {hours.map(h => (
               <div key={h} style={{ height: CELL_H }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
-                <span className="text-[10px] sm:text-xs text-gray-400">{String(h).padStart(2,'0')}:00</span>
+                <span className="text-[10px] sm:text-xs text-gray-400">{h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}</span>
               </div>
             ))}
           </div>
@@ -671,7 +671,7 @@ export default function CalendarPage() {
           <div className="border-r border-gray-100">
             {hours.map(hour => (
               <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100 flex items-start justify-end pr-2 pt-1">
-                <span className="text-[10px] sm:text-xs text-gray-400">{String(hour).padStart(2,'0')}:00</span>
+                <span className="text-[10px] sm:text-xs text-gray-400">{hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}</span>
               </div>
             ))}
           </div>
