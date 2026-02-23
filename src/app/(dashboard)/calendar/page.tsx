@@ -380,6 +380,14 @@ export default function CalendarPage() {
               {/* Desktop: scrollable on hover, shows all appointments */}
               <div className="hidden sm:block flex-1 space-y-0.5 overflow-y-hidden group-hover:overflow-y-auto min-h-0">
                 {dayAppts.map(a => renderAppointment(a))}
+                {dayAppts.length > 2 && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
+                    className="text-[11px] text-brand-pink hover:underline px-1 font-medium sticky bottom-0 bg-white/90 w-full text-left"
+                  >
+                    +{dayAppts.length - 2} more
+                  </button>
+                )}
               </div>
               {/* Mobile: tap to expand */}
               {dayAppts.length > 0 && (
