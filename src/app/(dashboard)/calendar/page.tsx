@@ -368,7 +368,8 @@ export default function CalendarPage() {
 
           return (
             <div key={dateStr}
-              className={`group bg-white min-h-[60px] sm:h-[115px] p-1 sm:p-1.5 flex flex-col ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
+              className={`group bg-white min-h-[60px] sm:h-[210px] p-1 sm:p-1.5 flex flex-col ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
+              {/* Date number */}
               <div className={`text-xs sm:text-sm font-medium mb-0.5 flex-shrink-0 ${isToday ? 'bg-brand-pink text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] sm:text-xs' : 'text-gray-700'}`}>{day}</div>
               {/* Mobile: dots only */}
               <div className="flex flex-wrap gap-0.5 sm:hidden">
@@ -377,18 +378,19 @@ export default function CalendarPage() {
                 ))}
                 {dayAppts.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
               </div>
-              {/* Desktop: scrollable on hover, shows all appointments */}
-              <div className="hidden sm:block flex-1 space-y-0.5 overflow-y-hidden group-hover:overflow-y-auto min-h-0">
+              {/* Desktop: first 4 visible, hover to scroll rest */}
+              <div className="hidden sm:block flex-1 min-h-0 overflow-y-hidden group-hover:overflow-y-auto space-y-0.5">
                 {dayAppts.map(a => renderAppointment(a))}
-                {dayAppts.length > 2 && (
-                  <button
-                    onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
-                    className="text-[11px] text-brand-pink hover:underline px-1 font-medium sticky bottom-0 bg-white/90 w-full text-left"
-                  >
-                    +{dayAppts.length - 2} more
-                  </button>
-                )}
               </div>
+              {/* "+X more" indicator — always visible when > 4 */}
+              {dayAppts.length > 4 && (
+                <button
+                  onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
+                  className="hidden sm:block text-[11px] text-brand-pink hover:underline px-1 font-medium flex-shrink-0 text-left mt-0.5"
+                >
+                  +{dayAppts.length - 4} more
+                </button>
+              )}
               {/* Mobile: tap to expand */}
               {dayAppts.length > 0 && (
                 <button
