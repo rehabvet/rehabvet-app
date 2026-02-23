@@ -475,7 +475,7 @@ export default function ClientDetailPage() {
           <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
             <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-orange-700">Undo last session deduction</p>
+              <p className="text-sm font-semibold text-orange-700">Are you sure you want to undo the last session?</p>
               <p className="text-sm text-orange-600 mt-0.5">This will restore 1 session to the package.</p>
             </div>
           </div>
@@ -483,7 +483,7 @@ export default function ClientDetailPage() {
             <button onClick={() => setConfirmUndoPkgId(null)} className="btn-secondary" disabled={undoing}>Cancel</button>
             <button onClick={doUndoLast} disabled={undoing}
               className="px-4 py-2 text-sm font-medium bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
-              {undoing ? 'Undoing…' : 'Yes, undo'}
+              {undoing ? 'Undoing…' : 'Undo'}
             </button>
           </div>
         </div>

@@ -625,22 +625,22 @@ export default function AppointmentsPage() {
           <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
             <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-red-700">This cannot be undone</p>
+              <p className="text-sm font-semibold text-red-700">Are you sure you want to delete this appointment?</p>
               <p className="text-sm text-red-600 mt-0.5">
-                The appointment will be permanently deleted from the system.
+                This action cannot be undone.
               </p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setConfirmDeleteId(null)} className="btn-secondary" disabled={deleting}>
-              Keep it
+              Cancel
             </button>
             <button
               onClick={deleteAppt}
               disabled={deleting}
               className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
             >
-              {deleting ? 'Deleting…' : 'Yes, delete'}
+              {deleting ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         </div>
