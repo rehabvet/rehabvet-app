@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle, CalendarDays } from 'lucide-react'
 import { useRef } from 'react'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
@@ -28,7 +28,9 @@ export default function CalendarPage() {
   const [deleting,        setDeleting]        = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
+  const [showDateJumper, setShowDateJumper] = useState(false)
   const dayScrollRef = useRef<HTMLDivElement>(null)
+  const dateJumperRef = useRef<HTMLDivElement>(null)
   // New appointment via double-click
   const [newApptForm, setNewApptForm] = useState<any>(null)
   const [newApptSaving, setNewApptSaving] = useState(false)
@@ -39,6 +41,9 @@ export default function CalendarPage() {
   const [clientPatients, setClientPatients] = useState<any[]>([])
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
+  // Drag-and-drop state
+  const [dragging, setDragging] = useState<{ apptId: string; durationMins: number; offsetMins: number } | null>(null)
+  const [dragOver, setDragOver] = useState<{ providerId: string; snapMins: number } | null>(null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -73,6 +78,18 @@ export default function CalendarPage() {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Close date jumper on outside click
+  useEffect(() => {
+    if (!showDateJumper) return
+    function handleClick(e: MouseEvent) {
+      if (dateJumperRef.current && !dateJumperRef.current.contains(e.target as Node)) {
+        setShowDateJumper(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showDateJumper])
 
   // Auto-scroll day view to current time on mount / view change
   useEffect(() => {
@@ -266,6 +283,41 @@ export default function CalendarPage() {
       setAppointments(fresh)
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function saveDraggedAppt(
+    apptId: string,
+    startMins: number,
+    durationMins: number,
+    newTherapistId: string | null,
+    providers: { id: string; name: string; role: string; photo_url?: string }[]
+  ) {
+    const endMins = startMins + durationMins
+    const startTime = `${String(Math.floor(startMins / 60)).padStart(2, '0')}:${String(startMins % 60).padStart(2, '0')}`
+    const endTime   = `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`
+    const provider  = providers.find(p => p.id === newTherapistId)
+
+    // Optimistic update
+    setAppointments(prev => prev.map(a => a.id === apptId ? {
+      ...a,
+      start_time: startTime,
+      end_time: endTime,
+      therapist_id: newTherapistId,
+      therapist_name: provider?.name ?? null,
+      therapist_role: provider?.role ?? null,
+      therapist_photo: provider?.photo_url ?? null,
+    } : a))
+    apptCache.current.delete(`${year}-${month}`)
+
+    try {
+      await fetch(`/api/appointments/${apptId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_time: startTime, end_time: endTime, therapist_id: newTherapistId })
+      })
+    } catch (err) {
+      console.error('Drag save failed', err)
     }
   }
 
@@ -628,10 +680,18 @@ export default function CalendarPage() {
               p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id
             )
             return (
+              {(() => {
+                const isDropTarget = dragOver?.providerId === p.id
+                const ghostTop    = (isDropTarget && dragOver)
+                  ? ((dragOver.snapMins - gridStartMins) / 60) * CELL_HEIGHT
+                  : null
+                const ghostHeight = dragging ? Math.max((dragging.durationMins / 60) * CELL_HEIGHT - 2, 24) : 0
+                return (
               <div
                 key={p.id}
-                className="border-r border-gray-100 last:border-r-0 relative overflow-hidden cursor-pointer"
+                className={`border-r border-gray-100 last:border-r-0 relative overflow-hidden cursor-pointer ${isDropTarget ? 'bg-brand-pink/5' : ''}`}
                 onDoubleClick={e => {
+                  if (dragging) return
                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
                   const yPx = e.clientY - rect.top
                   const totalMins = gridStartMins + (yPx / CELL_HEIGHT) * 60
@@ -639,23 +699,70 @@ export default function CalendarPage() {
                   const mm = Math.floor(totalMins % 60)
                   openNewApptModal(dateStr, `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`, p.id === '__unassigned__' ? '' : p.id)
                 }}
+                onDragOver={e => {
+                  if (!dragging) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  const yPx = e.clientY - rect.top
+                  const rawMins = gridStartMins + (yPx / CELL_HEIGHT) * 60 - dragging.offsetMins
+                  const snapMins = Math.round(rawMins / 15) * 15
+                  const clampedMins = Math.max(gridStartMins, Math.min(snapMins, gridStartMins + hours.length * 60 - dragging.durationMins))
+                  setDragOver({ providerId: p.id, snapMins: clampedMins })
+                }}
+                onDragLeave={e => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null)
+                }}
+                onDrop={async e => {
+                  e.preventDefault()
+                  if (!dragging || !dragOver) return
+                  const newTherapistId = p.id === '__unassigned__' ? null : p.id
+                  await saveDraggedAppt(dragging.apptId, dragOver.snapMins, dragging.durationMins, newTherapistId, providers)
+                  setDragging(null)
+                  setDragOver(null)
+                }}
               >
                 {/* Hour grid lines */}
                 {hours.map(hour => (
                   <div key={hour} style={{ height: CELL_HEIGHT }} className="border-b border-gray-100" />
                 ))}
+                {/* Drag ghost preview */}
+                {isDropTarget && ghostTop !== null && (
+                  <div
+                    className="absolute left-0.5 right-0.5 rounded-lg border-2 border-brand-pink bg-brand-pink/20 pointer-events-none z-20"
+                    style={{ top: `${ghostTop}px`, height: `${ghostHeight}px` }}
+                  />
+                )}
                 {/* Appointments — absolutely positioned within this column */}
                 {colAppts.map((a: any) => {
+
                   const startMins = timeToMinutes(a.start_time || '08:00')
                   const endMins   = timeToMinutes(a.end_time   || a.start_time || '08:00')
                   const top    = ((startMins - gridStartMins) / 60) * CELL_HEIGHT
                   const height = Math.max((endMins - startMins) / 60, 0.5) * CELL_HEIGHT - 2
                   const color  = treatmentColors[a.modality] || 'bg-gray-400'
+                  const isDraggingThis = dragging?.apptId === a.id
                   return (
                     <button
                       key={a.id}
-                      onClick={() => openEditModal(a)}
-                      style={{ top: `${top}px`, height: `${height}px`, left: 3, right: 3, position: 'absolute' }}
+                      draggable
+                      onDragStart={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        const offsetY = e.clientY - rect.top
+                        const offsetMins = Math.max(0, (offsetY / CELL_HEIGHT) * 60)
+                        const dur = Math.max(15, endMins - startMins)
+                        setDragging({ apptId: a.id, durationMins: dur, offsetMins })
+                        e.dataTransfer.effectAllowed = 'move'
+                        // Transparent drag image so we can draw our own ghost
+                        const ghost = document.createElement('div')
+                        ghost.style.cssText = 'position:fixed;top:-9999px;left:-9999px'
+                        document.body.appendChild(ghost)
+                        e.dataTransfer.setDragImage(ghost, 0, 0)
+                        setTimeout(() => document.body.removeChild(ghost), 0)
+                      }}
+                      onDragEnd={() => { setDragging(null); setDragOver(null) }}
+                      onClick={() => { if (!dragging) openEditModal(a) }}
+                      style={{ top: `${top}px`, height: `${height}px`, left: 3, right: 3, position: 'absolute', opacity: isDraggingThis ? 0.3 : 1, cursor: 'grab' }}
                       className={`text-left text-white px-1.5 py-1 rounded-lg hover:opacity-90 hover:shadow-md transition-all text-xs overflow-hidden ${color}`}
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
@@ -688,10 +795,50 @@ export default function CalendarPage() {
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
-          <h1 className="text-sm sm:text-xl font-bold text-gray-900 truncate">
-            <span className="sm:hidden">{getTitle(true)}</span>
-            <span className="hidden sm:inline">{getTitle()}</span>
-          </h1>
+          {/* Clickable title → date jumper */}
+          <div className="relative" ref={dateJumperRef}>
+            <button
+              onClick={() => setShowDateJumper(v => !v)}
+              className="flex items-center gap-1.5 group"
+              title="Jump to date"
+            >
+              <h1 className="text-sm sm:text-xl font-bold text-gray-900 truncate group-hover:text-brand-pink transition-colors">
+                <span className="sm:hidden">{getTitle(true)}</span>
+                <span className="hidden sm:inline">{getTitle()}</span>
+              </h1>
+              <CalendarDays className="w-4 h-4 text-gray-400 group-hover:text-brand-pink transition-colors flex-shrink-0" />
+            </button>
+
+            {showDateJumper && (
+              <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-3 min-w-[220px]">
+                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Jump to date</p>
+                <input
+                  type="date"
+                  className="input text-sm w-full"
+                  defaultValue={toSGTDateStr(currentDate)}
+                  onChange={e => {
+                    if (!e.target.value) return
+                    const [y, m, d] = e.target.value.split('-').map(Number)
+                    setCurrentDate(new Date(y, m - 1, d))
+                    setShowDateJumper(false)
+                  }}
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[
+                    { label: 'Today', date: new Date() },
+                    { label: 'Tomorrow', date: new Date(Date.now() + 86400000) },
+                    { label: 'Next Mon', date: (() => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d })() },
+                  ].map(({ label, date }) => (
+                    <button key={label} onClick={() => { setCurrentDate(date); setShowDateJumper(false) }}
+                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-brand-pink hover:text-white rounded-lg transition-colors font-medium">
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: View switcher */}
