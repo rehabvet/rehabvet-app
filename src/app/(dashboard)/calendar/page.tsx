@@ -368,8 +368,8 @@ export default function CalendarPage() {
 
           return (
             <div key={dateStr}
-              className={`bg-white min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
-              <div className={`text-xs sm:text-sm font-medium mb-1 ${isToday ? 'bg-brand-pink text-white w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-sm' : 'text-gray-700'}`}>{day}</div>
+              className={`group bg-white min-h-[60px] sm:h-[115px] p-1 sm:p-1.5 flex flex-col ${isToday ? 'ring-2 ring-inset ring-brand-pink bg-pink-50/30' : ''}`}>
+              <div className={`text-xs sm:text-sm font-medium mb-0.5 flex-shrink-0 ${isToday ? 'bg-brand-pink text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] sm:text-xs' : 'text-gray-700'}`}>{day}</div>
               {/* Mobile: dots only */}
               <div className="flex flex-wrap gap-0.5 sm:hidden">
                 {dayAppts.slice(0, 3).map(a => (
@@ -377,19 +377,11 @@ export default function CalendarPage() {
                 ))}
                 {dayAppts.length > 3 && <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />}
               </div>
-              {/* Desktop: full appointment cards */}
-              <div className="hidden sm:block space-y-0.5">
-                {dayAppts.slice(0, 2).map(a => renderAppointment(a))}
-                {dayAppts.length > 2 && (
-                  <button
-                    onClick={e => { e.stopPropagation(); setExpandedDay(dateStr) }}
-                    className="text-[11px] text-brand-pink hover:underline px-1 font-medium"
-                  >
-                    +{dayAppts.length - 2} more
-                  </button>
-                )}
+              {/* Desktop: scrollable on hover, shows all appointments */}
+              <div className="hidden sm:block flex-1 space-y-0.5 overflow-y-hidden group-hover:overflow-y-auto min-h-0">
+                {dayAppts.map(a => renderAppointment(a))}
               </div>
-              {/* Mobile: tap dot area to expand */}
+              {/* Mobile: tap to expand */}
               {dayAppts.length > 0 && (
                 <button
                   className="sm:hidden absolute inset-0 w-full h-full opacity-0"
