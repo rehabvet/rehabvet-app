@@ -337,6 +337,7 @@ export default function CalendarPage() {
       >
         <div className="font-semibold truncate">{time} {service}</div>
         <div className="opacity-90 truncate">{clientName} • {petName}</div>
+        {a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
       </button>
     )
   }
@@ -544,6 +545,7 @@ export default function CalendarPage() {
                     >
                       <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs">{a.start_time?.slice(0,5)} {a.modality}</div>
                       <div className="opacity-90 truncate text-[10px]">{a.patient_name}</div>
+                      {height > 38 && a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
                     </button>
                   )
                 })}
