@@ -679,14 +679,12 @@ export default function CalendarPage() {
             const colAppts = dayAppts.filter((a: any) =>
               p.id === '__unassigned__' ? !a.therapist_id : a.therapist_id === p.id
             )
+            const isDropTarget = dragOver?.providerId === p.id
+            const ghostTop    = (isDropTarget && dragOver)
+              ? ((dragOver.snapMins - gridStartMins) / 60) * CELL_HEIGHT
+              : null
+            const ghostHeight = dragging ? Math.max((dragging.durationMins / 60) * CELL_HEIGHT - 2, 24) : 0
             return (
-              {(() => {
-                const isDropTarget = dragOver?.providerId === p.id
-                const ghostTop    = (isDropTarget && dragOver)
-                  ? ((dragOver.snapMins - gridStartMins) / 60) * CELL_HEIGHT
-                  : null
-                const ghostHeight = dragging ? Math.max((dragging.durationMins / 60) * CELL_HEIGHT - 2, 24) : 0
-                return (
               <div
                 key={p.id}
                 className={`border-r border-gray-100 last:border-r-0 relative overflow-hidden cursor-pointer ${isDropTarget ? 'bg-brand-pink/5' : ''}`}
