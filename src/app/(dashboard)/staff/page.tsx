@@ -5,6 +5,37 @@ import { Plus, Trash2, KeyRound, Pencil } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 
+// ── Schedule types ────────────────────────────────────────────────────────────
+type Break = { start: string; end: string }
+type DaySchedule = { on: boolean; start: string; end: string; breaks: Break[] }
+type WeekSchedule = Record<'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday', DaySchedule>
+
+const DAYS: (keyof WeekSchedule)[] = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
+const DAY_LABELS: Record<keyof WeekSchedule, string> = {
+  monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday',
+  friday:'Friday', saturday:'Saturday', sunday:'Sunday'
+}
+
+const DEFAULT_DAY = (on: boolean): DaySchedule => ({ on, start: '09:00', end: '18:00', breaks: [] })
+const DEFAULT_SCHEDULE: WeekSchedule = {
+  monday: DEFAULT_DAY(true), tuesday: DEFAULT_DAY(true), wednesday: DEFAULT_DAY(true),
+  thursday: DEFAULT_DAY(true), friday: DEFAULT_DAY(true),
+  saturday: DEFAULT_DAY(false), sunday: DEFAULT_DAY(false),
+}
+
+// Generate time slots from 06:00 to 23:00 in 30-min steps
+const TIME_SLOTS: string[] = []
+for (let h = 6; h <= 23; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2,'0')}:00`)
+  if (h < 23) TIME_SLOTS.push(`${String(h).padStart(2,'0')}:30`)
+}
+function fmtTime(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h < 12 ? 'AM' : 'PM'
+  const hh = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${hh}:${String(m).padStart(2,'0')} ${ampm}`
+}
+
 const ROLES = [
   { value: 'veterinarian', label: 'Veterinarian' },
   { value: 'senior_therapist', label: 'Senior Therapist' },
@@ -32,7 +63,8 @@ export default function StaffPage() {
   const [resetPassword, setResetPassword] = useState('')
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
-  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true })
+  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true, schedule: DEFAULT_SCHEDULE as WeekSchedule })
+  const [activeEditTab, setActiveEditTab] = useState<'profile'|'schedule'>('profile')
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -65,6 +97,8 @@ export default function StaffPage() {
 
   function openEditModal(s: any) {
     const specs = s.specializations ? JSON.parse(s.specializations) : []
+    let sched: WeekSchedule = DEFAULT_SCHEDULE
+    try { if (s.schedule) sched = { ...DEFAULT_SCHEDULE, ...JSON.parse(s.schedule) } } catch {}
     setEditForm({
       id: s.id,
       name: s.name || '',
@@ -74,8 +108,27 @@ export default function StaffPage() {
       photo_url: s.photo_url || '',
       specializations: Array.isArray(specs) ? specs : [],
       active: !!s.active,
+      schedule: sched,
     })
+    setActiveEditTab('profile')
     setShowEdit(s)
+  }
+
+  // ── Schedule helpers ──────────────────────────────────────────────────────
+  function setDay(day: keyof WeekSchedule, patch: Partial<DaySchedule>) {
+    setEditForm(f => ({ ...f, schedule: { ...f.schedule, [day]: { ...f.schedule[day], ...patch } } }))
+  }
+  function addBreak(day: keyof WeekSchedule) {
+    const d = editForm.schedule[day]
+    setDay(day, { breaks: [...d.breaks, { start: '12:00', end: '13:00' }] })
+  }
+  function removeBreak(day: keyof WeekSchedule, i: number) {
+    const d = editForm.schedule[day]
+    setDay(day, { breaks: d.breaks.filter((_, idx) => idx !== i) })
+  }
+  function setBreak(day: keyof WeekSchedule, i: number, patch: Partial<Break>) {
+    const d = editForm.schedule[day]
+    setDay(day, { breaks: d.breaks.map((b, idx) => idx === i ? { ...b, ...patch } : b) })
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -83,7 +136,7 @@ export default function StaffPage() {
     const res = await fetch('/api/staff', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify({ ...editForm, schedule: editForm.schedule }),
     })
     if (res.ok) {
       setShowEdit(null)
@@ -355,85 +408,148 @@ export default function StaffPage() {
       </Modal>
 
       {/* Edit Staff Modal */}
-      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Staff Profile">
+      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Staff">
         {showEdit && (
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div className="flex flex-col items-center gap-2">
-              {editForm.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={editForm.photo_url} alt={editForm.name || 'Staff photo'} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-lg">
-                  {(editForm.name || '?').split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+          <form onSubmit={handleEdit}>
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 mb-4 -mt-1">
+              {(['profile','schedule'] as const).map(tab => (
+                <button key={tab} type="button"
+                  onClick={() => setActiveEditTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                    activeEditTab === tab
+                      ? 'border-brand-pink text-brand-pink'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >{tab}</button>
+              ))}
+            </div>
+
+            {/* ── Profile Tab ── */}
+            {activeEditTab === 'profile' && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center gap-2">
+                  {editForm.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={editForm.photo_url} alt={editForm.name || 'Staff photo'} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-lg">
+                      {(editForm.name || '?').split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                    </div>
+                  )}
+                  <button type="button" onClick={triggerEditPhotoUpload} className="text-sm text-brand-pink hover:underline">Edit photo</button>
+                  <input ref={editPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={e => onEditPhotoSelected(e.target.files?.[0])} />
+                  {editForm.photo_url && (
+                    <button type="button" onClick={() => setEditForm({ ...editForm, photo_url: '' })} className="text-xs text-gray-500 hover:text-red-600">Remove photo</button>
+                  )}
                 </div>
-              )}
-              <button type="button" onClick={triggerEditPhotoUpload} className="text-sm text-brand-pink hover:underline">
-                Edit photo
-              </button>
-              <input
-                ref={editPhotoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => onEditPhotoSelected(e.target.files?.[0])}
-              />
-              {editForm.photo_url && (
-                <button
-                  type="button"
-                  onClick={() => setEditForm({ ...editForm, photo_url: '' })}
-                  className="text-xs text-gray-500 hover:text-red-600"
-                >
-                  Remove photo
-                </button>
-              )}
-            </div>
-            <div>
-              <label className="label">Full Name *</label>
-              <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Email *</label>
-                <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required />
+                <div>
+                  <label className="label">Full Name *</label>
+                  <input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Email *</label>
+                    <input type="email" className="input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="label">Phone</label>
+                    <PhoneInput value={editForm.phone} onChange={v => setEditForm({ ...editForm, phone: v })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Role *</label>
+                    <select className="input" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" checked={editForm.active} onChange={e => setEditForm({ ...editForm, active: e.target.checked })} />
+                      Active account
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Specializations</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {SPEC_OPTIONS.map(sp => (
+                      <button key={sp} type="button" onClick={() => toggleEditSpec(sp)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                          editForm.specializations.includes(sp) ? 'bg-brand-pink text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}>{sp}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="label">Phone</label>
-                <PhoneInput value={editForm.phone} onChange={v => setEditForm({ ...editForm, phone: v })} />
+            )}
+
+            {/* ── Schedule Tab ── */}
+            {activeEditTab === 'schedule' && (
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400 mb-3">Set working hours for each day. Toggle OFF for days the staff member doesn&apos;t work.</p>
+                {DAYS.map(day => {
+                  const d = editForm.schedule[day]
+                  return (
+                    <div key={day} className={`rounded-xl border p-3 transition-colors ${d.on ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'}`}>
+                      {/* Day row */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {/* ON/OFF toggle */}
+                        <button type="button" onClick={() => setDay(day, { on: !d.on })}
+                          className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors ${d.on ? 'bg-brand-pink' : 'bg-gray-200'}`}>
+                          <span className={`inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transition-transform ${d.on ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                        <span className={`w-24 text-sm font-semibold ${d.on ? 'text-gray-800' : 'text-gray-400'}`}>{DAY_LABELS[day]}</span>
+
+                        {d.on ? (
+                          <>
+                            {/* Start time */}
+                            <select value={d.start} onChange={e => setDay(day, { start: e.target.value })}
+                              className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                              {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
+                            </select>
+                            <span className="text-gray-400 text-sm">to</span>
+                            {/* End time */}
+                            <select value={d.end} onChange={e => setDay(day, { end: e.target.value })}
+                              className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                              {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
+                            </select>
+                            {/* Add break */}
+                            <button type="button" onClick={() => addBreak(day)}
+                              className="ml-auto text-xs text-brand-pink hover:underline font-medium">
+                              + Add break
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Day off</span>
+                        )}
+                      </div>
+
+                      {/* Break rows */}
+                      {d.on && d.breaks.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2 mt-2 ml-12 flex-wrap">
+                          <span className="text-xs text-gray-400 w-12">Break</span>
+                          <select value={b.start} onChange={e => setBreak(day, i, { start: e.target.value })}
+                            className="text-sm border border-gray-100 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                            {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
+                          </select>
+                          <span className="text-gray-400 text-xs">–</span>
+                          <select value={b.end} onChange={e => setBreak(day, i, { end: e.target.value })}
+                            className="text-sm border border-gray-100 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
+                            {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
+                          </select>
+                          <button type="button" onClick={() => removeBreak(day, i)}
+                            className="text-xs text-red-400 hover:text-red-600 ml-1">Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Role *</label>
-                <select className="input" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
-                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-              <div className="flex items-end">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                  <input type="checkbox" checked={editForm.active} onChange={e => setEditForm({ ...editForm, active: e.target.checked })} />
-                  Active account
-                </label>
-              </div>
-            </div>
-            <div>
-              <label className="label">Specializations</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {SPEC_OPTIONS.map(sp => (
-                  <button
-                    key={sp} type="button"
-                    onClick={() => toggleEditSpec(sp)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                      editForm.specializations.includes(sp)
-                        ? 'bg-brand-pink text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {sp}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-100">
               <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancel</button>
               <button type="submit" className="btn-primary">Save Changes</button>
             </div>

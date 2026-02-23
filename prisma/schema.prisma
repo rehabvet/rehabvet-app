@@ -82,6 +82,7 @@ model users {
   phone            String?
   photo_url        String?
   specializations  String?   // JSON string
+  schedule         String?   // JSON string: WeekSchedule
   active                Boolean   @default(true)
   failed_login_attempts Int       @default(0)
   locked_until          DateTime?

@@ -95,7 +95,7 @@ export async function PUT(req: NextRequest) {
   if (!user || !isAdminRole(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   const body = await req.json()
-  const { id, name, email, phone, role, specializations, photo_url, active } = body || {}
+  const { id, name, email, phone, role, specializations, photo_url, active, schedule } = body || {}
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
   if (!name || !email || !role) return NextResponse.json({ error: 'Name, email, and role required' }, { status: 400 })
 
@@ -112,6 +112,7 @@ export async function PUT(req: NextRequest) {
       photo_url: photo_url || null,
       specializations: specializations ? JSON.stringify(specializations) : '[]',
       active: typeof active === 'boolean' ? active : true,
+      schedule: schedule ? JSON.stringify(schedule) : undefined,
     },
     select: {
       id: true,
@@ -121,6 +122,7 @@ export async function PUT(req: NextRequest) {
       phone: true,
       photo_url: true,
       specializations: true,
+      schedule: true,
       active: true,
       created_at: true,
     },
