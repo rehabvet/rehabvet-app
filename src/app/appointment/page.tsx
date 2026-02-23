@@ -23,6 +23,16 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   )
 }
 
+function Row({ label, value }: { label: string; value: string }) {
+  if (!value || value === '—') return <div className="flex justify-between text-xs"><span className="text-gray-400">{label}</span><span className="text-gray-300">—</span></div>
+  return (
+    <div className="flex justify-between items-start gap-3 text-xs">
+      <span className="text-gray-400 flex-shrink-0">{label}</span>
+      <span className="text-gray-800 font-medium text-right">{value}</span>
+    </div>
+  )
+}
+
 function RadioGroup({ label, name, options, value, onChange, required }: {
   label: string; name: string; options: { value: string | boolean; label: string }[];
   value: any; onChange: (v: any) => void; required?: boolean
@@ -140,7 +150,7 @@ export default function AppointmentPage() {
     finally { setLoading(false) }
   }
 
-  const progress = ((step - 1) / 2) * 100
+  const progress = ((step - 1) / 3) * 100
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -252,7 +262,8 @@ export default function AppointmentPage() {
                   <div className="flex justify-between text-xs text-gray-400 mb-1.5">
                     <span className={step >= 1 ? 'text-[#EC6496] font-semibold' : ''}>Your info</span>
                     <span className={step >= 2 ? 'text-[#EC6496] font-semibold' : ''}>Pet info</span>
-                    <span className={step >= 3 ? 'text-[#EC6496] font-semibold' : ''}>Health & Vet</span>
+                    <span className={step >= 3 ? 'text-[#EC6496] font-semibold' : ''}>Health</span>
+                    <span className={step >= 4 ? 'text-[#EC6496] font-semibold' : ''}>Review</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-[#EC6496] rounded-full transition-all duration-500" style={{ width: `${progress + 34}%` }} />
@@ -388,14 +399,70 @@ export default function AppointmentPage() {
                   </div>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">How did you hear about us? <span className="text-[#EC6496]">*</span></label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{HOW_HEARD.map(h => <Chip key={h} active={form.how_heard === h} onClick={() => s('how_heard', h)}>{h}</Chip>)}</div></div>
-                  {error && <p className="text-red-500 text-xs text-center">{error}</p>}
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(2)} className="flex-none w-10 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
                       <ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={submit} disabled={!ok3 || loading}
-                      className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: ok3 && !loading ? '#19BC00' : '#7dd67a' }}>
-                      {loading ? 'Submitting…' : '🐾 Request Appointment'}</button>
+                    <button onClick={() => setStep(4)} disabled={!ok3}
+                      className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={{ background: ok3 ? '#EC6496' : '#f0a0bc' }}>
+                      Review & Confirm <ChevronRight className="w-4 h-4" /></button>
+                  </div>
+                </>}
+
+                {step === 4 && <>
+                  <div className="space-y-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Please review before submitting</p>
+
+                    {/* Owner */}
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Your Info</span>
+                        <button onClick={() => setStep(1)} className="text-xs font-semibold text-[#EC6496] hover:underline">Edit</button>
+                      </div>
+                      <Row label="Name" value={`${form.first_name} ${form.last_name}`.trim()} />
+                      <Row label="Email" value={form.owner_email} />
+                      <Row label="Phone" value={form.owner_phone} />
+                      {form.address && <Row label="Address" value={form.address} />}
+                    </div>
+
+                    {/* Pet */}
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pet Info</span>
+                        <button onClick={() => setStep(2)} className="text-xs font-semibold text-[#EC6496] hover:underline">Edit</button>
+                      </div>
+                      <Row label="Name" value={form.pet_name} />
+                      {form.breed && <Row label="Breed" value={form.breed} />}
+                      {form.age && <Row label="Age" value={form.age} />}
+                      {form.pet_gender && <Row label="Gender" value={form.pet_gender} />}
+                      <Row label="Vet-friendly" value={form.vet_friendly === true ? 'Yes' : form.vet_friendly === false ? 'No' : '—'} />
+                      <Row label="Reactive to pets" value={form.reactive_to_pets === true ? 'Yes' : form.reactive_to_pets === false ? 'No' : '—'} />
+                    </div>
+
+                    {/* Health */}
+                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Health & Vet</span>
+                        <button onClick={() => setStep(3)} className="text-xs font-semibold text-[#EC6496] hover:underline">Edit</button>
+                      </div>
+                      <Row label="Clinic" value={form.clinic_name} />
+                      <Row label="Vet" value={form.attending_vet} />
+                      <Row label="In pain" value={form.has_pain === true ? 'Yes' : form.has_pain === false ? 'No' : '—'} />
+                      {form.condition && <Row label="Condition" value={form.condition} />}
+                      {form.how_heard && <Row label="How heard" value={form.how_heard} />}
+                    </div>
+
+                    {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => setStep(3)} className="flex-none w-10 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
+                        <ChevronLeft className="w-4 h-4" /></button>
+                      <button onClick={submit} disabled={loading}
+                        className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: loading ? '#7dd67a' : '#19BC00' }}>
+                        {loading ? 'Submitting…' : '🐾 Confirm & Request Appointment'}
+                      </button>
+                    </div>
                   </div>
                 </>}
 
