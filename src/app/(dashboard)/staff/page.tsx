@@ -66,6 +66,7 @@ export default function StaffPage() {
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true, schedule: DEFAULT_SCHEDULE as WeekSchedule })
   const [pageTab, setPageTab] = useState<'profile'|'schedule'>('profile')
   const [showScheduleEdit, setShowScheduleEdit] = useState<any>(null)
+  const [savingSchedule, setSavingSchedule] = useState(false)
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -157,6 +158,29 @@ export default function StaffPage() {
     } else {
       const err = await res.json()
       alert(err.error || 'Failed to update staff')
+    }
+  }
+
+  async function handleSaveSchedule(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingSchedule(true)
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm }),
+      })
+      if (res.ok) {
+        setShowScheduleEdit(null)
+        fetchStaff()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        alert(err.error || 'Failed to save schedule')
+      }
+    } catch {
+      alert('Network error — please try again')
+    } finally {
+      setSavingSchedule(false)
     }
   }
 
@@ -571,7 +595,7 @@ export default function StaffPage() {
       {/* Schedule Edit Modal */}
       <Modal open={!!showScheduleEdit} onClose={() => setShowScheduleEdit(null)} title={`Schedule — ${showScheduleEdit?.name || ''}`}>
         {showScheduleEdit && (
-          <form onSubmit={e => { e.preventDefault(); handleEdit(e).then(() => { setShowScheduleEdit(null) }) }} className="space-y-1">
+          <form onSubmit={handleSaveSchedule} className="space-y-1">
             <p className="text-xs text-gray-400 mb-3">Toggle days on/off, set working hours and breaks.</p>
             {DAYS.map(day => {
               const d = editForm.schedule[day]
@@ -620,7 +644,9 @@ export default function StaffPage() {
             })}
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 mt-2">
               <button type="button" onClick={() => setShowScheduleEdit(null)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Save Schedule</button>
+              <button type="submit" disabled={savingSchedule} className="btn-primary">
+                {savingSchedule ? 'Saving...' : 'Save Schedule'}
+              </button>
             </div>
           </form>
         )}
