@@ -1,9 +1,15 @@
 import { Resend } from 'resend'
 
 // Lazy init — do NOT construct at module level (Next.js runs module code at build time)
+// RESEND_KEY_B64 is base64-encoded to survive Railway env var copy-paste corruption
 let _resend: Resend | null = null
 function getResend(): Resend {
-  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  if (!_resend) {
+    const key = process.env.RESEND_KEY_B64
+      ? Buffer.from(process.env.RESEND_KEY_B64, 'base64').toString('utf8').trim()
+      : process.env.RESEND_API_KEY
+    _resend = new Resend(key)
+  }
   return _resend
 }
 
@@ -456,7 +462,7 @@ async function tgAlert(text: string) {
 
 // ─── Send both emails via Resend ─────────────────────────────────────────────
 export async function sendLeadEmails(data: LeadEmailData) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.RESEND_API_KEY && !process.env.RESEND_KEY_B64) {
     console.warn('[email] RESEND_API_KEY not set — skipping emails')
     await tgAlert(
       `🔴 <b>RehabVet Alert</b>\n\n<b>RESEND_API_KEY missing in Railway</b>\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}`
