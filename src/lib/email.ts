@@ -6,13 +6,23 @@ dns.setDefaultResultOrder('ipv4first')
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
     user: 'hello@rehabvet.com',
     pass: process.env.GMAIL_APP_PASSWORD,
   },
 })
+
+// Verify SMTP at startup so Railway logs show connection status immediately
+setTimeout(async () => {
+  try {
+    await transporter.verify()
+    console.log('[email] ✅ SMTP connection OK (smtp.gmail.com:587 IPv4)')
+  } catch (err) {
+    console.error('[email] ❌ SMTP verify failed:', (err as Error).message)
+  }
+}, 3000)
 
 export interface LeadEmailData {
   // Owner
