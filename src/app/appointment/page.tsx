@@ -67,6 +67,32 @@ function RadioGroup({ label, name, options, value, onChange, required }: {
 
 const inp = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EC6496]/20 focus:border-[#EC6496] transition-colors bg-white'
 
+async function reportError(message: string, stack: string, step: number, form: Record<string, unknown>) {
+  try {
+    await fetch('/api/error-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        stack,
+        url: window.location.href,
+        step,
+        userAgent: navigator.userAgent,
+        // strip sensitive data before sending
+        formData: {
+          has_first_name: !!form.first_name,
+          has_email: !!form.owner_email,
+          has_phone: !!form.owner_phone,
+          has_postal: !!form.post_code,
+          pet_name: form.pet_name,
+          breed: form.breed,
+          step,
+        },
+      }),
+    })
+  } catch { /* never let reporting crash the form */ }
+}
+
 export default function AppointmentPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -129,8 +155,25 @@ export default function AppointmentPage() {
 
     // Auto-rotate reviews
     const t = setInterval(() => setReviewIdx(i => (i + 1) % 5), 5000)
-    return () => clearInterval(t)
-  }, [])
+
+    // Global JS error catcher
+    const handleError = (event: ErrorEvent) => {
+      reportError(event.message, event.error?.stack ?? '', step, form)
+    }
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const msg = event.reason instanceof Error ? event.reason.message : String(event.reason)
+      const stack = event.reason instanceof Error ? event.reason.stack ?? '' : ''
+      reportError(msg, stack, step, form)
+    }
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+
+    return () => {
+      clearInterval(t)
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+    }
+  }, [step, form])
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.owner_email)
   const ok1 = form.first_name && form.last_name && emailValid && form.owner_phone.trim().length > 4 && form.post_code
@@ -144,10 +187,23 @@ export default function AppointmentPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, owner_name: `${form.first_name} ${form.last_name}`.trim() }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = `HTTP ${res.status}: ${body?.error ?? 'Unknown error'}`
+        reportError(msg, '', step, form as unknown as Record<string, unknown>)
+        throw new Error(msg)
+      }
       router.push('/appointment/thank-you')
-    } catch { setError('Something went wrong. Please try again or call us at 6291 6881.') }
-    finally { setLoading(false) }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Submission failed'
+      setError('Something went wrong. Please try again or call us at 6291 6881.')
+      // Only report if not already reported above (i.e. non-HTTP error like network failure)
+      if (!(msg.startsWith('HTTP '))) {
+        reportError(msg, err instanceof Error ? (err.stack ?? '') : '', step, form as unknown as Record<string, unknown>)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const progress = ((step - 1) / 3) * 100

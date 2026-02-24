@@ -9,6 +9,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/logout',
   '/api/leads',             // public booking submission (leads list used internally)
   '/api/appointment',       // public booking form POST (note: singular, not /appointments)
+  '/api/error-report',      // client-side error reporting (unauthenticated)
   '/api/google-reviews',    // public widget
   '/api/health',
   '/_next',
