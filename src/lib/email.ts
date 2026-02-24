@@ -1,6 +1,11 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy init — do NOT construct at module level (Next.js runs module code at build time)
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 export interface LeadEmailData {
   // Owner
@@ -316,7 +321,7 @@ export async function sendLeadEmails(data: LeadEmailData) {
 
   await Promise.allSettled([
     // 1. Customer confirmation
-    resend.emails.send({
+    getResend().emails.send({
       from: fromAddress,
       to: data.owner_email,
       subject: `${firstName}, we've received your request for ${data.pet_name} 🐾`,
@@ -330,7 +335,7 @@ export async function sendLeadEmails(data: LeadEmailData) {
       }),
 
     // 2. Internal notification
-    resend.emails.send({
+    getResend().emails.send({
       from: fromAddress,
       to: 'hello@rehabvet.com',
       subject: `🐾 New lead: ${data.owner_name} — ${data.pet_name}${data.breed ? ` (${data.breed})` : ''}`,
