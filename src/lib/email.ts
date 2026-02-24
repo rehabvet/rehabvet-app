@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -10,7 +11,7 @@ const transporter = nodemailer.createTransport({
     user: 'hello@rehabvet.com',
     pass: process.env.GMAIL_APP_PASSWORD,
   },
-})
+} as SMTPTransport.Options)
 
 export interface LeadEmailData {
   // Owner
