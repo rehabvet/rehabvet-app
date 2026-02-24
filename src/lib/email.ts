@@ -1,39 +1,6 @@
-import nodemailer from 'nodemailer'
-import type SMTPTransport from 'nodemailer/lib/smtp-transport'
-import dnsLib from 'dns'
+import { Resend } from 'resend'
 
-// Railway IPv6 is unreachable — force IPv4 at the socket level via nodemailer's lookup hook
-function ipv4Lookup(
-  hostname: string,
-  _opts: Record<string, unknown>,
-  callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void
-) {
-  dnsLib.resolve4(hostname, (err, addresses) => {
-    if (err) return callback(err, '', 4)
-    callback(null, addresses[0], 4)
-  })
-}
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: 'hello@rehabvet.com',
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-  lookup: ipv4Lookup,
-} as SMTPTransport.Options)
-
-// Verify at startup — appears in Railway logs
-setTimeout(async () => {
-  try {
-    await transporter.verify()
-    console.log('[email] ✅ SMTP OK — smtp.gmail.com:587 over IPv4')
-  } catch (err) {
-    console.error('[email] ❌ SMTP verify failed:', (err as Error).message)
-  }
-}, 3000)
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export interface LeadEmailData {
   // Owner
@@ -138,7 +105,7 @@ function customerHtml(d: LeadEmailData): string {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:${CARD_BG};border:1px solid ${CARD_BORDER};border-radius:14px;padding:22px 24px;">
     <tr><td>
       <p style="margin:0 0 14px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${PINK};">📋 Your Submission Summary</p>
-      
+
       <!-- Owner -->
       <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Owner</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
@@ -321,22 +288,24 @@ function internalHtml(d: LeadEmailData): string {
 </body></html>`
 }
 
-// ─── Send both emails ─────────────────────────────────────────────────────────
+// ─── Alert helper ─────────────────────────────────────────────────────────────
+async function tgAlert(text: string) {
+  try {
+    await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: '246605723', text, parse_mode: 'HTML' }),
+    })
+  } catch { /* never crash */ }
+}
+
+// ─── Send both emails via Resend ─────────────────────────────────────────────
 export async function sendLeadEmails(data: LeadEmailData) {
-  if (!process.env.GMAIL_APP_PASSWORD) {
-    console.warn('[email] GMAIL_APP_PASSWORD not set — skipping emails')
-    // Alert Marcus so this doesn't go unnoticed
-    try {
-      await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: '246605723',
-          text: `🔴 <b>RehabVet Alert</b>\n\n<b>⚠️ Emails NOT sending — GMAIL_APP_PASSWORD missing</b>\n\nA customer submitted the booking form but no email was sent because GMAIL_APP_PASSWORD is not set in Railway.\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}\n\n👉 Fix: Add GMAIL_APP_PASSWORD to Railway env vars.`,
-          parse_mode: 'HTML',
-        }),
-      })
-    } catch { /* never crash */ }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping emails')
+    await tgAlert(
+      `🔴 <b>RehabVet Alert</b>\n\n<b>⚠️ Emails NOT sending — RESEND_API_KEY missing in Railway</b>\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}`
+    )
     return
   }
 
@@ -344,34 +313,26 @@ export async function sendLeadEmails(data: LeadEmailData) {
 
   await Promise.allSettled([
     // 1. Customer confirmation
-    transporter.sendMail({
-      from: '"RehabVet" <hello@rehabvet.com>',
+    resend.emails.send({
+      from: 'RehabVet <hello@rehabvet.com>',
       to: data.owner_email,
       subject: `${firstName}, we've received your request for ${data.pet_name} 🐾`,
       html: customerHtml(data),
-    }).then(r => console.log('[email] Customer email sent:', r.messageId))
+    }).then(r => console.log('[email] Customer email sent:', r.data?.id))
       .catch(async (e) => {
         console.error('[email] Customer email failed:', e)
-        try {
-          await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: '246605723',
-              text: `🔴 <b>RehabVet Alert</b>\n\n<b>Customer confirmation email FAILED</b>\n\n<b>To:</b> ${data.owner_email}\n<b>Customer:</b> ${data.owner_name}\n<b>Pet:</b> ${data.pet_name}\n\n<b>Error:</b> <code>${String(e?.message ?? e).slice(0, 300)}</code>`,
-              parse_mode: 'HTML',
-            }),
-          })
-        } catch { /* never crash */ }
+        await tgAlert(
+          `🔴 <b>RehabVet Alert</b>\n\n<b>Customer email FAILED (Resend)</b>\n\n<b>To:</b> ${data.owner_email}\n<b>Customer:</b> ${data.owner_name}\n<b>Pet:</b> ${data.pet_name}\n\n<b>Error:</b> <code>${String(e?.message ?? e).slice(0, 300)}</code>`
+        )
       }),
 
     // 2. Internal notification
-    transporter.sendMail({
-      from: '"RehabVet Leads" <hello@rehabvet.com>',
+    resend.emails.send({
+      from: 'RehabVet Leads <hello@rehabvet.com>',
       to: 'hello@rehabvet.com',
       subject: `🐾 New lead: ${data.owner_name} — ${data.pet_name}${data.breed ? ` (${data.breed})` : ''}`,
       html: internalHtml(data),
-    }).then(r => console.log('[email] Internal email sent:', r.messageId))
+    }).then(r => console.log('[email] Internal email sent:', r.data?.id))
       .catch(e => console.error('[email] Internal email failed:', e)),
   ])
 }
