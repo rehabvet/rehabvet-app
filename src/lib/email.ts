@@ -36,71 +36,75 @@ export interface LeadEmailData {
 }
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
-const PINK       = '#EC6496'
-const PINK_DARK  = '#d4507e'
-const PINK_LIGHT = '#fdf2f7'
-const GOLD       = '#FDC61C'
-const DARK       = '#1a1a2e'
-const BODY       = '#374151'
-const MUTED      = '#9ca3af'
-const DIVIDER    = '#f0f0f0'
-const PAGE_BG    = '#f4f4f7'
-const CARD_BG    = '#fdf2f7'
-const CARD_BDR   = '#fce7f3'
-const GREEN      = '#22c55e'
-const RED        = '#ef4444'
-const FONT       = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`
+const PINK      = '#EC6496'
+const PINK_DARK = '#d4507e'
+const GOLD      = '#FDC61C'
+const FONT      = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`
 
-// ─── Shared components ────────────────────────────────────────────────────────
-
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 function badge(text: string, color: string, bg: string) {
   return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.3px;padding:3px 10px;border-radius:20px;">${text}</span>`
 }
-
 function yesNo(val?: boolean) {
   if (val === true)  return badge('Yes', '#15803d', '#dcfce7')
   if (val === false) return badge('No',  '#b91c1c', '#fee2e2')
   return ''
 }
-
 function dataRow(label: string, value: string | undefined | null) {
   if (!value) return ''
   return `
     <tr>
-      <td style="padding:10px 16px;font-size:13px;color:${MUTED};width:38%;vertical-align:top;border-bottom:1px solid ${DIVIDER};">${label}</td>
-      <td style="padding:10px 16px;font-size:13px;font-weight:600;color:${DARK};vertical-align:top;border-bottom:1px solid ${DIVIDER};">${value}</td>
+      <td class="ev-lbl" style="padding:10px 16px;font-size:13px;color:#9ca3af;width:38%;vertical-align:top;border-bottom:1px solid #f0f0f0;">${label}</td>
+      <td class="ev-val" style="padding:10px 16px;font-size:13px;font-weight:600;color:#111827;vertical-align:top;border-bottom:1px solid #f0f0f0;">${value}</td>
     </tr>`
 }
-
 function sectionLabel(text: string) {
-  return `<p style="margin:24px 0 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${PINK};">${text}</p>`
+  return `<p class="ev-sec" style="margin:20px 0 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${PINK};">${text}</p>`
 }
+
+// ─── Dark mode CSS (shared) ───────────────────────────────────────────────────
+// Uses CSS classes so @media query !important can override inline styles
+const DARK_CSS = `
+  /* ── Dark mode overrides ── */
+  @media (prefers-color-scheme: dark) {
+    body, .ev-pagebg { background-color: #0f172a !important; }
+    .ev-hdr  { background-color: #ffffff !important; border-top-color: ${PINK} !important; }
+    .ev-cell { background-color: #1e293b !important; border-left-color: #334155 !important; border-right-color: #334155 !important; }
+    .ev-hero { background-color: #1e293b !important; border-left-color: #334155 !important; border-right-color: #334155 !important; }
+    .ev-foot { background-color: #1e293b !important; border-left-color: #334155 !important; border-right-color: #334155 !important; }
+    .ev-card { background-color: #0f172a !important; border-color: #334155 !important; }
+    .ev-card-inner { background-color: #0f172a !important; border-color: #334155 !important; }
+    .ev-h1  { color: #f1f5f9 !important; }
+    .ev-p   { color: #94a3b8 !important; }
+    .ev-lbl { color: #64748b !important; border-bottom-color: #334155 !important; background-color: #1e293b !important; }
+    .ev-val { color: #e2e8f0 !important; border-bottom-color: #334155 !important; background-color: #1e293b !important; }
+    .ev-sec { color: ${PINK} !important; }
+    .ev-step-icon { background-color: #1e3a4a !important; }
+    .ev-step-title { color: #f1f5f9 !important; }
+    .ev-step-desc  { color: #64748b !important; }
+    .ev-foot-brand { color: #f1f5f9 !important; }
+    .ev-foot-sub   { color: #475569 !important; }
+    .ev-foot-link  { color: ${PINK} !important; }
+    .ev-foot-legal { color: #334155 !important; }
+    .ev-divider    { border-top-color: #334155 !important; }
+    .ev-banner { background-color: #0f172a !important; }
+  }
+`
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 function emailHeader() {
   return `
-  <!-- ===== HEADER ===== -->
   <tr>
-    <td style="background:#ffffff;border-radius:12px 12px 0 0;padding:0;border-top:4px solid ${PINK};border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
+    <td class="ev-hdr" style="background:#ffffff;border-radius:12px 12px 0 0;border-top:4px solid ${PINK};border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;padding:0;">
       <table width="100%" cellpadding="0" cellspacing="0">
-
-        <!-- Logo row -->
         <tr>
-          <td style="padding:28px 48px 20px;text-align:center;">
-            <img
-              src="https://rehabvet.com/wp-content/uploads/2025/02/logo.webp"
-              alt="RehabVet"
-              height="48"
-              style="display:block;margin:0 auto;height:48px;max-width:200px;"
-            />
+          <td style="padding:26px 48px 20px;text-align:center;">
+            <img src="https://rehabvet.com/wp-content/uploads/2025/02/logo.webp"
+                 alt="RehabVet" height="46"
+                 style="display:block;margin:0 auto;height:46px;max-width:200px;"/>
           </td>
         </tr>
-
-        <!-- Pink accent bar -->
-        <tr>
-          <td style="background:linear-gradient(90deg,${PINK} 0%,${PINK_DARK} 100%);height:3px;font-size:0;line-height:0;">&nbsp;</td>
-        </tr>
-
+        <tr><td style="background:linear-gradient(90deg,${PINK} 0%,${PINK_DARK} 100%);height:3px;font-size:0;">&nbsp;</td></tr>
       </table>
     </td>
   </tr>`
@@ -109,63 +113,42 @@ function emailHeader() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function emailFooter(internal = false) {
   return `
-  <!-- ===== FOOTER ===== -->
   <tr>
-    <td style="background:#fff;padding:0;">
-      <!-- Divider -->
+    <td class="ev-foot" style="background:#ffffff;padding:0;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="padding:0 48px;"><div style="border-top:1px solid ${DIVIDER};"></div></td></tr>
+        <tr><td style="padding:0 48px;"><div class="ev-divider" style="border-top:1px solid #f0f0f0;"></div></td></tr>
       </table>
     </td>
   </tr>
   <tr>
-    <td style="background:#fff;border-radius:0 0 12px 12px;padding:28px 48px 36px;text-align:center;">
-
-      <!-- Paw icon -->
-      <div style="font-size:24px;margin-bottom:12px;">🐾</div>
-
-      <!-- Brand name -->
-      <p style="margin:0 0 4px;font-size:15px;font-weight:800;color:${DARK};letter-spacing:-0.3px;">RehabVet</p>
-      <p style="margin:0 0 16px;font-size:12px;color:${MUTED};">Singapore's First Veterinary Rehabilitation Centre</p>
-
-      <!-- Contact row -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
-        <tr>
-          <td align="center">
-            <a href="tel:62916881"      style="color:${MUTED};text-decoration:none;font-size:12px;margin:0 8px;">📞 6291 6881</a>
-            <a href="https://wa.me/6587987554" style="color:${MUTED};text-decoration:none;font-size:12px;margin:0 8px;">💬 WhatsApp</a>
-            <a href="mailto:hello@rehabvet.com" style="color:${MUTED};text-decoration:none;font-size:12px;margin:0 8px;">✉️ hello@rehabvet.com</a>
-          </td>
-        </tr>
+    <td class="ev-foot" style="background:#ffffff;border-radius:0 0 12px 12px;padding:28px 48px 36px;text-align:center;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
+      <div style="font-size:22px;margin-bottom:10px;">🐾</div>
+      <p class="ev-foot-brand" style="margin:0 0 3px;font-size:14px;font-weight:800;color:#111827;">RehabVet</p>
+      <p class="ev-foot-sub" style="margin:0 0 14px;font-size:12px;color:#9ca3af;">Singapore's First Veterinary Rehabilitation Centre</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+        <tr><td align="center">
+          <a href="tel:62916881"           class="ev-foot-link" style="color:#9ca3af;text-decoration:none;font-size:12px;margin:0 6px;">📞 6291 6881</a>
+          <a href="https://wa.me/6587987554" class="ev-foot-link" style="color:#9ca3af;text-decoration:none;font-size:12px;margin:0 6px;">💬 WhatsApp</a>
+          <a href="mailto:hello@rehabvet.com" class="ev-foot-link" style="color:#9ca3af;text-decoration:none;font-size:12px;margin:0 6px;">✉️ hello@rehabvet.com</a>
+        </td></tr>
       </table>
-
-      <!-- Address -->
-      <p style="margin:0 0 16px;font-size:12px;color:${MUTED};">
-        513 Serangoon Road, #01-01, Singapore 218154
-      </p>
-
-      <!-- Social links -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-        <tr>
-          <td align="center">
-            <a href="https://rehabvet.com" style="display:inline-block;margin:0 6px;color:${PINK};font-size:12px;font-weight:600;text-decoration:none;">Website</a>
-            <span style="color:${DIVIDER};font-size:12px;">|</span>
-            <a href="https://www.instagram.com/rehabvet_sg/" style="display:inline-block;margin:0 6px;color:${PINK};font-size:12px;font-weight:600;text-decoration:none;">Instagram</a>
-            <span style="color:${DIVIDER};font-size:12px;">|</span>
-            <a href="https://www.facebook.com/rehabvet.sg" style="display:inline-block;margin:0 6px;color:${PINK};font-size:12px;font-weight:600;text-decoration:none;">Facebook</a>
-          </td>
-        </tr>
+      <p class="ev-foot-sub" style="margin:0 0 12px;font-size:12px;color:#9ca3af;">513 Serangoon Road, #01-01, Singapore 218154</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+        <tr><td align="center">
+          <a href="https://rehabvet.com"                    class="ev-foot-link" style="color:${PINK};font-size:12px;font-weight:600;text-decoration:none;margin:0 5px;">Website</a>
+          <span style="color:#e5e7eb;font-size:12px;">|</span>
+          <a href="https://www.instagram.com/rehabvet_sg/"  class="ev-foot-link" style="color:${PINK};font-size:12px;font-weight:600;text-decoration:none;margin:0 5px;">Instagram</a>
+          <span style="color:#e5e7eb;font-size:12px;">|</span>
+          <a href="https://www.facebook.com/rehabvet.sg"    class="ev-foot-link" style="color:${PINK};font-size:12px;font-weight:600;text-decoration:none;margin:0 5px;">Facebook</a>
+        </td></tr>
       </table>
-
-      <!-- Legal -->
-      <p style="margin:0;font-size:11px;color:#d1d5db;line-height:1.6;">
+      <p class="ev-foot-legal" style="margin:0;font-size:11px;color:#d1d5db;line-height:1.6;">
         ${internal
-          ? 'RehabVet internal notification &middot; Do not reply to this email.'
-          : 'You received this email because you submitted a request on <a href="https://rehabvet.com" style="color:#d1d5db;">rehabvet.com</a>.'
+          ? 'RehabVet internal notification &middot; Do not reply.'
+          : 'You received this because you submitted a request on <a href="https://rehabvet.com" style="color:#d1d5db;">rehabvet.com</a>.'
         }<br/>
         &copy; ${new Date().getFullYear()} RehabVet Veterinary Rehabilitation Centre Pte. Ltd.
       </p>
-
     </td>
   </tr>`
 }
@@ -189,124 +172,113 @@ function customerHtml(d: LeadEmailData): string {
   ].join('')
 
   const healthRows = [
-    d.has_pain       !== undefined ? dataRow('Showing pain?',    yesNo(d.has_pain))       : '',
-    d.vet_friendly   !== undefined ? dataRow('Vet friendly',     yesNo(d.vet_friendly))   : '',
+    d.has_pain         !== undefined ? dataRow('Showing pain?',    yesNo(d.has_pain))         : '',
+    d.vet_friendly     !== undefined ? dataRow('Vet friendly',     yesNo(d.vet_friendly))     : '',
     d.reactive_to_pets !== undefined ? dataRow('Reactive to pets', yesNo(d.reactive_to_pets)) : '',
-    dataRow('Current condition', d.condition),
+    dataRow('Condition', d.condition),
     dataRow('Referring clinic', d.clinic_name),
     dataRow('Attending vet', d.attending_vet),
   ].join('')
 
   return `<!DOCTYPE html>
-<html lang="en" style="color-scheme:light;">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <meta name="color-scheme" content="light"/>
-  <meta name="supported-color-schemes" content="light"/>
   <title>We've received your request!</title>
-  <style>
-    :root { color-scheme: light; }
-    @media (prefers-color-scheme: dark) {
-      .email-body { background-color: #f4f4f7 !important; }
-      .email-card td { background-color: #ffffff !important; color: #1a1a2e !important; }
-    }
-  </style>
+  <style>${DARK_CSS}</style>
 </head>
-<body class="email-body" style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};color-scheme:light;">
+<body style="margin:0;padding:0;background:#f4f4f7;font-family:${FONT};">
 
-<!-- Page wrapper -->
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${PAGE_BG};">
+<table class="ev-pagebg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f4f7;">
 <tr><td align="center" style="padding:32px 16px;">
 
-<!-- Email card -->
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;">
 
   ${emailHeader()}
 
-  <!-- ===== HERO ===== -->
+  <!-- HERO -->
   <tr>
-    <td style="background:#fff;padding:44px 48px 32px;text-align:center;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
-      <h1 style="margin:0 0 12px;font-size:28px;font-weight:800;color:${DARK};letter-spacing:-0.5px;line-height:1.2;">
+    <td class="ev-hero" style="background:#ffffff;padding:40px 48px 32px;text-align:center;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
+      <h1 class="ev-h1" style="margin:0 0 12px;font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.5px;line-height:1.25;">
         Hi ${firstName}! We've got your request 🐾
       </h1>
-      <p style="margin:0;font-size:15px;color:${BODY};line-height:1.75;max-width:440px;margin:0 auto;">
-        Thank you for reaching out about <strong>${d.pet_name}</strong>. Our team will review everything you've shared and contact you within <strong>1 business day</strong>. We can't wait to meet you! 🥰
+      <p class="ev-p" style="margin:0 auto;font-size:15px;color:#374151;line-height:1.75;max-width:440px;">
+        Thank you for reaching out about <strong>${d.pet_name}</strong>. Our team will review your details and contact you within <strong>1 business day</strong>. We can't wait to meet you! 🥰
       </p>
     </td>
   </tr>
 
-  <!-- ===== SUMMARY CARD ===== -->
+  <!-- SUMMARY -->
   <tr>
-    <td style="background:#fff;padding:0 48px 8px;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${CARD_BG};border:1px solid ${CARD_BDR};border-radius:10px;overflow:hidden;">
+    <td class="ev-cell" style="background:#ffffff;padding:0 40px 8px;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
+
+      <table class="ev-card" width="100%" cellpadding="0" cellspacing="0" role="presentation"
+             style="background:#fdf2f7;border:1px solid #fce7f3;border-radius:10px;overflow:hidden;">
         <tr>
-          <td style="padding:20px 24px 4px;">
-            <p style="margin:0;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${PINK};">Your Submission Summary</p>
+          <td style="padding:18px 22px 2px;">
+            <p class="ev-sec" style="margin:0;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${PINK};">Your Submission Summary</p>
           </td>
         </tr>
 
-        ${ownerRows ? `
-        <tr><td style="padding:4px 24px 0;">
+        ${ownerRows ? `<tr><td class="ev-card-inner" style="padding:0 22px 2px;background:#fdf2f7;">
           ${sectionLabel('Owner')}
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${CARD_BDR};border-radius:8px;overflow:hidden;margin-bottom:4px;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #fce7f3;border-radius:8px;overflow:hidden;">
             ${ownerRows}
           </table>
         </td></tr>` : ''}
 
-        ${petRows ? `
-        <tr><td style="padding:4px 24px 0;">
+        ${petRows ? `<tr><td class="ev-card-inner" style="padding:0 22px 2px;background:#fdf2f7;">
           ${sectionLabel('Pet Details')}
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${CARD_BDR};border-radius:8px;overflow:hidden;margin-bottom:4px;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #fce7f3;border-radius:8px;overflow:hidden;">
             ${petRows}
           </table>
         </td></tr>` : ''}
 
-        ${healthRows ? `
-        <tr><td style="padding:4px 24px 20px;">
+        ${healthRows ? `<tr><td class="ev-card-inner" style="padding:0 22px 18px;background:#fdf2f7;">
           ${sectionLabel('Health & Mobility')}
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${CARD_BDR};border-radius:8px;overflow:hidden;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #fce7f3;border-radius:8px;overflow:hidden;">
             ${healthRows}
           </table>
-        </td></tr>` : '<tr><td style="padding:20px;"></td></tr>'}
-
+        </td></tr>` : '<tr><td class="ev-card-inner" style="padding:18px;background:#fdf2f7;"></td></tr>'}
       </table>
+
     </td>
   </tr>
 
-  <!-- ===== NEXT STEPS ===== -->
+  <!-- NEXT STEPS -->
   <tr>
-    <td style="background:#fff;padding:36px 48px 8px;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
-      <p style="margin:0 0 20px;font-size:16px;font-weight:700;color:${DARK};">What happens next?</p>
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <td class="ev-cell" style="background:#ffffff;padding:32px 48px 8px;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
+      <p class="ev-h1" style="margin:0 0 20px;font-size:15px;font-weight:700;color:#111827;">What happens next?</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
 
         <tr>
-          <td style="vertical-align:top;width:48px;padding:0 0 20px;">
-            <div style="width:36px;height:36px;background:${PINK_LIGHT};border-radius:50%;text-align:center;line-height:36px;font-size:16px;">📋</div>
+          <td style="vertical-align:top;width:46px;padding:0 0 18px;">
+            <div class="ev-step-icon" style="width:34px;height:34px;background:#fdf2f7;border-radius:50%;text-align:center;line-height:34px;font-size:15px;">📋</div>
           </td>
-          <td style="vertical-align:top;padding:0 0 20px;">
-            <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:${DARK};">We review your details</p>
-            <p style="margin:0;font-size:13px;color:${MUTED};line-height:1.6;">Our clinical team looks over ${d.pet_name}'s condition and medical background.</p>
+          <td style="vertical-align:top;padding:0 0 18px;">
+            <p class="ev-step-title" style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">We review your details</p>
+            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">Our team looks over ${d.pet_name}'s condition and medical background.</p>
           </td>
         </tr>
 
         <tr>
-          <td style="vertical-align:top;width:48px;padding:0 0 20px;">
-            <div style="width:36px;height:36px;background:${PINK_LIGHT};border-radius:50%;text-align:center;line-height:36px;font-size:16px;">📞</div>
+          <td style="vertical-align:top;width:46px;padding:0 0 18px;">
+            <div class="ev-step-icon" style="width:34px;height:34px;background:#fdf2f7;border-radius:50%;text-align:center;line-height:34px;font-size:15px;">📞</div>
           </td>
-          <td style="vertical-align:top;padding:0 0 20px;">
-            <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:${DARK};">We reach out within 1 business day</p>
-            <p style="margin:0;font-size:13px;color:${MUTED};line-height:1.6;">We'll call or WhatsApp you to discuss the assessment and answer questions.</p>
+          <td style="vertical-align:top;padding:0 0 18px;">
+            <p class="ev-step-title" style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">We reach out within 1 business day</p>
+            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">We'll call or WhatsApp to discuss the assessment and answer questions.</p>
           </td>
         </tr>
 
         <tr>
-          <td style="vertical-align:top;width:48px;">
-            <div style="width:36px;height:36px;background:${PINK_LIGHT};border-radius:50%;text-align:center;line-height:36px;font-size:16px;">📅</div>
+          <td style="vertical-align:top;width:46px;">
+            <div class="ev-step-icon" style="width:34px;height:34px;background:#fdf2f7;border-radius:50%;text-align:center;line-height:34px;font-size:15px;">📅</div>
           </td>
           <td style="vertical-align:top;">
-            <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:${DARK};">We schedule your visit</p>
-            <p style="margin:0;font-size:13px;color:${MUTED};line-height:1.6;">We lock in a date and time that works for you and ${d.pet_name}.</p>
+            <p class="ev-step-title" style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">We schedule your visit</p>
+            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">We lock in a date and time that works for you and ${d.pet_name}.</p>
           </td>
         </tr>
 
@@ -314,32 +286,24 @@ function customerHtml(d: LeadEmailData): string {
     </td>
   </tr>
 
-  <!-- ===== CTA ===== -->
+  <!-- CTA -->
   <tr>
-    <td style="background:#fff;padding:32px 48px 40px;text-align:center;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
-
-      <!-- WhatsApp button -->
+    <td class="ev-cell" style="background:#ffffff;padding:28px 48px 40px;text-align:center;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
       <a href="https://wa.me/6587987554"
-         style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-size:15px;font-weight:700;padding:15px 40px;border-radius:8px;letter-spacing:0.2px;">
+         style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:14px 36px;border-radius:8px;">
         💬&nbsp; Chat on WhatsApp
       </a>
-
-      <p style="margin:14px 0 0;font-size:13px;color:${MUTED};">
-        Or call us at <a href="tel:62916881" style="color:${PINK};font-weight:600;text-decoration:none;">6291 6881</a>
+      <p class="ev-p" style="margin:12px 0 0;font-size:13px;color:#9ca3af;">
+        Or call <a href="tel:62916881" style="color:${PINK};font-weight:600;text-decoration:none;">6291 6881</a>
       </p>
-
     </td>
   </tr>
 
   ${emailFooter(false)}
 
 </table>
-<!-- /Email card -->
-
 </td></tr>
 </table>
-<!-- /Page wrapper -->
-
 </body>
 </html>`
 }
@@ -363,8 +327,8 @@ function internalHtml(d: LeadEmailData): string {
   ].join('')
 
   const healthRows = [
-    d.has_pain         !== undefined ? dataRow('Showing pain',    yesNo(d.has_pain))         : '',
-    d.vet_friendly     !== undefined ? dataRow('Vet friendly',    yesNo(d.vet_friendly))     : '',
+    d.has_pain         !== undefined ? dataRow('Showing pain',     yesNo(d.has_pain))         : '',
+    d.vet_friendly     !== undefined ? dataRow('Vet friendly',     yesNo(d.vet_friendly))     : '',
     d.reactive_to_pets !== undefined ? dataRow('Reactive to pets', yesNo(d.reactive_to_pets)) : '',
     dataRow('Condition', d.condition),
     dataRow('Referring clinic', d.clinic_name),
@@ -372,80 +336,72 @@ function internalHtml(d: LeadEmailData): string {
   ].join('')
 
   return `<!DOCTYPE html>
-<html lang="en" style="color-scheme:light;">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <meta name="color-scheme" content="light"/>
-  <meta name="supported-color-schemes" content="light"/>
   <title>New Lead — ${d.owner_name}</title>
-  <style>
-    :root { color-scheme: light; }
-    @media (prefers-color-scheme: dark) {
-      .email-body { background-color: #f4f4f7 !important; }
-      .email-card td { background-color: #ffffff !important; color: #1a1a2e !important; }
-    }
-  </style>
+  <style>${DARK_CSS}</style>
 </head>
-<body class="email-body" style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};color-scheme:light;">
+<body style="margin:0;padding:0;background:#f4f4f7;font-family:${FONT};">
 
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${PAGE_BG};">
+<table class="ev-pagebg" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f4f7;">
 <tr><td align="center" style="padding:32px 16px;">
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;">
 
   ${emailHeader()}
 
-  <!-- ===== ALERT BANNER ===== -->
+  <!-- BANNER -->
   <tr>
-    <td style="background:${DARK};padding:16px 48px;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <td class="ev-banner" style="background:#111827;padding:16px 48px;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td>
-            <p style="margin:0;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${GOLD};">Internal Notification</p>
-            <p style="margin:4px 0 0;font-size:18px;font-weight:800;color:#fff;">
-              New Lead: ${d.owner_name}
+            <p style="margin:0 0 3px;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${GOLD};">Internal Notification</p>
+            <p class="ev-h1" style="margin:0;font-size:18px;font-weight:800;color:#ffffff;">
+              ${d.owner_name}
               ${d.pet_name ? `<span style="color:${PINK};"> &bull; ${d.pet_name}</span>` : ''}
-              ${d.breed ? `<span style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.6);"> (${d.breed})</span>` : ''}
+              ${d.breed ? `<span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);"> (${d.breed})</span>` : ''}
             </p>
           </td>
           <td align="right" style="vertical-align:middle;">
-            <span style="display:inline-block;background:${PINK};color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;white-space:nowrap;">New</span>
+            <span style="background:${PINK};color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;">New</span>
           </td>
         </tr>
       </table>
     </td>
   </tr>
 
-  <!-- ===== DATA SECTIONS ===== -->
+  <!-- DATA -->
   <tr>
-    <td style="background:#fff;padding:32px 48px 24px;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
+    <td class="ev-cell" style="background:#ffffff;padding:28px 48px 16px;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
 
       ${sectionLabel('Owner Information')}
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${DIVIDER};border-radius:8px;overflow:hidden;margin-bottom:8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:8px;">
         ${ownerRows}
       </table>
 
       ${sectionLabel('Pet Details')}
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${DIVIDER};border-radius:8px;overflow:hidden;margin-bottom:8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:8px;">
         ${petRows}
       </table>
 
       ${healthRows ? `
       ${sectionLabel('Health & Mobility')}
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${DIVIDER};border-radius:8px;overflow:hidden;margin-bottom:8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:8px;">
         ${healthRows}
       </table>` : ''}
 
     </td>
   </tr>
 
-  <!-- ===== CTA ===== -->
+  <!-- CTA -->
   <tr>
-    <td style="background:#fff;padding:8px 48px 40px;text-align:center;border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
+    <td class="ev-cell" style="background:#ffffff;padding:4px 48px 40px;text-align:center;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;">
       <a href="https://app.rehabvet.com/leads"
-         style="display:inline-block;background:${PINK};color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:15px 40px;border-radius:8px;letter-spacing:0.2px;">
-        View Lead in Dashboard &rarr;
+         style="display:inline-block;background:${PINK};color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:14px 36px;border-radius:8px;">
+        View in Dashboard &rarr;
       </a>
     </td>
   </tr>
@@ -455,7 +411,6 @@ function internalHtml(d: LeadEmailData): string {
 </table>
 </td></tr>
 </table>
-
 </body>
 </html>`
 }
@@ -471,21 +426,20 @@ async function tgAlert(text: string) {
   } catch { /* never crash */ }
 }
 
-// ─── Send both emails via Resend ─────────────────────────────────────────────
+// ─── Send both emails via Resend ──────────────────────────────────────────────
 export async function sendLeadEmails(data: LeadEmailData) {
   if (!process.env.RESEND_API_KEY && !process.env.RESEND_KEY_B64) {
-    console.warn('[email] RESEND_API_KEY not set — skipping emails')
+    console.warn('[email] No Resend key configured — skipping emails')
     await tgAlert(
-      `🔴 <b>RehabVet Alert</b>\n\n<b>RESEND_API_KEY missing in Railway</b>\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}`
+      `🔴 <b>RehabVet Alert</b>\n\n<b>RESEND key missing in Railway</b>\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}`
     )
     return
   }
 
-  const firstName = data.owner_name.split(' ')[0]
   const FROM = 'RehabVet <hello@rehabvet.com>'
+  const firstName = data.owner_name.split(' ')[0]
 
   await Promise.allSettled([
-    // 1. Customer confirmation
     getResend().emails.send({
       from: FROM,
       to: data.owner_email,
@@ -495,11 +449,10 @@ export async function sendLeadEmails(data: LeadEmailData) {
       .catch(async (e) => {
         console.error('[email] Customer email failed:', e)
         await tgAlert(
-          `🔴 <b>Customer email FAILED</b>\n\n<b>To:</b> ${data.owner_email}\n<b>Customer:</b> ${data.owner_name}\n<b>Pet:</b> ${data.pet_name}\n\n<b>Error:</b> <code>${String(e?.message ?? e).slice(0, 300)}</code>`
+          `🔴 <b>Customer email FAILED</b>\n\nTo: ${data.owner_email}\nCustomer: ${data.owner_name}\nPet: ${data.pet_name}\n\nError: <code>${String(e?.message ?? e).slice(0, 300)}</code>`
         )
       }),
 
-    // 2. Internal lead alert
     getResend().emails.send({
       from: FROM,
       to: 'hello@rehabvet.com',
