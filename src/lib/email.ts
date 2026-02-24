@@ -1,17 +1,18 @@
 import nodemailer from 'nodemailer'
-import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+import dns from 'dns'
+
+// Railway cannot reach smtp.gmail.com over IPv6 — force IPv4 DNS resolution globally
+dns.setDefaultResultOrder('ipv4first')
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  // Force IPv4 — Railway servers cannot reach Gmail over IPv6 (ENETUNREACH)
-  family: 4,
   auth: {
     user: 'hello@rehabvet.com',
     pass: process.env.GMAIL_APP_PASSWORD,
   },
-} as SMTPTransport.Options)
+})
 
 export interface LeadEmailData {
   // Owner
