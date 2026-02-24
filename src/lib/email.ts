@@ -4,6 +4,8 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
+  // Force IPv4 — Railway servers cannot reach Gmail over IPv6 (ENETUNREACH)
+  family: 4,
   auth: {
     user: 'hello@rehabvet.com',
     pass: process.env.GMAIL_APP_PASSWORD,
