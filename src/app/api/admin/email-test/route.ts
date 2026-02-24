@@ -92,5 +92,27 @@ export async function GET(req: Request) {
   }
   result.tcp = tcpResults
 
+  // 7. Check Resend env var + live send test
+  result.RESEND_API_KEY_SET = !!process.env.RESEND_API_KEY
+  result.RESEND_API_KEY_PREFIX = process.env.RESEND_API_KEY?.slice(0, 8) ?? '(not set)'
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const { Resend } = await import('resend')
+      const r = new Resend(process.env.RESEND_API_KEY)
+      const sent = await r.emails.send({
+        from: 'RehabVet <hello@rehabvet.com>',
+        to: 'hello@rehabvet.com',
+        subject: '[DEBUG] Resend test from Railway',
+        html: '<p>Resend is working from Railway ✅</p>',
+      })
+      result.resend_test = sent.data?.id ? `sent ✅ id=${sent.data.id}` : `error: ${JSON.stringify(sent.error)}`
+    } catch (e) {
+      result.resend_test = `exception: ${String(e)}`
+    }
+  } else {
+    result.resend_test = 'skipped — key not set'
+  }
+
   return NextResponse.json(result)
 }
