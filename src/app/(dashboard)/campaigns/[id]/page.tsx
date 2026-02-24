@@ -75,6 +75,9 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
+  const [testEmail, setTestEmail]         = useState('')
+  const [testSending, setTestSending]     = useState(false)
   const [recipientCount, setRecipientCount] = useState<number | null>(null)
   const [toast, setToast] = useState('')
 
@@ -106,6 +109,22 @@ export default function CampaignDetailPage() {
     const t = setInterval(load, 4000)
     return () => clearInterval(t)
   }, [campaign?.status])
+
+  async function sendTest() {
+    setTestSending(true)
+    try {
+      const res = await fetch(`/api/campaigns/${id}/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: testEmail }),
+      })
+      const data = await res.json()
+      if (res.ok) { showToast(`✅ Test sent to ${testEmail}`); setShowTestModal(false) }
+      else showToast(data.error || 'Test send failed')
+    } finally {
+      setTestSending(false)
+    }
+  }
 
   async function sendNow() {
     setSending(true)
@@ -150,6 +169,12 @@ export default function CampaignDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowTestModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
+          >
+            <Send className="w-4 h-4 opacity-50" /> Send Test
+          </button>
           {campaign.status === 'draft' && (
             <>
               <Link
@@ -238,6 +263,36 @@ export default function CampaignDetailPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Test send modal */}
+      {showTestModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Test Email</h2>
+            <p className="text-sm text-gray-500 mb-4">Sends a preview with <code className="bg-gray-100 px-1 rounded text-xs">[TEST]</code> in the subject line.</p>
+            <input
+              type="email"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2"
+              placeholder="your@email.com"
+              value={testEmail}
+              onChange={e => setTestEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendTest()}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShowTestModal(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700">Cancel</button>
+              <button
+                onClick={sendTest}
+                disabled={testSending || !testEmail}
+                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50"
+                style={{ background: PINK }}
+              >
+                {testSending ? 'Sending…' : 'Send Test'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
