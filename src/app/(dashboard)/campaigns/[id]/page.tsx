@@ -111,16 +111,20 @@ export default function CampaignDetailPage() {
   }, [campaign?.status])
 
   async function sendTest() {
+    const addresses = testEmail.split(/[\n,]+/).map(e => e.trim()).filter(e => e.includes('@'))
+    if (!addresses.length) { showToast('Enter at least one valid email'); return }
     setTestSending(true)
     try {
       const res = await fetch(`/api/campaigns/${id}/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: testEmail }),
+        body: JSON.stringify({ to: addresses }),
       })
       const data = await res.json()
-      if (res.ok) { showToast(`✅ Test sent to ${testEmail}`); setShowTestModal(false) }
-      else showToast(data.error || 'Test send failed')
+      if (res.ok) {
+        showToast(`✅ Test sent to ${addresses.length} address${addresses.length > 1 ? 'es' : ''}`)
+        setShowTestModal(false)
+      } else showToast(data.error || 'Test send failed')
     } finally {
       setTestSending(false)
     }
@@ -272,15 +276,15 @@ export default function CampaignDetailPage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Send Test Email</h2>
             <p className="text-sm text-gray-500 mb-4">Sends a preview with <code className="bg-gray-100 px-1 rounded text-xs">[TEST]</code> in the subject line.</p>
-            <input
-              type="email"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2"
-              placeholder="your@email.com"
+            <textarea
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-1 focus:outline-none focus:ring-2 resize-none"
+              rows={3}
+              placeholder="alice@email.com, bob@email.com"
               value={testEmail}
               onChange={e => setTestEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendTest()}
               autoFocus
             />
+            <p className="text-xs text-gray-400 mb-4">Separate multiple addresses with commas or new lines</p>
             <div className="flex gap-3">
               <button onClick={() => setShowTestModal(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700">Cancel</button>
               <button

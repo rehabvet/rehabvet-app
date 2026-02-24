@@ -14,8 +14,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
 
-  const { to } = await req.json()
-  if (!to) return NextResponse.json({ error: 'No recipient email' }, { status: 400 })
+  const body = await req.json()
+  const addresses: string[] = Array.isArray(body.to) ? body.to : [body.to]
+  const valid = addresses.filter(e => e && e.includes('@'))
+  if (!valid.length) return NextResponse.json({ error: 'No valid recipient email' }, { status: 400 })
 
   // Get campaign (use body_html from DB, or fall back to empty)
   const rows = await prisma.$queryRawUnsafe(
@@ -24,25 +26,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const campaign = rows[0]
 
-  const html = wrapCampaignEmail(
-    campaign.body_html || '<p>This is a test email.</p>',
-    user.name || 'Test Recipient',
-    to,
-    id
-  )
+  const emails = valid.map(addr => ({
+    from: 'RehabVet <hello@rehabvet.com>',
+    to: addr,
+    subject: `[TEST] ${campaign.subject}`,
+    html: wrapCampaignEmail(
+      campaign.body_html || '<p>This is a test email.</p>',
+      user.name || 'Test Recipient',
+      addr,
+      id
+    ),
+  }))
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const endpoint = emails.length === 1 ? 'https://api.resend.com/emails' : 'https://api.resend.com/emails/batch'
+  const payload  = emails.length === 1 ? emails[0] : emails
+
+  const res = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getResendKey()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'RehabVet <hello@rehabvet.com>',
-      to,
-      subject: `[TEST] ${campaign.subject}`,
-      html,
-    }),
+    headers: { Authorization: `Bearer ${getResendKey()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   })
 
   if (!res.ok) {
@@ -50,5 +52,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: err.message || 'Send failed' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, sent: valid.length })
 }

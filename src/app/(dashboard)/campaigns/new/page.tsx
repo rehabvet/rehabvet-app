@@ -205,10 +205,10 @@ function CampaignComposer() {
 
   async function sendTest() {
     if (!editId) { showToast('Save draft first, then send test'); return }
-    if (!testEmail) { showToast('Enter a test email address'); return }
+    const addresses = testEmail.split(/[\n,]+/).map(e => e.trim()).filter(e => e.includes('@'))
+    if (!addresses.length) { showToast('Enter at least one valid email address'); return }
     setTestSending(true)
     try {
-      // Save latest content first
       await fetch(`/api/campaigns/${editId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -217,11 +217,13 @@ function CampaignComposer() {
       const res = await fetch(`/api/campaigns/${editId}/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: testEmail }),
+        body: JSON.stringify({ to: addresses }),
       })
       const data = await res.json()
-      if (res.ok) { showToast(`✅ Test sent to ${testEmail}`); setShowTestModal(false) }
-      else showToast(data.error || 'Test send failed')
+      if (res.ok) {
+        showToast(`✅ Test sent to ${addresses.length} address${addresses.length > 1 ? 'es' : ''}`)
+        setShowTestModal(false)
+      } else showToast(data.error || 'Test send failed')
     } finally {
       setTestSending(false)
     }
@@ -426,24 +428,27 @@ function CampaignComposer() {
       {/* Test send modal */}
       {showTestModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Send Test Email</h2>
-            <p className="text-sm text-gray-500 mb-4">Sends a preview with <code className="bg-gray-100 px-1 rounded text-xs">[TEST]</code> in the subject line.</p>
-            <input
-              type="email"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2"
+            <p className="text-sm text-gray-500 mb-4">
+              Enter one or more email addresses. Each will receive the campaign with{' '}
+              <code className="bg-gray-100 px-1 rounded text-xs">[TEST]</code> in the subject.
+            </p>
+            <textarea
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-1 focus:outline-none focus:ring-2 resize-none"
               style={{ '--tw-ring-color': '#EC649660' } as any}
-              placeholder="your@email.com"
+              rows={3}
+              placeholder="alice@email.com, bob@email.com, marcus@pexx.com"
               value={testEmail}
               onChange={e => setTestEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendTest()}
               autoFocus
             />
+            <p className="text-xs text-gray-400 mb-4">Separate multiple addresses with commas or new lines</p>
             <div className="flex gap-3">
               <button onClick={() => setShowTestModal(false)} className="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700">Cancel</button>
               <button
                 onClick={sendTest}
-                disabled={testSending || !testEmail}
+                disabled={testSending || !testEmail.trim()}
                 className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50"
                 style={{ background: PINK }}
               >
