@@ -1,8 +1,18 @@
 import nodemailer from 'nodemailer'
-import dns from 'dns'
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+import dnsLib from 'dns'
 
-// Railway cannot reach smtp.gmail.com over IPv6 — force IPv4 DNS resolution globally
-dns.setDefaultResultOrder('ipv4first')
+// Railway IPv6 is unreachable — force IPv4 at the socket level via nodemailer's lookup hook
+function ipv4Lookup(
+  hostname: string,
+  _opts: Record<string, unknown>,
+  callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void
+) {
+  dnsLib.resolve4(hostname, (err, addresses) => {
+    if (err) return callback(err, '', 4)
+    callback(null, addresses[0], 4)
+  })
+}
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -12,13 +22,14 @@ const transporter = nodemailer.createTransport({
     user: 'hello@rehabvet.com',
     pass: process.env.GMAIL_APP_PASSWORD,
   },
-})
+  lookup: ipv4Lookup,
+} as SMTPTransport.Options)
 
-// Verify SMTP at startup so Railway logs show connection status immediately
+// Verify at startup — appears in Railway logs
 setTimeout(async () => {
   try {
     await transporter.verify()
-    console.log('[email] ✅ SMTP connection OK (smtp.gmail.com:587 IPv4)')
+    console.log('[email] ✅ SMTP OK — smtp.gmail.com:587 over IPv4')
   } catch (err) {
     console.error('[email] ❌ SMTP verify failed:', (err as Error).message)
   }
