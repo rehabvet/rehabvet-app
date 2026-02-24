@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Mail, Plus, Send, FileText, Trash2, Eye, BarChart2, Users } from 'lucide-react'
+import { Mail, Plus, Send, FileText, Trash2, Eye, BarChart2, Users, List } from 'lucide-react'
 
 interface Campaign {
   id: string
@@ -76,14 +76,23 @@ export default function CampaignsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Email Campaigns</h1>
           <p className="text-sm text-gray-500 mt-0.5">Send newsletters and promotions to your clients</p>
         </div>
-        <Link
-          href="/campaigns/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold shadow-sm"
-          style={{ background: '#EC6496' }}
-        >
-          <Plus className="w-4 h-4" />
-          New Campaign
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/campaigns/list"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <List className="w-4 h-4" />
+            Mailing List
+          </Link>
+          <Link
+            href="/campaigns/new"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold shadow-sm"
+            style={{ background: '#EC6496' }}
+          >
+            <Plus className="w-4 h-4" />
+            New Campaign
+          </Link>
+        </div>
       </div>
 
       {/* Stats row */}
