@@ -311,10 +311,10 @@ export async function sendLeadEmails(data: LeadEmailData) {
 
   const firstName = data.owner_name.split(' ')[0]
 
-  await Promise.allSettled([
-    // NOTE: from address switches to hello@rehabvet.com once domain is verified in Resend
-    const fromAddress = process.env.RESEND_FROM ?? 'RehabVet <onboarding@resend.dev>'
+  // NOTE: switches to hello@rehabvet.com once domain verified in Resend (set RESEND_FROM env var)
+  const fromAddress = process.env.RESEND_FROM ?? 'RehabVet <onboarding@resend.dev>'
 
+  await Promise.allSettled([
     // 1. Customer confirmation
     resend.emails.send({
       from: fromAddress,
