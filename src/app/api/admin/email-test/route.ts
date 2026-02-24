@@ -71,5 +71,26 @@ export async function GET(req: Request) {
     } as SMTPTransport.Options)
   }
 
+  // 6. Raw TCP tests — check if Railway can reach SMTP ports at all
+  const tcpTests = [
+    { host: '142.251.12.109', port: 587, label: 'Gmail IPv4:587' },
+    { host: '142.251.12.109', port: 465, label: 'Gmail IPv4:465' },
+    { host: 'smtp-relay.brevo.com', port: 587, label: 'Brevo:587' },
+    { host: 'smtp.sendgrid.net',    port: 587, label: 'SendGrid:587' },
+  ]
+
+  const net = await import('net')
+  const tcpResults: Record<string, string> = {}
+
+  for (const { host, port, label } of tcpTests) {
+    await new Promise<void>((resolve) => {
+      const sock = net.default.createConnection({ host, port, family: 4 })
+      const timer = setTimeout(() => { sock.destroy(); tcpResults[label] = 'timeout'; resolve() }, 6000)
+      sock.on('connect', () => { clearTimeout(timer); sock.destroy(); tcpResults[label] = 'connected ✅'; resolve() })
+      sock.on('error', (e) => { clearTimeout(timer); tcpResults[label] = `error: ${e.message}`; resolve() })
+    })
+  }
+  result.tcp = tcpResults
+
   return NextResponse.json(result)
 }
