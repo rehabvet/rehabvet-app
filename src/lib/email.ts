@@ -81,33 +81,27 @@ function emailHeader() {
   return `
   <!-- ===== HEADER ===== -->
   <tr>
-    <td style="background:linear-gradient(135deg,${PINK} 0%,${PINK_DARK} 100%);border-radius:12px 12px 0 0;padding:0;">
-
-      <!-- Top bar -->
+    <td style="background:#ffffff;border-radius:12px 12px 0 0;padding:0;border-top:4px solid ${PINK};border-left:1px solid ${DIVIDER};border-right:1px solid ${DIVIDER};">
       <table width="100%" cellpadding="0" cellspacing="0">
+
+        <!-- Logo row -->
         <tr>
-          <td style="padding:32px 48px 24px;text-align:center;">
-            <!-- Logo -->
+          <td style="padding:28px 48px 20px;text-align:center;">
             <img
-              src="https://rehabvet.com/wp-content/uploads/2024/07/rehabvet-logo-white.png"
+              src="https://rehabvet.com/wp-content/uploads/2025/02/logo.webp"
               alt="RehabVet"
-              height="44"
-              style="display:block;margin:0 auto 10px;height:44px;"
-              onerror="this.style.display='none'"
+              height="48"
+              style="display:block;margin:0 auto;height:48px;max-width:200px;"
             />
-            <!-- Tagline -->
-            <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-              Veterinary Rehabilitation &nbsp;&bull;&nbsp; Singapore
-            </p>
           </td>
         </tr>
 
-        <!-- Gold accent bar -->
+        <!-- Pink accent bar -->
         <tr>
-          <td style="background:${GOLD};height:4px;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:linear-gradient(90deg,${PINK} 0%,${PINK_DARK} 100%);height:3px;font-size:0;line-height:0;">&nbsp;</td>
         </tr>
-      </table>
 
+      </table>
     </td>
   </tr>`
 }
@@ -204,14 +198,22 @@ function customerHtml(d: LeadEmailData): string {
   ].join('')
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme:light;">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <meta name="color-scheme" content="light"/>
+  <meta name="supported-color-schemes" content="light"/>
   <title>We've received your request!</title>
+  <style>
+    :root { color-scheme: light; }
+    @media (prefers-color-scheme: dark) {
+      .email-body { background-color: #f4f4f7 !important; }
+      .email-card td { background-color: #ffffff !important; color: #1a1a2e !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};">
+<body class="email-body" style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};color-scheme:light;">
 
 <!-- Page wrapper -->
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${PAGE_BG};">
@@ -370,13 +372,22 @@ function internalHtml(d: LeadEmailData): string {
   ].join('')
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme:light;">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="supported-color-schemes" content="light"/>
   <title>New Lead — ${d.owner_name}</title>
+  <style>
+    :root { color-scheme: light; }
+    @media (prefers-color-scheme: dark) {
+      .email-body { background-color: #f4f4f7 !important; }
+      .email-card td { background-color: #ffffff !important; color: #1a1a2e !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};">
+<body class="email-body" style="margin:0;padding:0;background:${PAGE_BG};font-family:${FONT};color-scheme:light;">
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${PAGE_BG};">
 <tr><td align="center" style="padding:32px 16px;">
