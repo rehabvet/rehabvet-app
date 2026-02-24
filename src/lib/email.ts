@@ -300,6 +300,18 @@ function internalHtml(d: LeadEmailData): string {
 export async function sendLeadEmails(data: LeadEmailData) {
   if (!process.env.GMAIL_APP_PASSWORD) {
     console.warn('[email] GMAIL_APP_PASSWORD not set — skipping emails')
+    // Alert Marcus so this doesn't go unnoticed
+    try {
+      await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: '246605723',
+          text: `🔴 <b>RehabVet Alert</b>\n\n<b>⚠️ Emails NOT sending — GMAIL_APP_PASSWORD missing</b>\n\nA customer submitted the booking form but no email was sent because GMAIL_APP_PASSWORD is not set in Railway.\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}\n\n👉 Fix: Add GMAIL_APP_PASSWORD to Railway env vars.`,
+          parse_mode: 'HTML',
+        }),
+      })
+    } catch { /* never crash */ }
     return
   }
 
@@ -313,7 +325,20 @@ export async function sendLeadEmails(data: LeadEmailData) {
       subject: `${firstName}, we've received your request for ${data.pet_name} 🐾`,
       html: customerHtml(data),
     }).then(r => console.log('[email] Customer email sent:', r.messageId))
-      .catch(e => console.error('[email] Customer email failed:', e)),
+      .catch(async (e) => {
+        console.error('[email] Customer email failed:', e)
+        try {
+          await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: '246605723',
+              text: `🔴 <b>RehabVet Alert</b>\n\n<b>Customer confirmation email FAILED</b>\n\n<b>To:</b> ${data.owner_email}\n<b>Customer:</b> ${data.owner_name}\n<b>Pet:</b> ${data.pet_name}\n\n<b>Error:</b> <code>${String(e?.message ?? e).slice(0, 300)}</code>`,
+              parse_mode: 'HTML',
+            }),
+          })
+        } catch { /* never crash */ }
+      }),
 
     // 2. Internal notification
     transporter.sendMail({
