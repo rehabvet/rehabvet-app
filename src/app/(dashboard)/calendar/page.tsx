@@ -446,7 +446,7 @@ export default function CalendarPage() {
       d.setDate(startOfWeek.getDate() + i)
       weekDays.push(d)
     }
-    const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8–20
+    const hours = Array.from({ length: 15 }, (_, i) => i + 8) // 8–22
     const CELL_H = 60      // px per hour
     const TIME_W = 48      // px — time label column
     const MIN_DAY_W = 80   // px — minimum day column width
@@ -566,7 +566,7 @@ export default function CalendarPage() {
   function renderDayView() {
     const dateStr = toSGTDateStr(currentDate)
     const dayAppts = apptsByDate[dateStr] || []
-    const hours = Array.from({ length: 13 }, (_, i) => i + 8) // 8:00 – 20:00
+    const hours = Array.from({ length: 15 }, (_, i) => i + 8) // 8:00 – 22:00
 
     const providerMap: Record<string, { id: string; name: string; role: string; photo_url?: string }> = {}
     for (const a of dayAppts) {
