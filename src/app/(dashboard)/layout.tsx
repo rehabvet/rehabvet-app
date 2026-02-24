@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, Users, PawPrint, ClipboardList,
   FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package, Megaphone,
-  Stethoscope, UserCog, Layers
+  Stethoscope, UserCog, Layers, Mail
 } from 'lucide-react'
 
 interface User {
@@ -25,6 +25,7 @@ const nav = [
   { href: '/packages', label: 'Packages', icon: Layers, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'vet', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist'] },
   { href: '/leads', label: 'Leads', icon: Megaphone, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
+  { href: '/campaigns', label: 'Campaigns', icon: Mail, roles: ['admin', 'administrator', 'office_manager', 'marketing'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet', 'administrator', 'office_manager', 'veterinarian'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin', 'administrator', 'office_manager'] },

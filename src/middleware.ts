@@ -12,6 +12,9 @@ const PUBLIC_PREFIXES = [
   '/api/error-report',      // client-side error reporting (unauthenticated)
   '/api/google-reviews',    // public widget
   '/api/health',
+  '/api/webhooks',          // Resend webhooks
+  '/api/unsubscribe',       // unsubscribe handler
+  '/unsubscribe',           // unsubscribe page
   '/_next',
   '/static',
   '/favicon',

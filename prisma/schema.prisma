@@ -481,6 +481,53 @@ model client_packages {
   @@map("client_packages")
 }
 
+model email_campaigns {
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String
+  subject          String
+  preheader        String?
+  body_blocks      String    @db.Text
+  body_html        String    @db.Text
+  status           String    @default("draft")
+  audience         String    @default("all")
+  total_recipients Int       @default(0)
+  sent_count       Int       @default(0)
+  opened_count     Int       @default(0)
+  clicked_count    Int       @default(0)
+  sent_at          DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  recipients       email_campaign_recipients[]
+  @@map("email_campaigns")
+}
+
+model email_campaign_recipients {
+  id           String   @id @default(uuid()) @db.Uuid
+  campaign_id  String   @db.Uuid
+  client_id    String   @db.Uuid
+  email        String
+  name         String
+  resend_id    String?
+  status       String   @default("pending")
+  error        String?
+  sent_at      DateTime?
+  opened_at    DateTime?
+  clicked_at   DateTime?
+  campaign     email_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  @@unique([campaign_id, client_id])
+  @@index([campaign_id])
+  @@index([email])
+  @@map("email_campaign_recipients")
+}
+
+model email_unsubscribes {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique
+  reason     String?
+  created_at DateTime @default(now())
+  @@map("email_unsubscribes")
+}
+
 model package_usage_logs {
   id             String   @id @default(uuid()) @db.Uuid
   package_id     String   @db.Uuid
