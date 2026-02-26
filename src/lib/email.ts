@@ -147,7 +147,7 @@ function emailFooter(internal = false) {
           ? 'RehabVet internal notification &middot; Do not reply.'
           : 'You received this because you submitted a request on <a href="https://rehabvet.com" style="color:#d1d5db;">rehabvet.com</a>.'
         }<br/>
-        &copy; ${new Date().getFullYear()} RehabVet Veterinary Rehabilitation Centre Pte. Ltd.
+        &copy; ${new Date().getFullYear()} RehabVet Pte Ltd.
       </p>
     </td>
   </tr>`

@@ -103,7 +103,7 @@ export function wrapCampaignEmail(
         Hi ${firstName}, you're receiving this as a RehabVet client at ${recipientEmail}.<br/>
         <a href="${unsubUrl}" style="color:#d1d5db;text-decoration:underline;">Unsubscribe</a>
         &nbsp;&middot;&nbsp;
-        &copy; ${year} RehabVet Veterinary Rehabilitation Centre Pte. Ltd.
+        &copy; ${year} RehabVet Pte Ltd.
       </p>
     </td>
   </tr>
