@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit
 
   const searchSql = search ? `AND (c.name ILIKE $3 OR c.email ILIKE $3)` : ''
+  const countSearchSql = search ? `AND (c.name ILIKE $1 OR c.email ILIKE $1)` : ''
   const filterSql =
     filter === 'subscribed'   ? `AND u.email IS NULL`     :
     filter === 'unsubscribed' ? `AND u.email IS NOT NULL` : ''
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     FROM clients c
     LEFT JOIN email_unsubscribes u ON LOWER(u.email) = LOWER(c.email)
     WHERE c.email IS NOT NULL AND c.email != ''
-    ${searchSql}
+    ${countSearchSql}
     ${filterSql}
   `
 
@@ -50,8 +51,8 @@ export async function GET(req: NextRequest) {
       ? prisma.$queryRawUnsafe(query, param1, param2, param3) as Promise<any[]>
       : prisma.$queryRawUnsafe(query, param1, param2) as Promise<any[]>,
     search
-      ? prisma.$queryRawUnsafe(countQuery, param1, param2, param3) as Promise<any[]>
-      : prisma.$queryRawUnsafe(countQuery, param1, param2) as Promise<any[]>,
+      ? prisma.$queryRawUnsafe(countQuery, param3) as Promise<any[]>
+      : prisma.$queryRawUnsafe(countQuery) as Promise<any[]>,
   ])
 
   // Also get summary counts
