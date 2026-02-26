@@ -204,17 +204,32 @@ function CampaignComposer() {
   }
 
   async function sendTest() {
-    if (!editId) { showToast('Save draft first, then send test'); return }
     const addresses = testEmail.split(/[\n,]+/).map(e => e.trim()).filter(e => e.includes('@'))
     if (!addresses.length) { showToast('Enter at least one valid email address'); return }
     setTestSending(true)
     try {
-      await fetch(`/api/campaigns/${editId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, subject, preheader, body_blocks: JSON.stringify(blocks), body_html: bodyHtml }),
-      })
-      const res = await fetch(`/api/campaigns/${editId}/test`, {
+      // Auto-save draft first if not yet saved
+      let campaignId = editId
+      if (!campaignId) {
+        if (!name || !subject) { showToast('Fill in campaign name and subject line first'); setTestSending(false); return }
+        const saveRes = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, subject, preheader, body_blocks: JSON.stringify(blocks), body_html: bodyHtml }),
+        })
+        const saveData = await saveRes.json()
+        if (!saveRes.ok) { showToast(saveData.error || 'Could not save draft'); setTestSending(false); return }
+        campaignId = saveData.campaign.id
+        router.replace(`/campaigns/new?edit=${campaignId}`)
+      } else {
+        // Update existing draft with latest content
+        await fetch(`/api/campaigns/${campaignId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, subject, preheader, body_blocks: JSON.stringify(blocks), body_html: bodyHtml }),
+        })
+      }
+      const res = await fetch(`/api/campaigns/${campaignId}/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: addresses }),
@@ -293,7 +308,7 @@ function CampaignComposer() {
             {saving ? 'Saving…' : 'Save Draft'}
           </button>
           <button
-            onClick={() => { if (!editId) { showToast('Save draft first'); return } setShowTestModal(true) }}
+            onClick={() => setShowTestModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
           >
             <Send className="w-4 h-4 opacity-60" />
