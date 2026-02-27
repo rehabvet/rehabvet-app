@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   // Generate visit number
   const countRows = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM visit_records`) as any[]
   const n = (countRows[0]?.n ?? 0) + 1
-  const visitNumber = `VR-${new Date().getFullYear()}-${String(n).padStart(5, '0')}`
+  const visitNumber = `VR-${new Date().getFullYear()}-${String(n).padStart(6, '0')}`
 
   const rows = await prisma.$queryRawUnsafe(`
     INSERT INTO visit_records (
