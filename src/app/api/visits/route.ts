@@ -60,19 +60,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'client_id, patient_id and visit_date required' }, { status: 400 })
   }
 
+  // Generate visit number
+  const countRows = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM visit_records`) as any[]
+  const n = (countRows[0]?.n ?? 0) + 1
+  const visitNumber = `VR-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`
+
   const rows = await prisma.$queryRawUnsafe(`
     INSERT INTO visit_records (
+      visit_number,
       appointment_id, client_id, patient_id, staff_id,
       visit_date, weight_kg, temperature_c, heart_rate_bpm, body_condition_score,
       history, clinical_examination, diagnosis,
       treatment, hep, internal_notes, client_notes, plan
     ) VALUES (
-      $1, $2::uuid, $3::uuid, $4,
-      $5, $6, $7, $8, $9,
-      $10, $11, $12,
-      $13, $14, $15, $16, $17
+      $1,
+      $2, $3::uuid, $4::uuid, $5,
+      $6, $7, $8, $9, $10,
+      $11, $12, $13,
+      $14, $15, $16, $17, $18
     ) RETURNING *
   `,
+    visitNumber,
     appointment_id || null,
     client_id,
     patient_id,

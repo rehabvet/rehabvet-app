@@ -206,6 +206,9 @@ export default function VisitPage() {
 
       {/* Visit info bar */}
       <div className="card py-3 px-5">
+        {visit.visit_number && (
+          <p className="text-xs text-gray-400 font-mono mb-2">{visit.visit_number}</p>
+        )}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <span className="flex items-center gap-1.5 font-semibold text-gray-900">
             <PawPrint className="w-4 h-4 text-brand-pink" />{visit.patient_name}

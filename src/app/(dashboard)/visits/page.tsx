@@ -59,6 +59,7 @@ export default function VisitsPage() {
           <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Patient</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
@@ -73,6 +74,9 @@ export default function VisitsPage() {
                   onClick={() => router.push(`/visits/${v.id}`)}
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                 >
+                  <td className="px-4 py-3 text-xs font-mono text-gray-400 whitespace-nowrap hidden sm:table-cell">
+                    {v.visit_number || '—'}
+                  </td>
                   <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                     {v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </td>
