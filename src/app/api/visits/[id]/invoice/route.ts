@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Generate invoice number
   const countRows = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM invoices`) as any[]
   const n = (countRows[0]?.n ?? 0) + 1
-  const invoiceNumber = `RV-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`
+  const invoiceNumber = `RV-${new Date().getFullYear()}-${String(n).padStart(6, '0')}`
 
   const body = await req.json().catch(() => ({}))
   const visitDate = visit.visit_date?.toISOString?.()?.split('T')[0] ?? new Date().toISOString().split('T')[0]

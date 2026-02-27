@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   // Generate invoice number (simple incremental approach)
   const count = await prisma.invoices.count()
-  const invoiceNumber = `RV-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`
+  const invoiceNumber = `RV-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`
 
   let subtotal = 0
   for (const item of items) subtotal += Number(item.quantity) * Number(item.unit_price)
