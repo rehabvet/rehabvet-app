@@ -101,14 +101,13 @@ model users {
 
 model clients {
   id            String   @id @default(uuid()) @db.Uuid
-  client_number String?  @unique
-  name          String
-  email         String?
-  phone         String?
-  address       String?
-  notes         String?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  notes      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   patients         patients[]
   invoices         invoices[]

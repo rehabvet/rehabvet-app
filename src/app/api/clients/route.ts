@@ -34,10 +34,20 @@ export async function GET(req: NextRequest) {
     prisma.clients.count({ where }),
   ])
 
+  // Fetch client_numbers for this page (outside Prisma schema)
+  const ids = clients.map(c => c.id)
+  const cnRows = ids.length
+    ? await prisma.$queryRawUnsafe(
+        `SELECT id, client_number FROM clients WHERE id = ANY($1::uuid[])`,
+        ids
+      ) as any[]
+    : []
+  const cnMap = Object.fromEntries(cnRows.map((r: any) => [r.id, r.client_number]))
+
   const cliRes = NextResponse.json({
     clients: clients.map((c) => {
       const { _count, ...rest } = c as any
-      return { ...rest, patient_count: _count?.patients ?? 0 }
+      return { ...rest, patient_count: _count?.patients ?? 0, client_number: cnMap[c.id] ?? null }
     }),
     total,
     page,
