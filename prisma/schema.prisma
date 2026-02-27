@@ -101,7 +101,7 @@ model users {
 
 model clients {
   id            String   @id @default(uuid()) @db.Uuid
-  client_number BigInt?  @unique
+  client_number String?  @unique
   name          String
   email         String?
   phone         String?
