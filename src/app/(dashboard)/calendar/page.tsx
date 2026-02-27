@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle, CalendarDays } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle, CalendarDays, ClipboardList } from 'lucide-react'
 import { useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -15,6 +16,7 @@ function toSGTDateStr(d: Date) {
 }
 
 export default function CalendarPage() {
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewType>('day')
   const [appointments, setAppointments] = useState<any[]>([])
@@ -1116,6 +1118,27 @@ export default function CalendarPage() {
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
               <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    // Create visit record for this appointment, then navigate
+                    const res = await fetch('/api/visits', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        appointment_id: selectedAppt.id,
+                        client_id:  selectedAppt.client_id,
+                        patient_id: selectedAppt.patient_id,
+                        staff_id:   selectedAppt.therapist_id,
+                        visit_date: selectedAppt.date,
+                      }),
+                    })
+                    const data = await res.json()
+                    if (data.visit?.id) { closeModal(); router.push(`/visits/${data.visit.id}`) }
+                  }}
+                  className="flex items-center gap-1.5 btn-secondary text-brand-pink border-brand-pink/30"
+                >
+                  <ClipboardList className="w-4 h-4" /> Record Visit
+                </button>
                 <button onClick={closeModal} className="btn-secondary">Cancel</button>
                 <button onClick={saveAppointment} disabled={saving} className="btn-primary">
                   {saving ? 'Saving...' : 'Save Changes'}

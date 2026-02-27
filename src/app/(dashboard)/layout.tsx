@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, Users, PawPrint, ClipboardList,
   FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package, Megaphone,
-  Stethoscope, UserCog, Layers, Mail
+  Stethoscope, UserCog, Layers, Mail, Clipboard
 } from 'lucide-react'
 
 interface User {
@@ -21,6 +21,7 @@ const nav = [
   { href: '/patients', label: 'Patients', icon: PawPrint, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/treatment-plans', label: 'Treatment Plans', icon: Stethoscope, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/sessions', label: 'Sessions', icon: FileText, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
+  { href: '/visits', label: 'Visit Records', icon: Clipboard, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
   { href: '/packages', label: 'Packages', icon: Layers, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'vet', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist'] },

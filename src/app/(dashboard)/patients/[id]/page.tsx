@@ -3,17 +3,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit2, Save, X, Activity, Stethoscope, Calendar, FileText, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Activity, Stethoscope, Calendar, FileText, TrendingUp, ClipboardList } from 'lucide-react'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [tab, setTab] = useState('overview')
+  const [visits, setVisits] = useState<any[]>([])
   const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     fetch(`/api/patients/${id}`).then(r => r.json()).then(setData)
+    fetch(`/api/patients/${id}/visits`).then(r => r.json()).then(d => setVisits(d.visits || []))
   }, [id])
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function PatientDetailPage() {
     { key: 'plans', label: 'Treatment Plans', icon: Stethoscope },
     { key: 'sessions', label: 'Sessions', icon: FileText },
     { key: 'appointments', label: 'Appointments', icon: Calendar },
+    { key: 'visits', label: 'Visit Records', icon: ClipboardList },
   ]
 
   return (
@@ -184,6 +187,41 @@ export default function PatientDetailPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'visits' && (
+        <div className="card p-0 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-brand-pink" /> Visit Records</h3>
+            <span className="text-xs text-gray-400">{visits.length} visits</span>
+          </div>
+          {visits.length === 0 ? (
+            <p className="text-gray-400 text-sm py-8 text-center">No visit records yet</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Staff</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Weight</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Key Findings</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {visits.map((v: any) => (
+                  <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/visits/${v.id}`)}>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td className="px-4 py-3"><span className="badge-gray">{v.staff_name || '—'}</span></td>
+                    <td className="px-4 py-3">{v.weight_kg ? `${v.weight_kg} kg` : '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell max-w-[260px] truncate">{v.clinical_examination?.slice(0, 100) || v.history?.slice(0, 100) || '—'}</td>
+                    <td className="px-4 py-3 text-right"><span className="text-brand-pink text-xs font-medium">View →</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       )}
