@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, GripVertical, User, PawPrint, Calendar, Weight } from 'lucide-react'
+import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt } from 'lucide-react'
 
 type ListItem = { id: string; text: string }
 
@@ -64,10 +64,19 @@ function OrderedList({ items, onChange, placeholder }: { items: ListItem[]; onCh
 export default function VisitPage() {
   const { id } = useParams()
   const router = useRouter()
-  const [visit, setVisit]   = useState<any>(null)
-  const [saving, setSaving] = useState(false)
-  const [saved,  setSaved]  = useState(false)
-  const [staff,  setStaff]  = useState<any[]>([])
+  const [visit,    setVisit]    = useState<any>(null)
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+  const [staff,    setStaff]    = useState<any[]>([])
+  const [invoice,  setInvoice]  = useState<any>(null)
+  const [lineItems,setLineItems]= useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
+  const [newItem,  setNewItem]  = useState({ description: '', item_type: 'service', qty: '1', unit_price: '0', dispensing_instructions: '', is_package_redemption: false })
+  const [newPay,   setNewPay]   = useState({ amount: '', method: 'paynow', reference: '' })
+  const [addingItem,setAddingItem]=useState(false)
+  const [addingPay, setAddingPay] =useState(false)
+  const [showItemForm,setShowItemForm]=useState(false)
+  const [showPayForm, setShowPayForm] =useState(false)
 
   // Form state
   const [form, setForm] = useState<any>({
@@ -101,7 +110,61 @@ export default function VisitPage() {
       })
     })
     fetch('/api/staff').then(r => r.json()).then(d => setStaff(d.staff || []))
+    loadInvoice()
   }, [id])
+
+  async function loadInvoice() {
+    const res = await fetch(`/api/visits/${id}/invoice`)
+    const data = await res.json()
+    if (data.invoice) {
+      setInvoice(data.invoice)
+      setLineItems(data.line_items || [])
+      setPayments(data.payments || [])
+    }
+  }
+
+  async function createInvoice() {
+    const res = await fetch(`/api/visits/${id}/invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const data = await res.json()
+    if (data.invoice) { setInvoice(data.invoice); setLineItems([]); setPayments([]) }
+  }
+
+  async function addLineItem() {
+    if (!newItem.description) return
+    setAddingItem(true)
+    await fetch(`/api/invoices/${invoice.id}/line-items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newItem, qty: parseFloat(newItem.qty), unit_price: parseFloat(newItem.unit_price) }),
+    })
+    setNewItem({ description: '', item_type: 'service', qty: '1', unit_price: '0', dispensing_instructions: '', is_package_redemption: false })
+    setShowItemForm(false)
+    setAddingItem(false)
+    await loadInvoice()
+  }
+
+  async function deleteLineItem(lineItemId: string) {
+    await fetch(`/api/invoices/${invoice.id}/line-items`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_item_id: lineItemId }),
+    })
+    await loadInvoice()
+  }
+
+  async function addPayment() {
+    if (!newPay.amount) return
+    setAddingPay(true)
+    await fetch(`/api/invoices/${invoice.id}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newPay, client_id: visit.client_id }),
+    })
+    setNewPay({ amount: '', method: 'paynow', reference: '' })
+    setShowPayForm(false)
+    setAddingPay(false)
+    await loadInvoice()
+  }
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -229,6 +292,199 @@ export default function VisitPage() {
       {/* Internal Notes */}
       <Section title="🔒 Internal Notes (staff only)" defaultOpen={false}>
         <textarea className="input mt-3 w-full" rows={3} placeholder="Internal staff notes — not visible to the client…" value={form.internal_notes} onChange={e => f('internal_notes', e.target.value)} />
+      </Section>
+
+      {/* ── BILLING ───────────────────────────────────────────────────────── */}
+      <Section title="💳 Billing & Payment" defaultOpen={false}>
+        {!invoice ? (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-400 mb-3">No invoice created for this visit yet.</p>
+            <button onClick={createInvoice} className="btn-primary flex items-center gap-2 mx-auto">
+              <Receipt className="w-4 h-4" /> Create Invoice
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-5">
+            {/* Invoice header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400">Invoice</p>
+                <p className="font-semibold text-gray-900">{invoice.invoice_number}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400">Status</p>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' : invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {invoice.status?.toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            {/* Line Items */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Line Items</p>
+                <button onClick={() => setShowItemForm(v => !v)} className="text-xs text-brand-pink flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </button>
+              </div>
+
+              {showItemForm && (
+                <div className="rounded-xl border border-gray-200 p-4 mb-3 space-y-3 bg-gray-50/50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="label">Description *</label>
+                      <input className="input" placeholder="e.g. Rehab 5 Visit, Gabapentin 50mg…" value={newItem.description} onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Type</label>
+                      <select className="input" value={newItem.item_type} onChange={e => setNewItem(p => ({ ...p, item_type: e.target.value }))}>
+                        <option value="service">Service</option>
+                        <option value="package_redemption">Package Redemption</option>
+                        <option value="medication">Medication</option>
+                        <option value="supplement">Supplement</option>
+                        <option value="product">Product</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Qty</label>
+                      <input className="input" type="number" step="0.5" min="0" value={newItem.qty} onChange={e => setNewItem(p => ({ ...p, qty: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Unit Price (S$)</label>
+                      <input className="input" type="number" step="0.01" min="0" value={newItem.unit_price} onChange={e => setNewItem(p => ({ ...p, unit_price: e.target.value }))} />
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input type="checkbox" id="pkg_redemption" checked={newItem.is_package_redemption} onChange={e => setNewItem(p => ({ ...p, is_package_redemption: e.target.checked, unit_price: e.target.checked ? '0' : p.unit_price }))} />
+                      <label htmlFor="pkg_redemption" className="text-sm text-gray-600">From Package (S$0)</label>
+                    </div>
+                    {newItem.item_type === 'medication' || newItem.item_type === 'supplement' ? (
+                      <div className="col-span-2">
+                        <label className="label">Dispensing Instructions</label>
+                        <input className="input" placeholder="e.g. 1 tablet every 8 hours…" value={newItem.dispensing_instructions} onChange={e => setNewItem(p => ({ ...p, dispensing_instructions: e.target.value }))} />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => setShowItemForm(false)} className="btn-secondary text-sm">Cancel</button>
+                    <button onClick={addLineItem} disabled={addingItem || !newItem.description} className="btn-primary text-sm">
+                      {addingItem ? 'Adding…' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {lineItems.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">No items yet</p>
+              ) : (
+                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Item</th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-500">Qty</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Price</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total</th>
+                        <th className="px-2 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {lineItems.map((li: any) => (
+                        <tr key={li.id}>
+                          <td className="px-3 py-2">
+                            <p className="font-medium text-gray-900">{li.description}</p>
+                            {li.is_package_redemption && <span className="text-xs text-brand-pink">Package</span>}
+                            {li.dispensing_instructions && <p className="text-xs text-gray-400 mt-0.5">{li.dispensing_instructions}</p>}
+                          </td>
+                          <td className="px-3 py-2 text-center text-gray-600">{li.qty}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">S${parseFloat(li.unit_price).toFixed(2)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-gray-900">S${parseFloat(li.total).toFixed(2)}</td>
+                          <td className="px-2 py-2">
+                            <button onClick={() => deleteLineItem(li.id)} className="text-red-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-gray-200 bg-gray-50">
+                      <tr><td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">Subtotal</td><td className="px-3 py-2 text-right text-sm font-semibold">S${parseFloat(invoice.subtotal||0).toFixed(2)}</td><td /></tr>
+                      <tr><td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">GST (9%)</td><td className="px-3 py-2 text-right text-sm">S${parseFloat(invoice.tax||0).toFixed(2)}</td><td /></tr>
+                      <tr><td colSpan={3} className="px-3 py-2 text-right text-sm font-bold text-gray-800">Total</td><td className="px-3 py-2 text-right text-sm font-bold text-gray-900">S${parseFloat(invoice.total||0).toFixed(2)}</td><td /></tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Payments */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Payments</p>
+                <button onClick={() => setShowPayForm(v => !v)} className="text-xs text-brand-pink flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Record Payment
+                </button>
+              </div>
+
+              {showPayForm && (
+                <div className="rounded-xl border border-gray-200 p-4 mb-3 space-y-3 bg-gray-50/50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Amount (S$) *</label>
+                      <input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={newPay.amount} onChange={e => setNewPay(p => ({ ...p, amount: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Method</label>
+                      <select className="input" value={newPay.method} onChange={e => setNewPay(p => ({ ...p, method: e.target.value }))}>
+                        <option value="paynow">PayNow</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="nets">NETS</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="label">Reference (optional)</label>
+                      <input className="input" placeholder="Transaction reference…" value={newPay.reference} onChange={e => setNewPay(p => ({ ...p, reference: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => setShowPayForm(false)} className="btn-secondary text-sm">Cancel</button>
+                    <button onClick={addPayment} disabled={addingPay || !newPay.amount} className="btn-primary text-sm">
+                      {addingPay ? 'Recording…' : 'Record Payment'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {payments.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">No payments recorded</p>
+              ) : (
+                <div className="space-y-2">
+                  {payments.map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 capitalize">{p.method}</p>
+                          {p.reference && <p className="text-xs text-gray-400">{p.reference}</p>}
+                        </div>
+                      </div>
+                      <p className="font-semibold text-green-600">S${parseFloat(p.amount).toFixed(2)}</p>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-sm px-1 pt-1">
+                    <span className="text-gray-500">Amount Paid</span>
+                    <span className="font-bold text-green-700">S${parseFloat(invoice.amount_paid||0).toFixed(2)}</span>
+                  </div>
+                  {parseFloat(invoice.total||0) > parseFloat(invoice.amount_paid||0) && (
+                    <div className="flex justify-between text-sm px-1">
+                      <span className="text-gray-500">Balance Due</span>
+                      <span className="font-bold text-red-500">S${(parseFloat(invoice.total||0) - parseFloat(invoice.amount_paid||0)).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* Save button at bottom too */}
