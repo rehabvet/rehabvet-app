@@ -132,7 +132,10 @@ export default function ClientsPage() {
                       <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink font-semibold text-xs flex-shrink-0">
                         {c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                       </div>
-                      <span className="font-medium text-gray-900">{c.name}</span>
+                      <div>
+                        <span className="font-medium text-gray-900">{c.name}</span>
+                        {c.client_number && <p className="text-xs text-gray-400">#{String(c.client_number)}</p>}
+                      </div>
                     </div>
                   </td>
 

@@ -149,7 +149,12 @@ export default function ClientDetailPage() {
               {editing ? (
                 <input className="input text-lg font-bold" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
               ) : (
-                <h1 className="text-xl font-bold text-gray-900">{client.name}</h1>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">{client.name}</h1>
+                  {client.client_number && (
+                    <p className="text-xs text-gray-400 mt-0.5">Client # {String(client.client_number)}</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
