@@ -9,9 +9,11 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 
   const rows = await prisma.$queryRawUnsafe(`
     SELECT
-      i.*,
-      c.name  AS client_name,
-      p.name  AS patient_name
+      i.id, i.invoice_number, i.bill_number, i.client_id, i.patient_id, i.visit_id,
+      i.date, i.due_date, i.status, i.subtotal, i.tax, i.total, i.amount_paid, i.notes,
+      i.created_at, i.updated_at,
+      c.name AS client_name,
+      p.name AS patient_name
     FROM invoices i
     LEFT JOIN clients  c ON c.id = i.client_id
     LEFT JOIN patients p ON p.id = i.patient_id
