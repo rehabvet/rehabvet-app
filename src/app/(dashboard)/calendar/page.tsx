@@ -1139,9 +1139,8 @@ export default function CalendarPage() {
                 >
                   <ClipboardList className="w-4 h-4" /> Record Visit
                 </button>
-                <button onClick={closeModal} className="btn-secondary">Cancel</button>
                 <button onClick={saveAppointment} disabled={saving} className="btn-primary">
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
