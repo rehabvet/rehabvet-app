@@ -131,32 +131,34 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
       let invoiceId = existingInvoice?.id
 
       if (!invoiceId && visitId) {
-        // Create invoice from visit
+        // Try create invoice from visit; if already exists (409) fetch the existing one
         const res = await fetch(`/api/visits/${visitId}/invoice`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         })
         const d = await res.json()
-        invoiceId = d.invoice?.id
+        if (d.invoice?.id) {
+          invoiceId = d.invoice.id
+        } else {
+          // 409 = already exists — fetch it
+          const existing = await fetch(`/api/visits/${visitId}/invoice`).then(r => r.json())
+          invoiceId = existing.invoice?.id
+        }
       }
 
       if (!invoiceId) {
-        // Create a standalone invoice
-        const res = await fetch('/api/invoices', {
+        // No visit — create standalone invoice via raw SQL endpoint
+        const res = await fetch('/api/invoices/create-raw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            client_id: clientId,
-            patient_id: patientId,
-            items: [], // we'll add via line-items API
-          }),
+          body: JSON.stringify({ client_id: clientId, patient_id: patientId }),
         })
         const d = await res.json()
         invoiceId = d.invoice?.id
       }
 
-      if (!invoiceId) { setSaving(false); return }
+      if (!invoiceId) { alert('Could not create invoice. Please try again.'); setSaving(false); return }
 
       // Delete existing line items if editing
       if (existingLineItems.length > 0) {
