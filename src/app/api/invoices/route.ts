@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
 
   let subtotal = 0
   for (const item of items) subtotal += Number(item.quantity) * Number(item.unit_price)
-  const tax = Math.round(subtotal * 0.09 * 100) / 100 // 9% GST
-  const total = Math.round((subtotal + tax) * 100) / 100
+  const tax = 0
+  const total = subtotal
 
   const invoice = await prisma.$transaction(async (tx) => {
     const inv = await tx.invoices.create({

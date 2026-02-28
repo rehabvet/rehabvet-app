@@ -113,8 +113,7 @@ export default function InvoiceDetailPage() {
               <td className="table-cell text-right font-medium">${invoice.subtotal.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={3} className="table-cell text-right text-gray-500">GST (9%)</td>
-              <td className="table-cell text-right">${invoice.tax.toFixed(2)}</td>
+
             </tr>
             <tr className="border-t border-gray-300">
               <td colSpan={3} className="table-cell text-right font-bold text-lg">Total</td>

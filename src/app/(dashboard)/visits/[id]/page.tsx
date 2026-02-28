@@ -415,7 +415,7 @@ export default function VisitPage() {
                     </tbody>
                     <tfoot className="border-t border-gray-200 bg-gray-50">
                       <tr><td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">Subtotal</td><td className="px-3 py-2 text-right text-sm font-semibold">S${parseFloat(invoice.subtotal||0).toFixed(2)}</td><td /></tr>
-                      <tr><td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">GST (9%)</td><td className="px-3 py-2 text-right text-sm">S${parseFloat(invoice.tax||0).toFixed(2)}</td><td /></tr>
+
                       <tr><td colSpan={3} className="px-3 py-2 text-right text-sm font-bold text-gray-800">Total</td><td className="px-3 py-2 text-right text-sm font-bold text-gray-900">S${parseFloat(invoice.total||0).toFixed(2)}</td><td /></tr>
                     </tfoot>
                   </table>

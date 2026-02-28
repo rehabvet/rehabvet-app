@@ -66,8 +66,8 @@ export default function BillingPage() {
   }
 
   const subtotal = form.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
-  const tax = Math.round(subtotal * 0.09 * 100) / 100
-  const total = subtotal + tax
+  const tax = 0
+  const total = subtotal
 
   const totalOutstanding = invoices.filter(i => ['sent','partial','overdue'].includes(i.status)).reduce((sum, i) => sum + i.total - i.amount_paid, 0)
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
@@ -187,7 +187,7 @@ export default function BillingPage() {
 
           <div className="border-t border-gray-200 pt-3 text-right text-sm space-y-1">
             <p>Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
-            <p>GST (9%): <span className="font-medium">${tax.toFixed(2)}</span></p>
+
             <p className="text-lg font-bold">Total: ${total.toFixed(2)}</p>
           </div>
 
