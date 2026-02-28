@@ -1049,9 +1049,17 @@ export default function CalendarPage() {
             <div className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <User className="w-4 h-4 text-gray-400" />
-                <span className="font-semibold text-gray-900">{selectedAppt.patient_name}</span>
+                <span className="font-semibold text-gray-900">
+                  {selectedAppt.patient_name || <span className="text-gray-400 font-normal italic">No patient linked</span>}
+                </span>
               </div>
-              <p className="text-sm text-gray-500">{selectedAppt.client_name} • {selectedAppt.client_phone}</p>
+              {(selectedAppt.client_name || selectedAppt.client_phone) ? (
+                <p className="text-sm text-gray-500">{selectedAppt.client_name}{selectedAppt.client_phone ? ` • ${selectedAppt.client_phone}` : ''}</p>
+              ) : selectedAppt.notes?.startsWith('Client:') ? (
+                <p className="text-sm text-amber-600">⚠️ Unmatched: {selectedAppt.notes.replace(/^Client:\s*/, '')}</p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No client linked</p>
+              )}
             </div>
 
             {/* Tabs */}
