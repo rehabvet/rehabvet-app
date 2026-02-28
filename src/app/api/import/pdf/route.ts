@@ -67,20 +67,34 @@ export async function POST(req: NextRequest) {
 
   // --- Match patient by name (within that client) ---
   if (clientId) {
-    const pname = parsed.patientName.toLowerCase();
-    const patients = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
-      `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(name) = $2 LIMIT 1`,
+    const pname = parsed.patientName.toLowerCase().trim();
+
+    // 1. Exact case-insensitive match
+    const exact = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+      `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(TRIM(name)) = $2 LIMIT 1`,
       clientId, pname
     );
-    if (patients.length > 0) patientId = patients[0].id;
+    if (exact.length > 0) patientId = exact[0].id;
 
-    // If not found by exact name, try partial
+    // 2. Partial match (name contains search term)
     if (!patientId) {
-      const patients2 = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+      const partial = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
         `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(name) LIKE $2 LIMIT 1`,
         clientId, `%${pname}%`
       );
-      if (patients2.length > 0) patientId = patients2[0].id;
+      if (partial.length > 0) patientId = partial[0].id;
+    }
+
+    // 3. If client has exactly 1 patient, use it regardless of name
+    if (!patientId) {
+      const all = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+        `SELECT id, name FROM patients WHERE client_id = $1`,
+        clientId
+      );
+      if (all.length === 1) {
+        patientId = all[0].id;
+        warnings.push(`Patient name "${parsed.patientName}" not matched — used only pet "${all[0].name}" on file`);
+      }
     }
   }
 
