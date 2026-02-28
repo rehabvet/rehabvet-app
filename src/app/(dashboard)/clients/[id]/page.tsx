@@ -183,7 +183,7 @@ export default function ClientDetailPage() {
                     <th className="table-header">Date</th>
                     <th className="table-header">Pet</th>
                     <th className="table-header">Therapist</th>
-                    <th className="table-header">Chief Complaint</th>
+                    <th className="table-header">History / Reason</th>
                     <th className="table-header"></th>
                   </tr></thead>
                   <tbody className="divide-y divide-gray-100">
@@ -193,7 +193,7 @@ export default function ClientDetailPage() {
                         <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                         <td className="table-cell">{v.patient_name || '—'}</td>
                         <td className="table-cell">{v.staff_name || '—'}</td>
-                        <td className="table-cell text-gray-500 max-w-[200px] truncate">{v.chief_complaint || '—'}</td>
+                        <td className="table-cell text-gray-500 max-w-[200px] truncate">{v.history || '—'}</td>
                         <td className="table-cell text-right"><span className="text-xs text-brand-pink">View →</span></td>
                       </tr>
                     ))}
