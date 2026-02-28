@@ -23,7 +23,8 @@ export default function BillingPage() {
   async function fetchInvoices() {
     setLoading(true)
     const q = statusFilter ? `?status=${statusFilter}` : ''
-    const data = await fetch(`/api/invoices${q}`).then(r => r.json())
+    const sep = q ? '&' : '?'
+    const data = await fetch(`/api/invoices${q}${sep}_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
     setInvoices(data.invoices || [])
     setLoading(false)
   }

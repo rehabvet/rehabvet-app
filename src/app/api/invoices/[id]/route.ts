@@ -106,6 +106,7 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
 
   await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoice_items WHERE invoice_id=$1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM payments WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoices WHERE id=$1::uuid`, params.id)
 
   return NextResponse.json({ ok: true })
