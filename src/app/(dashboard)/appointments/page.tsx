@@ -236,7 +236,7 @@ export default function AppointmentsPage() {
     if (diff === 0) return 'Today'
     if (diff === 1) return 'Tomorrow'
     if (diff === -1) return 'Yesterday'
-    return dt.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })
+    return dt.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   return (
@@ -296,6 +296,7 @@ export default function AppointmentsPage() {
           className="input text-sm w-auto"
         >
           <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
           <option value="scheduled">Scheduled</option>
           <option value="confirmed">Confirmed</option>
           <option value="in_progress">In Progress</option>
@@ -349,11 +350,8 @@ export default function AppointmentsPage() {
                   className={`cursor-pointer hover:bg-gray-50/80 transition-colors border-l-4 ${modalityBorder[a.modality] || 'border-l-gray-200'}`}>
 
                   {/* Date */}
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-gray-800 leading-tight text-xs">{fmtApptDate(a.date)}</p>
-                    <p className="text-[11px] text-gray-400 leading-tight">
-                      {new Date(a.date + 'T00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <p className="font-semibold text-gray-800 text-xs leading-snug">{fmtApptDate(a.date)}</p>
                   </td>
 
                   {/* Time */}
@@ -399,6 +397,7 @@ export default function AppointmentsPage() {
                       onChange={e => updateStatus(a.id, e.target.value)}
                       className={`text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white cursor-pointer hover:border-gray-300 outline-none font-medium ${statusBadge[a.status] || ''}`}
                     >
+                      <option value="pending">Pending</option>
                       <option value="scheduled">Scheduled</option>
                       <option value="confirmed">Confirmed</option>
                       <option value="in_progress">In Progress</option>
