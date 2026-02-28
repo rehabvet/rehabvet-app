@@ -117,6 +117,7 @@ export default function BillingPage() {
             <table className="w-full">
               <thead><tr className="border-b border-gray-200">
                 <th className="table-header">Invoice #</th>
+                <th className="table-header">Old Invoice No.</th>
                 <th className="table-header">Client</th>
                 <th className="table-header">Patient</th>
                 <th className="table-header">Date</th>
@@ -129,12 +130,13 @@ export default function BillingPage() {
                 {invoices.map(inv => (
                   <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/billing/${inv.id}`}>
                     <td className="table-cell font-medium text-brand-pink">{inv.invoice_number}</td>
+                    <td className="table-cell text-gray-400 text-sm">{inv.bill_number || '—'}</td>
                     <td className="table-cell">{inv.client_name}</td>
                     <td className="table-cell">{inv.patient_name || '—'}</td>
                     <td className="table-cell">{inv.date}</td>
-                    <td className="table-cell text-right font-medium">${inv.total.toFixed(2)}</td>
-                    <td className="table-cell text-right text-green-600">${inv.amount_paid.toFixed(2)}</td>
-                    <td className="table-cell text-right text-red-600 font-medium">${(inv.total - inv.amount_paid).toFixed(2)}</td>
+                    <td className="table-cell text-right font-medium">S${parseFloat(inv.total||0).toFixed(2)}</td>
+                    <td className="table-cell text-right text-green-600">S${parseFloat(inv.amount_paid||0).toFixed(2)}</td>
+                    <td className="table-cell text-right text-red-600 font-medium">S${(parseFloat(inv.total||0) - parseFloat(inv.amount_paid||0)).toFixed(2)}</td>
                     <td className="table-cell"><InvStatusBadge status={inv.status} /></td>
                   </tr>
                 ))}

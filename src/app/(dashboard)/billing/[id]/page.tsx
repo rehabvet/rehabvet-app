@@ -113,7 +113,10 @@ export default function InvoiceDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Receipt className="w-5 h-5 text-brand-pink" />
-              <h1 className="text-2xl font-bold text-gray-900">{invoice.invoice_number || invoice.bill_number}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{invoice.invoice_number}</h1>
+              {invoice.bill_number && invoice.bill_number !== invoice.invoice_number && (
+                <p className="text-xs text-gray-400 mt-0.5">Old Invoice No: <span className="font-medium">{invoice.bill_number}</span></p>
+              )}
               <StatusBadge status={invoice.status} />
             </div>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
