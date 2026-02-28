@@ -30,7 +30,6 @@ export default function ClientDetailPage() {
   const [form, setForm] = useState<any>({})
   const [visits, setVisits] = useState<any[]>([])
   const [tab, setTab] = useState<Tab>('visits')
-  const PAGE_SIZE = 20
   const [visitPage, setVisitPage] = useState(1)
   const [billingPage, setBillingPage] = useState(1)
   const [apptPage, setApptPage] = useState(1)
@@ -51,20 +50,6 @@ export default function ClientDetailPage() {
     setEditing(false)
     const d = await fetch(`/api/clients/${id}`).then(r => r.json())
     setData(d); setForm(d.client)
-  }
-
-  function Pager({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
-    const pages = Math.ceil(total / PAGE_SIZE)
-    if (pages <= 1) return null
-    return (
-      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
-        <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
-        <div className="flex gap-1">
-          <button disabled={page === 1} onClick={() => onChange(page - 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">←</button>
-          <button disabled={page === pages} onClick={() => onChange(page + 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">→</button>
-        </div>
-      </div>
-    )
   }
 
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
@@ -288,6 +273,22 @@ export default function ClientDetailPage() {
             )
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+const PAGE_SIZE = 20
+
+function Pager({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
+  const pages = Math.ceil(total / PAGE_SIZE)
+  if (pages <= 1) return null
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+      <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+      <div className="flex gap-1">
+        <button disabled={page === 1} onClick={() => onChange(page - 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">←</button>
+        <button disabled={page === pages} onClick={() => onChange(page + 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">→</button>
       </div>
     </div>
   )
