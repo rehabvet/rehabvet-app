@@ -53,9 +53,12 @@ const SPEC_OPTIONS = [
   'Canine Rehabilitation', 'Feline Rehabilitation',
 ]
 
+const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
+
 export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUserEmail, setCurrentUserEmail] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [showDelete, setShowDelete] = useState<any>(null)
   const [showReset, setShowReset] = useState<any>(null)
@@ -78,7 +81,12 @@ export default function StaffPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchStaff() }, [])
+  useEffect(() => {
+    fetchStaff()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setCurrentUserEmail(d.user?.email || ''))
+  }, [])
+
+  const isAdmin = ADMIN_EMAILS.includes(currentUserEmail)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -178,7 +186,7 @@ export default function StaffPage() {
         alert(err.error || 'Failed to save schedule')
       }
     } catch {
-      alert('Network error — please try again')
+      alert('Network error - please try again')
     } finally {
       setSavingSchedule(false)
     }
@@ -303,7 +311,7 @@ export default function StaffPage() {
           <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
           <p className="text-gray-500 text-sm">Clinic team members and roles</p>
         </div>
-        {pageTab === 'profile' && (
+        {pageTab === 'profile' && isAdmin && (
           <button onClick={() => setShowAdd(true)} className="btn-primary">
             <Plus className="w-4 h-4 mr-2" /> Add Staff
           </button>
@@ -337,20 +345,24 @@ export default function StaffPage() {
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => { setShowReset(s); setTempPassword(null); setResetPassword('') }}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
-                    title="Reset password"
-                  >
-                    <KeyRound className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setShowDelete(s)}
-                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
-                    title="Remove staff"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { setShowReset(s); setTempPassword(null); setResetPassword('') }}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-brand-navy hover:bg-brand-navy/5"
+                      title="Reset password"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowDelete(s)}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
+                      title="Remove staff"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-start gap-3">
                   {s.photo_url ? (
@@ -420,7 +432,7 @@ export default function StaffPage() {
                         {d.on ? (
                           <>
                             <p className="text-[10px] text-gray-700 font-medium leading-tight">{fmtTime(d.start)}</p>
-                            <p className="text-[10px] text-gray-400 leading-tight">–</p>
+                            <p className="text-[10px] text-gray-400 leading-tight">-</p>
                             <p className="text-[10px] text-gray-700 font-medium leading-tight">{fmtTime(d.end)}</p>
                             {d.breaks.length > 0 && (
                               <p className="text-[9px] text-orange-400 mt-0.5">{d.breaks.length} break{d.breaks.length > 1 ? 's' : ''}</p>
@@ -443,7 +455,7 @@ export default function StaffPage() {
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Staff Member">
         <form onSubmit={handleAdd} className="space-y-4">
 
-          {/* Photo upload — top of form */}
+          {/* Photo upload - top of form */}
           <div className="flex flex-col items-center gap-3 pb-2">
             <div className="relative">
               {form.photo_url ? (
@@ -526,7 +538,7 @@ export default function StaffPage() {
         </form>
       </Modal>
 
-      {/* Edit Staff Modal — profile only */}
+      {/* Edit Staff Modal - profile only */}
       <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Staff Profile">
         {showEdit && (
           <form onSubmit={handleEdit} className="space-y-4">
@@ -593,7 +605,7 @@ export default function StaffPage() {
       </Modal>
 
       {/* Schedule Edit Modal */}
-      <Modal open={!!showScheduleEdit} onClose={() => setShowScheduleEdit(null)} title={`Schedule — ${showScheduleEdit?.name || ''}`}>
+      <Modal open={!!showScheduleEdit} onClose={() => setShowScheduleEdit(null)} title={`Schedule - ${showScheduleEdit?.name || ''}`}>
         {showScheduleEdit && (
           <form onSubmit={handleSaveSchedule} className="space-y-1">
             <p className="text-xs text-gray-400 mb-3">Toggle days on/off, set working hours and breaks.</p>
@@ -631,7 +643,7 @@ export default function StaffPage() {
                         className="text-sm border border-gray-100 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                         {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
                       </select>
-                      <span className="text-gray-400 text-xs">–</span>
+                      <span className="text-gray-400 text-xs">-</span>
                       <select value={b.end} onChange={e => setBreak(day, i, { end: e.target.value })}
                         className="text-sm border border-gray-100 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-pink/30">
                         {TIME_SLOTS.map(t => <option key={t} value={t}>{fmtTime(t)}</option>)}
@@ -655,26 +667,52 @@ export default function StaffPage() {
       {/* Reset Password Modal */}
       <Modal open={!!showReset} onClose={() => { setShowReset(null); setTempPassword(null); setResetPassword('') }} title="Reset Staff Password">
         {showReset && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <p className="text-gray-600">
-              Reset password for <strong>{showReset.name}</strong> ({showReset.email}).
+          <div className="space-y-4">
+            <p className="text-gray-600 text-sm">
+              Resetting password for <strong>{showReset.name}</strong> · <span className="text-gray-400">{showReset.email}</span>
             </p>
-            <div>
-              <label className="label">New password (leave blank to generate a temporary password)</label>
-              <input type="text" className="input" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
+
+            {/* Send reset link */}
+            <div className="rounded-xl border border-brand-pink/20 bg-pink-50/40 p-4 space-y-2">
+              <p className="text-sm font-semibold text-gray-800">Send reset link by email</p>
+              <p className="text-xs text-gray-500">A password reset link will be emailed to <strong>{showReset.email}</strong>. It expires in 1 hour.</p>
+              <button
+                onClick={async () => {
+                  await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: showReset.email }) })
+                  setTempPassword('__sent__')
+                }}
+                className="btn-primary text-sm w-full"
+              >
+                Send Reset Link
+              </button>
+              {tempPassword === '__sent__' && (
+                <p className="text-xs text-green-700 font-medium text-center pt-1">✓ Reset link sent to {showReset.email}</p>
+              )}
             </div>
-            {tempPassword && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                <p className="text-sm text-green-800 font-semibold">Temporary password generated:</p>
-                <p className="text-sm font-mono text-green-900 break-all">{tempPassword}</p>
-                <p className="text-xs text-green-700 mt-1">Copy this now — it won’t be shown again.</p>
+
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              <div className="flex-1 h-px bg-gray-200" /><span>or set manually</span><div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* Manual password set */}
+            <form onSubmit={handleResetPassword} className="space-y-3">
+              <div>
+                <label className="label">New password (leave blank to auto-generate)</label>
+                <input type="text" className="input" placeholder="Min. 8 characters" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
               </div>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setShowReset(null); setTempPassword(null); setResetPassword('') }} className="btn-secondary">Close</button>
-              <button type="submit" className="btn-primary">Reset Password</button>
-            </div>
-          </form>
+              {tempPassword && tempPassword !== '__sent__' && (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                  <p className="text-sm text-green-800 font-semibold">Temporary password:</p>
+                  <p className="text-sm font-mono text-green-900 break-all">{tempPassword}</p>
+                  <p className="text-xs text-green-700 mt-1">Copy this now — it won't be shown again.</p>
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => { setShowReset(null); setTempPassword(null); setResetPassword('') }} className="btn-secondary">Close</button>
+                <button type="submit" className="btn-primary">Set Password</button>
+              </div>
+            </form>
+          </div>
         )}
       </Modal>
 

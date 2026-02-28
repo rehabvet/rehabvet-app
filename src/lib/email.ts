@@ -464,3 +464,40 @@ export async function sendLeadEmails(data: LeadEmailData) {
 }
 
 export const sendAppointmentConfirmation = sendLeadEmails
+
+// ── Password Reset Email ──────────────────────────────────────────────────────
+const FROM = 'RehabVet <hello@rehabvet.com>'
+
+export async function sendPasswordResetEmail({ name, email, resetUrl }: { name: string; email: string; resetUrl: string }) {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="color-scheme" content="light dark"></head>
+<body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:520px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <div style="background:#0f172a;padding:32px;text-align:center;">
+      <img src="https://app.rehabvet.com/logo.webp" alt="RehabVet" style="height:40px;" />
+    </div>
+    <div style="padding:36px 40px;">
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">Reset your password</h1>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:15px;">Hi ${name}, click the button below to set a new password for your RehabVet account. This link expires in <strong>1 hour</strong>.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${resetUrl}" style="display:inline-block;background:#e91e8c;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:10px;">
+          Reset Password
+        </a>
+      </div>
+      <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+      <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;" />
+      <p style="margin:0;font-size:12px;color:#d1d5db;text-align:center;">RehabVet Pte Ltd · 513 Serangoon Rd, #01-01, Singapore 218154</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  return getResend().emails.send({
+    from: FROM,
+    to: email,
+    subject: 'Reset your RehabVet password',
+    html,
+  })
+}
