@@ -32,7 +32,7 @@ export default function PatientDetailPage() {
   const tabs = [
     { key: 'overview', label: 'Overview', icon: Activity },
     { key: 'plans', label: 'Treatment Plans', icon: Stethoscope },
-    { key: 'sessions', label: 'Sessions', icon: FileText },
+
     { key: 'appointments', label: 'Appointments', icon: Calendar },
     { key: 'visits', label: 'Visit Records', icon: ClipboardList },
   ]
