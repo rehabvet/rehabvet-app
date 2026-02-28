@@ -81,7 +81,7 @@ export default function VisitPage() {
   // Form state
   const [form, setForm] = useState<any>({
     staff_id: '', visit_date: '', weight_kg: '', temperature_c: '',
-    heart_rate_bpm: '', body_condition_score: '',
+    heart_rate_bpm: '', respiratory_rate_bpm: '', body_condition_score: '',
     history: '', clinical_examination: '', diagnosis: '',
     treatment: [] as ListItem[], hep: [] as ListItem[],
     internal_notes: '', client_notes: '', plan: '',
@@ -95,10 +95,11 @@ export default function VisitPage() {
       setForm({
         staff_id:            v.staff_id || '',
         visit_date:          v.visit_date?.split('T')[0] || '',
-        weight_kg:           v.weight_kg ?? '',
-        temperature_c:       v.temperature_c ?? '',
-        heart_rate_bpm:      v.heart_rate_bpm ?? '',
-        body_condition_score:v.body_condition_score ?? '',
+        weight_kg:              v.weight_kg ?? '',
+        temperature_c:          v.temperature_c ?? '',
+        heart_rate_bpm:         v.heart_rate_bpm ?? '',
+        respiratory_rate_bpm:   v.respiratory_rate_bpm ?? '',
+        body_condition_score:   v.body_condition_score ?? '',
         history:             v.history || '',
         clinical_examination:v.clinical_examination || '',
         diagnosis:           v.diagnosis || '',
@@ -172,10 +173,11 @@ export default function VisitPage() {
       ...form,
       treatment: form.treatment.map((t: ListItem, i: number) => ({ step: i + 1, description: t.text })).filter((t: any) => t.description),
       hep:       form.hep.map((h: ListItem) => ({ instruction: h.text })).filter((h: any) => h.instruction),
-      weight_kg:           form.weight_kg           ? parseFloat(form.weight_kg)           : null,
-      temperature_c:       form.temperature_c       ? parseFloat(form.temperature_c)       : null,
-      heart_rate_bpm:      form.heart_rate_bpm      ? parseInt(form.heart_rate_bpm)        : null,
-      body_condition_score:form.body_condition_score ? parseInt(form.body_condition_score)  : null,
+      weight_kg:              form.weight_kg              ? parseFloat(form.weight_kg)              : null,
+      temperature_c:          form.temperature_c          ? parseFloat(form.temperature_c)          : null,
+      heart_rate_bpm:         form.heart_rate_bpm         ? parseInt(form.heart_rate_bpm)           : null,
+      respiratory_rate_bpm:   form.respiratory_rate_bpm   ? parseInt(form.respiratory_rate_bpm)     : null,
+      body_condition_score:   form.body_condition_score   ? parseInt(form.body_condition_score)     : null,
     }
     await fetch(`/api/visits/${id}`, {
       method: 'PUT',
@@ -245,6 +247,10 @@ export default function VisitPage() {
           <div>
             <label className="label">Heart Rate (bpm)</label>
             <input className="input" type="number" placeholder="e.g. 108" value={form.heart_rate_bpm} onChange={e => f('heart_rate_bpm', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Resp. Rate (bpm)</label>
+            <input className="input" type="number" placeholder="e.g. 24" value={form.respiratory_rate_bpm} onChange={e => f('respiratory_rate_bpm', e.target.value)} />
           </div>
           <div>
             <label className="label">BCS (1–9)</label>

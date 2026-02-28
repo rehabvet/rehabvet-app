@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   const body = await req.json()
   const {
-    staff_id, visit_date, weight_kg, temperature_c, heart_rate_bpm, body_condition_score,
+    staff_id, visit_date, weight_kg, temperature_c, heart_rate_bpm, respiratory_rate_bpm, body_condition_score,
     history, clinical_examination, diagnosis,
     treatment, hep, internal_notes, client_notes, plan,
   } = body
@@ -48,17 +48,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       weight_kg             = $3,
       temperature_c         = $4,
       heart_rate_bpm        = $5,
-      body_condition_score  = $6,
-      history               = $7,
-      clinical_examination  = $8,
-      diagnosis             = $9,
-      treatment             = $10,
-      hep                   = $11,
-      internal_notes        = $12,
-      client_notes          = $13,
-      plan                  = $14,
+      respiratory_rate_bpm  = $6,
+      body_condition_score  = $7,
+      history               = $8,
+      clinical_examination  = $9,
+      diagnosis             = $10,
+      treatment             = $11,
+      hep                   = $12,
+      internal_notes        = $13,
+      client_notes          = $14,
+      plan                  = $15,
       updated_at            = NOW()
-    WHERE id = $15::uuid
+    WHERE id = $16::uuid
     RETURNING *
   `,
     staff_id || null,
@@ -66,6 +67,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     weight_kg ?? null,
     temperature_c ?? null,
     heart_rate_bpm ?? null,
+    respiratory_rate_bpm ?? null,
     body_condition_score ?? null,
     history ?? null,
     clinical_examination ?? null,

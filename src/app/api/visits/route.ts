@@ -6,8 +6,9 @@ export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const patient_id = req.nextUrl.searchParams.get('patient_id')
-  const client_id  = req.nextUrl.searchParams.get('client_id')
+  const patient_id     = req.nextUrl.searchParams.get('patient_id')
+  const client_id      = req.nextUrl.searchParams.get('client_id')
+  const appointment_id = req.nextUrl.searchParams.get('appointment_id')
   const page       = Math.max(1, parseInt(req.nextUrl.searchParams.get('page') || '1'))
   const limit      = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
   const offset     = (page - 1) * limit
@@ -16,8 +17,9 @@ export async function GET(req: NextRequest) {
   const params: any[] = []
   let idx = 1
 
-  if (patient_id) { where += ` AND v.patient_id = $${idx++}::uuid`; params.push(patient_id) }
-  if (client_id)  { where += ` AND v.client_id = $${idx++}::uuid`;  params.push(client_id) }
+  if (patient_id)     { where += ` AND v.patient_id = $${idx++}::uuid`;     params.push(patient_id) }
+  if (client_id)      { where += ` AND v.client_id = $${idx++}::uuid`;      params.push(client_id) }
+  if (appointment_id) { where += ` AND v.appointment_id = $${idx++}::uuid`; params.push(appointment_id) }
 
   params.push(limit, offset)
 
