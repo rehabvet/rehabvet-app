@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X, ClipboardList, Receipt } from 'lucide-react'
+import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
 
 type Tab = 'visits' | 'billing' | 'appointments'
@@ -93,7 +94,7 @@ export default function ClientDetailPage() {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {editing ? (
             <>
-              <div><label className="label">Phone</label><input className="input" autoComplete="off" value={form.phone||''} onChange={e => setForm({...form, phone: e.target.value})} /></div>
+              <div><label className="label">Phone</label><PhoneInput value={form.phone||''} onChange={v => setForm({...form, phone: v})} /></div>
               <div><label className="label">Email</label><input className="input" autoComplete="off" value={form.email||''} onChange={e => setForm({...form, email: e.target.value})} /></div>
               <div className="sm:col-span-3">
                 <label className="label">Address</label>

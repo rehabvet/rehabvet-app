@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronLeft, Star } from 'lucide-react'
+import PhoneInput from '@/components/PhoneInput'
 
 const HOW_HEARD = ['Google Search', 'Vet or clinic referred', 'Friend or Family', 'IG/FB/TikTok', 'Events and Expo', 'Other']
 const GENDERS = ['Male', 'Female', 'Male Neutered', 'Female Neutered']
@@ -345,7 +346,7 @@ export default function AppointmentPage() {
                     )}
                   </div>
                   <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Phone <span className="text-[#EC6496]">*</span></label>
-                    <input type="tel" className={inp} placeholder="9123 4567" value={form.owner_phone} onChange={e => s('owner_phone', e.target.value)} /></div>
+                    <PhoneInput value={form.owner_phone} onChange={v => s('owner_phone', v)} required /></div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 block mb-1.5">Postal Code <span className="text-[#EC6496]">*</span></label>
                     <input
