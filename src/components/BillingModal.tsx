@@ -198,7 +198,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Bill" size="lg">
+    <Modal open={open} onClose={onClose} title="Bill" size="xl">
       <div className="space-y-4">
 
         {/* Add Item */}
