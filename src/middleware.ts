@@ -15,6 +15,10 @@ const PUBLIC_PREFIXES = [
   '/api/webhooks',          // Resend webhooks
   '/api/unsubscribe',       // unsubscribe handler
   '/unsubscribe',           // unsubscribe page
+  '/forgot-password',
+  '/reset-password',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
   '/_next',
   '/static',
   '/favicon',
