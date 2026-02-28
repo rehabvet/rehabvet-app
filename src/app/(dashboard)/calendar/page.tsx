@@ -214,22 +214,21 @@ export default function CalendarPage() {
     if (!newApptForm || !newApptForm.patient_id || !newApptForm.modality) return
     setNewApptSaving(true)
     try {
-      const patient = patients.find((p: any) => p.id === newApptForm.patient_id)
-      await fetch('/api/appointments', {
+      const res = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newApptForm, client_id: patient?.client_id || newApptForm.client_id }),
+        body: JSON.stringify({ ...newApptForm, client_id: selectedClient?.id || newApptForm.client_id }),
       })
-      // Invalidate cache & reload
-      apptCache.current.delete(`${year}-${month}`)
-      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
       const data = await res.json()
-      const fresh = data.appointments || []
-      apptCache.current.set(`${year}-${month}`, fresh)
-      setAppointments(fresh)
-      setNewApptForm(null)
+      if (data.appointment) {
+        // Add instantly to state & cache — no full reload needed
+        setAppointments(prev => {
+          const updated = [...prev, data.appointment]
+          apptCache.current.set(`${year}-${month}`, updated)
+          return updated
+        })
+      }
+      resetNewApptModal()
     } catch (err) { console.error(err) }
     finally { setNewApptSaving(false) }
   }
