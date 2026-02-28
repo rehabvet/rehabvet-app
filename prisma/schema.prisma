@@ -40,6 +40,7 @@ enum TreatmentPlanStatus {
 
 enum AppointmentStatus {
   scheduled
+  pending
   confirmed
   in_progress
   completed
@@ -183,8 +184,8 @@ model treatment_plans {
 
 model appointments {
   id                String            @id @default(uuid()) @db.Uuid
-  patient_id         String            @db.Uuid
-  client_id          String            @db.Uuid
+  patient_id         String?           @db.Uuid
+  client_id          String?           @db.Uuid
   therapist_id       String?           @db.Uuid
   treatment_plan_id  String?           @db.Uuid
   date              String
@@ -196,8 +197,8 @@ model appointments {
   created_at        DateTime          @default(now())
   updated_at        DateTime          @updatedAt
 
-  patient            patients         @relation(fields: [patient_id], references: [id])
-  client             clients          @relation(fields: [client_id], references: [id])
+  patient            patients?        @relation(fields: [patient_id], references: [id])
+  client             clients?         @relation(fields: [client_id], references: [id])
   therapist          users?           @relation("appointments_therapist", fields: [therapist_id], references: [id])
   treatment_plan     treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
   sessions           sessions[]
