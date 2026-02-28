@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
   const normPhone = normalizePhone(parsed.ownerPhone);
   let clientId: string | null = null;
   let patientId: string | null = null;
+  const warnings: string[] = [];
 
   if (normPhone) {
     const clients = await prisma.$queryRawUnsafe<{ id: string; phone: string }[]>(
@@ -101,7 +102,6 @@ export async function POST(req: NextRequest) {
   // --- Import visits ---
   let imported = 0;
   let skipped = 0;
-  const warnings: string[] = [];
 
   if (!clientId) warnings.push(`Client not found for phone ${parsed.ownerPhone} (${parsed.ownerName})`);
   if (!patientId) warnings.push(`Patient "${parsed.patientName}" not found`);
