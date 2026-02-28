@@ -165,8 +165,8 @@ export async function POST(req: NextRequest) {
     for (const li of visit.lineItems) {
       const liStaffId = STAFF_MAP[li.staffInitials] || staffId;
       await prisma.$queryRawUnsafe(
-        `INSERT INTO invoice_line_items (id, invoice_id, description, quantity, unit_price, total, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+        `INSERT INTO invoice_line_items (id, invoice_id, description, quantity, unit_price, amount, total, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$6,NOW())`,
         randomUUID(),
         invoiceId,
         li.name,
