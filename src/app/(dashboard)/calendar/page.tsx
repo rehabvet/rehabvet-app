@@ -45,6 +45,9 @@ export default function CalendarPage() {
   const [patients, setPatients] = useState<any[]>([])
   const [clients, setClients] = useState<any[]>([])
   const [clientSearch, setClientSearch] = useState('')
+  const [clientSearchResults, setClientSearchResults] = useState<any[]>([])
+  const [clientSearchLoading, setClientSearchLoading] = useState(false)
+  const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [clientPatients, setClientPatients] = useState<any[]>([])
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
@@ -72,9 +75,21 @@ export default function CalendarPage() {
       .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
     fetch('/api/patients?per_page=999')
       .then(r => r.json()).then(d => setPatients(d.patients || []))
-    fetch('/api/clients?per_page=999')
-      .then(r => r.json()).then(d => setClients(d.clients || []))
   }, [year, month])
+
+  // Debounced client search via API
+  function handleClientSearchChange(val: string) {
+    setClientSearch(val)
+    if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current)
+    if (!val.trim()) { setClientSearchResults([]); return }
+    setClientSearchLoading(true)
+    clientSearchTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/clients?search=${encodeURIComponent(val)}&limit=20`)
+      const data = await res.json()
+      setClientSearchResults(data.clients || [])
+      setClientSearchLoading(false)
+    }, 250)
+  }
 
   // Update current time every minute
   useEffect(() => {
@@ -941,20 +956,17 @@ export default function CalendarPage() {
                   <span className="text-sm font-semibold text-gray-900">{selectedClient.name}
                     {selectedClient.phone && <span className="text-gray-400 font-normal ml-2 text-xs">{selectedClient.phone}</span>}
                   </span>
-                  <button type="button" onClick={() => { setSelectedClient(null); setClientPatients([]); setNewApptForm({...newApptForm, client_id: '', patient_id: ''}); setClientSearch('') }}
+                  <button type="button" onClick={() => { setSelectedClient(null); setClientPatients([]); setNewApptForm({...newApptForm, client_id: '', patient_id: ''}); setClientSearch(''); setClientSearchResults([]) }}
                     className="text-gray-400 hover:text-red-400 ml-2 text-xs flex-shrink-0">✕ Change</button>
                 </div>
               ) : (
                 <>
                   <input className="input" placeholder="Search by client name or phone..."
-                    value={clientSearch} onChange={e => setClientSearch(e.target.value)} autoComplete="off" />
+                    value={clientSearch} onChange={e => handleClientSearchChange(e.target.value)} autoComplete="off" />
                   {clientSearch.length >= 1 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
-                      {clients.filter((c: any) =>
-                        c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                        c.phone?.includes(clientSearch) ||
-                        c.email?.toLowerCase().includes(clientSearch.toLowerCase())
-                      ).slice(0, 10).map((c: any) => (
+                      {clientSearchLoading && <p className="px-4 py-3 text-sm text-gray-400">Searching…</p>}
+                      {!clientSearchLoading && clientSearchResults.map((c: any) => (
                         <button key={c.id} type="button"
                           className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
                           onClick={() => selectNewApptClient(c)}>
@@ -962,10 +974,9 @@ export default function CalendarPage() {
                           <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
                         </button>
                       ))}
-                      {clients.filter((c: any) =>
-                        c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                        c.phone?.includes(clientSearch)
-                      ).length === 0 && <p className="px-4 py-3 text-sm text-gray-400">No clients found</p>}
+                      {!clientSearchLoading && clientSearchResults.length === 0 && (
+                        <p className="px-4 py-3 text-sm text-gray-400">No clients found</p>
+                      )}
                     </div>
                   )}
                 </>
