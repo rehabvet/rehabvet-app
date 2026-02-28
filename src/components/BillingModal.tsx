@@ -39,6 +39,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   const [paymentMethod, setPaymentMethod] = useState<string>('')
   const [client, setClient]         = useState<any>(null)
   const [patient, setPatient]       = useState<any>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   // Item picker state
   const [pickerType, setPickerType] = useState<'service'|'product'>('service')
@@ -396,11 +397,48 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving || items.length === 0}
+          <button type="button"
+            onClick={() => paymentMethod ? setShowConfirm(true) : handleSave()}
+            disabled={saving || items.length === 0}
             className="btn-primary">
             {saving ? 'Saving…' : existingInvoice
               ? (paymentMethod ? 'Update & Record Payment' : 'Update Bill')
               : (paymentMethod ? 'Create Bill & Mark Paid' : 'Create Bill')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* Confirmation Dialog */}
+    <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm Payment" size="sm">
+      <div className="space-y-4">
+        <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Client</span>
+            <span className="font-medium">{client?.name || clientName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Patient</span>
+            <span className="font-medium">{patient?.name || patientName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Items</span>
+            <span className="font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="flex justify-between border-t border-gray-200 pt-2">
+            <span className="text-gray-500">Total</span>
+            <span className="text-lg font-bold text-gray-900">S${total.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Payment via</span>
+            <span className="font-semibold text-brand-pink uppercase">{paymentMethod.replace('_', ' ')}</span>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 text-center">This will create the bill and record the payment. Are you sure?</p>
+        <div className="flex gap-2 justify-end">
+          <button type="button" onClick={() => setShowConfirm(false)} className="btn-secondary">Cancel</button>
+          <button type="button" onClick={() => { setShowConfirm(false); handleSave() }} className="btn-primary">
+            Yes, Confirm
           </button>
         </div>
       </div>

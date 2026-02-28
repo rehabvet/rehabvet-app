@@ -6,11 +6,12 @@ import { ArrowLeft, DollarSign, Printer } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 const METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
+  { value: 'visa',          label: 'VISA' },
+  { value: 'mastercard',    label: 'MASTER' },
+  { value: 'paynow',        label: 'PayNow' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'paynow', label: 'PayNow' },
-  { value: 'other', label: 'Other' },
+  { value: 'cash',          label: 'Cash' },
+  { value: 'nets',          label: 'NETS' },
 ]
 
 export default function InvoiceDetailPage() {
@@ -32,9 +33,16 @@ export default function InvoiceDetailPage() {
 
   async function recordPayment(e: React.FormEvent) {
     e.preventDefault()
-    await fetch(`/api/invoices/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'record_payment', ...payForm, amount: parseFloat(payForm.amount) })
+    await fetch(`/api/invoices/${id}/payments`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseFloat(payForm.amount),
+        method: payForm.method,
+        reference: payForm.reference,
+        client_id: data.invoice.client_id,
+        date: payForm.date,
+        notes: payForm.notes,
+      })
     })
     setShowPayment(false)
     fetchData()
@@ -71,14 +79,17 @@ export default function InvoiceDetailPage() {
             {invoice.patient_name && <p className="text-sm text-gray-500">Patient: <span className="font-medium text-gray-700">{invoice.patient_name}</span></p>}
             <p className="text-sm text-gray-500 mt-1">Date: {invoice.date} · Due: {invoice.due_date}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {invoice.status !== 'cancelled' && (
+              <button onClick={() => setShowPayment(true)} className="btn-primary text-sm flex items-center gap-1">
+                <DollarSign className="w-4 h-4" /> Record Payment
+              </button>
+            )}
             {invoice.status === 'draft' && (
               <button onClick={() => updateStatus('sent')} className="btn-secondary text-sm">Mark as Sent</button>
             )}
-            {['sent', 'partial', 'overdue'].includes(invoice.status) && (
-              <button onClick={() => setShowPayment(true)} className="btn-primary text-sm">
-                <DollarSign className="w-4 h-4 mr-1" /> Record Payment
-              </button>
+            {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+              <button onClick={() => updateStatus('paid')} className="btn-secondary text-sm">Mark as Paid</button>
             )}
           </div>
         </div>
