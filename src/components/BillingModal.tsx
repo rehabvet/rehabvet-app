@@ -9,6 +9,7 @@ type LineItem = {
   type: 'service' | 'product'
   item_id: string
   name: string
+  category?: string
   unit_price: number
   qty: number
   dispensing_instructions?: string
@@ -85,6 +86,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
       type: 'service',
       item_id: s.id,
       name: s.label || s.service?.name || 'Service',
+      category: s.service?.category || 'Service',
       unit_price: parseFloat(s.price || 0),
       qty: 1,
     }])
@@ -98,6 +100,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
       type: 'product',
       item_id: p.id,
       name: p.name,
+      category: p.category || 'Product',
       unit_price: parseFloat(p.sell_price || 0),
       qty: 1,
       dispensing_instructions: '',
@@ -269,44 +272,57 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
           )}
         </div>
 
-        {/* Line Items */}
+        {/* Line Items — Invoice Table */}
         {items.length === 0 ? (
-          <p className="text-center text-sm text-gray-400 py-4">No items added yet</p>
+          <p className="text-center text-sm text-gray-400 py-6">No items added yet</p>
         ) : (
-          <div className="space-y-2">
-            {items.map(item => (
-              <div key={item.id} className="rounded-xl border border-gray-200 px-3 py-3 space-y-2">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${item.type === 'product' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-brand-pink'}`}>
-                      {item.type}
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <div className="col-span-5">Description</div>
+              <div className="col-span-2 text-center">Qty</div>
+              <div className="col-span-2 text-right">Unit Price</div>
+              <div className="col-span-2 text-right">Total</div>
+              <div className="col-span-1" />
+            </div>
+
+            {/* Rows */}
+            {items.map((item, idx) => (
+              <div key={item.id} className={`px-4 py-3 ${idx < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  {/* Description */}
+                  <div className="col-span-5">
+                    <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                    <span className={`text-xs font-semibold uppercase tracking-wide ${item.type === 'product' ? 'text-blue-500' : 'text-brand-pink'}`}>
+                      {item.category || item.type}
                     </span>
                   </div>
-                  <button type="button" onClick={() => removeItem(item.id)} className="text-red-300 hover:text-red-500 flex-shrink-0 mt-0.5">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-0.5 block">Qty</label>
-                    <input type="number" min="0.5" step="0.5" className="input text-sm py-1"
+                  {/* Qty */}
+                  <div className="col-span-2">
+                    <input type="number" min="0.5" step="0.5"
+                      className="input text-sm py-1.5 text-center"
                       value={item.qty} onChange={e => updateQty(item.id, parseFloat(e.target.value) || 1)} />
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-0.5 block">Unit Price (S$)</label>
-                    <input type="number" min="0" step="0.01" className="input text-sm py-1"
+                  {/* Unit Price */}
+                  <div className="col-span-2">
+                    <input type="number" min="0" step="0.01"
+                      className="input text-sm py-1.5 text-right"
                       value={item.unit_price} onChange={e => updatePrice(item.id, parseFloat(e.target.value) || 0)} />
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-0.5 block">Total</label>
-                    <p className="text-sm font-semibold text-gray-900 pt-1.5">S${(item.qty * item.unit_price).toFixed(2)}</p>
+                  {/* Total */}
+                  <div className="col-span-2 text-right">
+                    <p className="font-semibold text-gray-900">S${(item.qty * item.unit_price).toFixed(2)}</p>
+                  </div>
+                  {/* Delete */}
+                  <div className="col-span-1 flex justify-end">
+                    <button type="button" onClick={() => removeItem(item.id)} className="text-red-300 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 {item.type === 'product' && (
-                  <div>
-                    <label className="text-xs text-gray-400 mb-0.5 block">Dispensing Instructions</label>
-                    <input type="text" className="input text-sm py-1" placeholder="e.g. 1 tablet every 8 hours…"
+                  <div className="mt-2">
+                    <input type="text" className="input text-xs py-1 text-gray-500" placeholder="Dispensing instructions…"
                       value={item.dispensing_instructions || ''}
                       onChange={e => updateInstructions(item.id, e.target.value)} />
                   </div>
@@ -314,10 +330,11 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
               </div>
             ))}
 
-            {/* Total */}
-            <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 flex justify-between items-center">
-              <span className="font-semibold text-gray-700">Total</span>
-              <span className="text-xl font-bold text-gray-900">S${total.toFixed(2)}</span>
+            {/* Total Row */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-50 border-t border-gray-200 items-center">
+              <div className="col-span-9 text-right font-semibold text-gray-600">Total</div>
+              <div className="col-span-2 text-right text-lg font-bold text-gray-900">S${total.toFixed(2)}</div>
+              <div className="col-span-1" />
             </div>
           </div>
         )}
