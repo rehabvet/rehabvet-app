@@ -28,7 +28,7 @@ const nav = [
   { href: '/leads', label: 'Leads', icon: Megaphone, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
   { href: '/campaigns', label: 'Campaigns', icon: Mail, roles: ['admin', 'administrator', 'office_manager', 'marketing'] },
   { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'vet', 'administrator', 'office_manager', 'veterinarian'] },
-  { href: '/import', label: 'Import', icon: Upload, roles: ['admin', 'administrator', 'office_manager'] },
+  { href: '/import', label: 'Import', icon: Upload, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin', 'administrator', 'office_manager'] },
 ]
