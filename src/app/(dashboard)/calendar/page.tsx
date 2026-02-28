@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, User, Trash2, AlertTriangle, CalendarDays, ClipboardList } from 'lucide-react'
 import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import BillingModal from '@/components/BillingModal'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -30,6 +31,7 @@ export default function CalendarPage() {
   const [apptVisit, setApptVisit] = useState<any>(null)
   const [apptInvoice, setApptInvoice] = useState<any>(null)
   const [apptLineItems, setApptLineItems] = useState<any[]>([])
+  const [showBillingModal, setShowBillingModal] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting,        setDeleting]        = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -1116,42 +1118,31 @@ export default function CalendarPage() {
 
             {/* Billing Tab */}
             {apptTab === 'billing' && (
-              <div>
-                {apptInvoice ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400">Invoice</p>
-                        <p className="font-semibold text-sm">{apptInvoice.invoice_number || apptInvoice.bill_number}</p>
+              <div className="space-y-3">
+                {apptInvoice && apptLineItems.length > 0 && (
+                  <div className="rounded-lg border border-gray-200 overflow-hidden text-xs">
+                    {apptLineItems.map((li: any) => (
+                      <div key={li.id} className="flex justify-between px-3 py-2 border-b border-gray-100 last:border-0">
+                        <span className="text-gray-700">{li.description}{parseFloat(li.qty||li.quantity||1) !== 1 ? ` ×${li.qty||li.quantity}` : ''}</span>
+                        <span className="font-medium">S${parseFloat(li.total||li.amount||0).toFixed(2)}</span>
                       </div>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${apptInvoice.status === 'paid' ? 'bg-green-100 text-green-700' : apptInvoice.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
-                        {apptInvoice.status?.toUpperCase()}
-                      </span>
+                    ))}
+                    <div className="flex justify-between px-3 py-2 bg-gray-50 font-semibold">
+                      <span>Total</span>
+                      <span>S${parseFloat(apptInvoice.total||0).toFixed(2)}</span>
                     </div>
-                    {apptLineItems.length > 0 && (
-                      <div className="rounded-lg border border-gray-200 overflow-hidden text-xs">
-                        {apptLineItems.map((li: any) => (
-                          <div key={li.id} className="flex justify-between px-3 py-2 border-b border-gray-100 last:border-0">
-                            <span className="text-gray-700">{li.description} {li.qty !== 1 ? `×${li.qty}` : ''}</span>
-                            <span className="font-medium">S${parseFloat(li.total||li.amount||0).toFixed(2)}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between px-3 py-2 bg-gray-50 font-semibold">
-                          <span>Total</span>
-                          <span>S${parseFloat(apptInvoice.total||0).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                    {apptVisit && (
-                      <button onClick={() => { closeModal(); router.push(`/visits/${apptVisit.id}`) }}
-                        className="text-xs text-brand-pink hover:underline">View full billing in visit record →</button>
-                    )}
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-4">
-                    {apptVisit ? 'No invoice yet. Open the visit record to create one.' : 'Create a visit record first to add billing.'}
-                  </p>
                 )}
+                {!apptInvoice && (
+                  <p className="text-sm text-gray-400 text-center py-2">No bill created yet.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowBillingModal(true)}
+                  className="btn-primary w-full text-sm"
+                >
+                  {apptInvoice ? 'Edit Bill' : '+ Create Bill'}
+                </button>
               </div>
             )}
 
@@ -1282,6 +1273,26 @@ export default function CalendarPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Billing Modal */}
+      {selectedAppt && (
+        <BillingModal
+          open={showBillingModal}
+          onClose={() => setShowBillingModal(false)}
+          visitId={apptVisit?.id || null}
+          clientId={selectedAppt.client_id}
+          patientId={selectedAppt.patient_id}
+          existingInvoice={apptInvoice}
+          existingLineItems={apptLineItems}
+          onSaved={async () => {
+            // Reload invoice data
+            if (apptVisit) {
+              const inv = await fetch(`/api/visits/${apptVisit.id}/invoice`).then(r => r.json())
+              if (inv.invoice) { setApptInvoice(inv.invoice); setApptLineItems(inv.line_items || []) }
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
