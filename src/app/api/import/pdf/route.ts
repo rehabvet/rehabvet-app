@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     // Create visit record
     await prisma.$queryRawUnsafe(
-      `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, comments, created_at, updated_at)
+      `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, internal_notes, created_at, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
       visitId,
       clientId,
