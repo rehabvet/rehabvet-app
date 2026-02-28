@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     LEFT JOIN clients  cl  ON cl.id  = a.client_id
     LEFT JOIN users    u   ON u.id   = a.therapist_id
     ${where}
-    ORDER BY a.date DESC, a.start_time ASC
+    ORDER BY a.date ASC, a.start_time ASC
     LIMIT $${idx++} OFFSET $${idx++}
   `
   params.push(perPage, offset)

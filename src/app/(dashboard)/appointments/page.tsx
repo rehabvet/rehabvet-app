@@ -61,6 +61,8 @@ export default function AppointmentsPage() {
   const [qInput, setQInput] = useState('')          // debounced
   const [status, setStatus] = useState('all')
   const [dateFilter, setDateFilter] = useState('')  // single date filter
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+  const [fromDate, setFromDate] = useState(todayStr) // default: from today
   const [page, setPage]     = useState(1)
   const PER_PAGE = 20
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -99,14 +101,19 @@ export default function AppointmentsPage() {
     const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE) })
     if (q)          params.set('q', q)
     if (status !== 'all') params.set('status', status)
-    if (dateFilter) params.set('date', dateFilter)
+    if (dateFilter) {
+      params.set('date', dateFilter)
+    } else if (fromDate) {
+      params.set('start_date', fromDate)
+      params.set('end_date', '2099-12-31')
+    }
     const res  = await fetch(`/api/appointments?${params}`)
     const data = await res.json()
     setAppointments(data.appointments || [])
     setTotal(data.total || 0)
     setTotalPages(data.total_pages || 1)
     setLoading(false)
-  }, [q, status, dateFilter, page])
+  }, [q, status, dateFilter, fromDate, page])
 
   useEffect(() => { fetchAppts() }, [fetchAppts])
 
@@ -273,16 +280,37 @@ export default function AppointmentsPage() {
           )}
         </div>
 
-        {/* Date filter */}
+        {/* From date */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-500 whitespace-nowrap">From</span>
+          <div className="relative">
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => { setFromDate(e.target.value); setDateFilter(''); setPage(1) }}
+              className="input pr-7 text-sm text-gray-600"
+            />
+            {fromDate && (
+              <button onClick={() => { setFromDate(''); setDateFilter(''); setPage(1) }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                title="Show all dates">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Exact date filter */}
         <div className="relative">
           <input
             type="date"
             value={dateFilter}
-            onChange={e => { setDateFilter(e.target.value); setPage(1) }}
+            placeholder="Exact date"
+            onChange={e => { setDateFilter(e.target.value); setFromDate(''); setPage(1) }}
             className="input pr-8 text-sm text-gray-600"
           />
           {dateFilter && (
-            <button onClick={() => { setDateFilter(''); setPage(1) }}
+            <button onClick={() => { setDateFilter(''); setFromDate(todayStr); setPage(1) }}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <X className="w-3.5 h-3.5" />
             </button>
@@ -374,8 +402,8 @@ export default function AppointmentsPage() {
                   </td>
 
                   {/* Treatment */}
-                  <td className="px-5 py-3.5 hidden sm:table-cell">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${modalityBg[a.modality] || 'bg-gray-50 text-gray-600'}`}>
+                  <td className="px-5 py-3.5 hidden sm:table-cell max-w-[220px]">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium block truncate ${modalityBg[a.modality] || 'bg-gray-50 text-gray-600'}`}>
                       {a.modality || '—'}
                     </span>
                   </td>
