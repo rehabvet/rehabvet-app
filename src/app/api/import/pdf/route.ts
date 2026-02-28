@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.$queryRawUnsafe(
       `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, status, subtotal, tax, total, notes, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$9,$10,NOW(),NOW())`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
       invoiceId,
       clientId,
       patientId,
@@ -155,6 +155,8 @@ export async function POST(req: NextRequest) {
       visit.billNumber,
       visit.date,
       'paid',
+      subtotal,
+      0,
       subtotal,
       `Imported from old PMS (Bill# ${visit.billNumber})`
     );
