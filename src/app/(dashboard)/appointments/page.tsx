@@ -762,6 +762,9 @@ export default function AppointmentsPage() {
           visitId={apptVisit?.id || null}
           clientId={editing.client_id}
           patientId={editing.patient_id}
+          clientName={editing.client_name}
+          patientName={editing.patient_name}
+          appointmentDate={editing.date}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}
           onSaved={async (invoiceId) => {

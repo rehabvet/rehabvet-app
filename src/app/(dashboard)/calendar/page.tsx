@@ -1282,6 +1282,9 @@ export default function CalendarPage() {
           visitId={apptVisit?.id || null}
           clientId={selectedAppt.client_id}
           patientId={selectedAppt.patient_id}
+          clientName={selectedAppt.client_name}
+          patientName={selectedAppt.patient_name}
+          appointmentDate={selectedAppt.date}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}
           onSaved={async (invoiceId) => {

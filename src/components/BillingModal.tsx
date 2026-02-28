@@ -23,17 +23,22 @@ interface Props {
   visitId?: string | null
   clientId: string
   patientId: string
+  clientName?: string
+  patientName?: string
+  appointmentDate?: string
   existingInvoice?: any
   existingLineItems?: any[]
   onSaved: (invoiceId: string) => void
 }
 
-export default function BillingModal({ open, onClose, visitId, clientId, patientId, existingInvoice, existingLineItems = [], onSaved }: Props) {
+export default function BillingModal({ open, onClose, visitId, clientId, patientId, clientName, patientName, appointmentDate, existingInvoice, existingLineItems = [], onSaved }: Props) {
   const [services, setServices]   = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [items, setItems]         = useState<LineItem[]>([])
-  const [saving, setSaving]       = useState(false)
+  const [saving, setSaving]         = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<string>('')
+  const [client, setClient]         = useState<any>(null)
+  const [patient, setPatient]       = useState<any>(null)
 
   // Item picker state
   const [pickerType, setPickerType] = useState<'service'|'product'>('service')
@@ -45,6 +50,9 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
     if (!open) return
     fetch('/api/service-pricing').then(r => r.json()).then(d => setServices(d.pricing || []))
     fetch('/api/inventory?limit=500').then(r => r.json()).then(d => setInventory(d.items || []))
+    if (clientId) fetch(`/api/clients/${clientId}`).then(r => r.json()).then(d => setClient(d.client || d))
+    if (patientId) fetch(`/api/patients/${patientId}`).then(r => r.json()).then(d => setPatient(d.patient || d))
+    setPaymentMethod('')
     // Pre-populate from existing line items
     if (existingLineItems.length > 0) {
       setItems(existingLineItems.map(li => ({
@@ -201,6 +209,27 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
     <Modal open={open} onClose={onClose} title="Bill" size="xl">
       <div className="space-y-4">
 
+        {/* Invoice Header */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 flex flex-col sm:flex-row sm:justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Client</p>
+            <p className="font-semibold text-gray-900">{client?.name || clientName || '—'}</p>
+            {client?.phone && <p className="text-xs text-gray-500">{client.phone}</p>}
+            {client?.email && <p className="text-xs text-gray-500">{client.email}</p>}
+          </div>
+          <div className="sm:text-right">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Patient</p>
+            <p className="font-semibold text-gray-900">{patient?.name || patientName || '—'}</p>
+            {patient?.species && <p className="text-xs text-gray-500 capitalize">{patient.species}{patient.breed ? ` · ${patient.breed}` : ''}</p>}
+          </div>
+          {appointmentDate && (
+            <div className="sm:text-right">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Date</p>
+              <p className="text-sm text-gray-700">{new Date(appointmentDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            </div>
+          )}
+        </div>
+
         {/* Add Item */}
         <div>
           <div className="flex gap-2 mb-2">
@@ -341,32 +370,24 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
 
         {/* Payment Method */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Payment Method</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: 'visa',          label: 'VISA' },
-              { id: 'mastercard',    label: 'MASTER' },
-              { id: 'paynow',        label: 'PayNow' },
-              { id: 'bank_transfer', label: 'Bank Transfer' },
-              { id: 'cash',          label: 'Cash' },
-              { id: 'nets',          label: 'NETS' },
-            ].map(m => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setPaymentMethod(prev => prev === m.id ? '' : m.id)}
-                className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${
-                  paymentMethod === m.id
-                    ? 'bg-brand-pink text-white border-brand-pink'
-                    : 'border-gray-200 text-gray-600 hover:border-brand-pink hover:text-brand-pink'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+            Payment Method <span className="text-red-400">*</span>
+          </label>
+          <select
+            className="input text-sm"
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value)}
+          >
+            <option value="">— Select payment method —</option>
+            <option value="visa">VISA</option>
+            <option value="mastercard">MASTER</option>
+            <option value="paynow">PayNow</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="cash">Cash</option>
+            <option value="nets">NETS</option>
+          </select>
           {!paymentMethod && items.length > 0 && (
-            <p className="text-xs text-gray-400 mt-1.5">Select a payment method to mark as paid, or skip to save as unpaid.</p>
+            <p className="text-xs text-gray-400 mt-1">Required to mark as paid. Leave blank to save as unpaid draft.</p>
           )}
         </div>
 
