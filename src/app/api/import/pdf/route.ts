@@ -145,8 +145,8 @@ export async function POST(req: NextRequest) {
     const subtotal = visit.lineItems.reduce((s, li) => s + li.price * li.qty, 0);
 
     await prisma.$queryRawUnsafe(
-      `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, status, subtotal, tax, total, notes, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
+      `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, due_date, status, subtotal, tax, total, notes, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
       invoiceId,
       clientId,
       patientId,
