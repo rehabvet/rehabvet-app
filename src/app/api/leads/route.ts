@@ -34,5 +34,26 @@ export async function GET(req: NextRequest) {
     return acc
   }, {})
 
-  return NextResponse.json({ leads, total, page, limit, statusCounts })
+  // Enrich each lead with matched client from DB (by phone)
+  const enriched = await Promise.all(leads.map(async (lead) => {
+    if (!lead.owner_phone) return { ...lead, matched_client: null }
+
+    const digits = lead.owner_phone.replace(/\D/g, '')
+    const last8 = digits.slice(-8)
+    if (last8.length < 8) return { ...lead, matched_client: null }
+
+    const matches = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT c.id, c.name, c.phone, c.email,
+             (SELECT COUNT(*) FROM appointments a WHERE a.client_id = c.id) as appt_count,
+             (SELECT COUNT(*) FROM patients p WHERE p.client_id = c.id) as pet_count,
+             (SELECT string_agg(p.name, ', ') FROM patients p WHERE p.client_id = c.id) as pet_names
+      FROM clients c
+      WHERE regexp_replace(c.phone, '[^0-9]', '', 'g') LIKE $1
+      LIMIT 1
+    `, `%${last8}`)
+
+    return { ...lead, matched_client: matches[0] || null }
+  }))
+
+  return NextResponse.json({ leads: enriched, total, page, limit, statusCounts })
 }

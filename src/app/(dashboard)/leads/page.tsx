@@ -233,6 +233,12 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.owner_name}</p>
                         <p className="text-xs text-gray-400">{lead.owner_email}</p>
+                        {lead.matched_client && (
+                          <a href={`/clients/${lead.matched_client.id}`} onClick={e => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 mt-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full hover:bg-green-100 transition-colors">
+                            ✓ Client · {Number(lead.matched_client.appt_count)} appts · {lead.matched_client.pet_names || 'no pets'}
+                          </a>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <a href={`tel:${lead.owner_phone}`} className="text-sm text-gray-700 hover:text-brand-pink flex items-center gap-1">
@@ -313,6 +319,20 @@ export default function LeadsPage() {
                 <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 <a href={`tel:${viewLead.owner_phone}`} className="hover:underline">{viewLead.owner_phone}</a>
               </p>
+              {(viewLead as any).matched_client && (
+                <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-100">
+                  <p className="text-xs font-semibold text-green-700 mb-1">✓ Existing Client in System</p>
+                  <a href={`/clients/${(viewLead as any).matched_client.id}`} className="text-sm font-medium text-green-800 hover:underline">
+                    {(viewLead as any).matched_client.name}
+                  </a>
+                  <p className="text-xs text-green-600 mt-0.5">
+                    {(viewLead as any).matched_client.appt_count} appointments · Pets: {(viewLead as any).matched_client.pet_names || 'none'}
+                  </p>
+                  {(viewLead as any).matched_client.email && (viewLead as any).matched_client.email !== viewLead.owner_email && (
+                    <p className="text-xs text-green-600">Email on file: {(viewLead as any).matched_client.email}</p>
+                  )}
+                </div>
+              )}
               {/* Postcode + resolved address */}
               {viewLead.post_code && (
                 <p className="text-sm text-gray-600 flex items-start gap-1.5">
