@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, DollarSign, Printer, Receipt, User, PawPrint, CalendarDays, CreditCard, ClipboardList } from 'lucide-react'
+import { ArrowLeft, DollarSign, Printer, Receipt, User, PawPrint, CalendarDays, CreditCard, ClipboardList, Trash2 } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 const METHODS = [
@@ -36,7 +36,9 @@ export default function InvoiceDetailPage() {
   const [data, setData]           = useState<any>(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string|null>(null)
-  const [showPayment, setShowPayment] = useState(false)
+  const [showPayment, setShowPayment]   = useState(false)
+  const [showDelete, setShowDelete]     = useState(false)
+  const [deleting, setDeleting]         = useState(false)
   const [payForm, setPayForm]     = useState({
     amount: '', method: 'paynow', reference: '', date: new Date().toISOString().split('T')[0], notes: ''
   })
@@ -74,6 +76,12 @@ export default function InvoiceDetailPage() {
     })
     setShowPayment(false)
     fetchData()
+  }
+
+  async function deleteInvoice() {
+    setDeleting(true)
+    await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
+    router.push('/billing')
   }
 
   async function updateStatus(status: string) {
@@ -173,6 +181,11 @@ export default function InvoiceDetailPage() {
           <button onClick={() => window.print()} className="btn-secondary text-sm flex items-center gap-1.5 ml-auto">
             <Printer className="w-4 h-4" /> Print
           </button>
+          {invoice.status === 'draft' && (
+            <button onClick={() => setShowDelete(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-500 border border-red-200 rounded-xl hover:bg-red-50 transition-colors">
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -261,6 +274,26 @@ export default function InvoiceDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation */}
+      <Modal open={showDelete} onClose={() => setShowDelete(false)} title="Delete Invoice" size="sm">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+            <Trash2 className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-800">Delete {invoice.invoice_number}?</p>
+              <p className="text-sm text-red-600 mt-1">This will permanently delete this draft invoice. This cannot be undone.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowDelete(false)} className="btn-secondary" disabled={deleting}>Cancel</button>
+            <button onClick={deleteInvoice} disabled={deleting}
+              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50">
+              {deleting ? 'Deleting…' : 'Yes, Delete'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Record Payment Modal */}
       <Modal open={showPayment} onClose={() => setShowPayment(false)} title="Record Payment" size="md">

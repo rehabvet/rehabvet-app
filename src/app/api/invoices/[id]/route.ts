@@ -94,3 +94,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   ) as any[]
   return NextResponse.json({ invoice: updated[0] })
 }
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Only allow deleting draft invoices
+  const rows = await prisma.$queryRawUnsafe(`SELECT status FROM invoices WHERE id=$1::uuid`, params.id) as any[]
+  if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (rows[0].status !== 'draft') return NextResponse.json({ error: 'Only draft invoices can be deleted' }, { status: 400 })
+
+  await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM invoice_items WHERE invoice_id=$1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM invoices WHERE id=$1::uuid`, params.id)
+
+  return NextResponse.json({ ok: true })
+}
