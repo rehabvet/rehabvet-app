@@ -64,8 +64,16 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   }, [showPicker, pickerType])
 
   const filteredServices = services.filter(s =>
-    `${s.service?.name} ${s.label}`.toLowerCase().includes(search.toLowerCase())
+    `${s.service?.name} ${s.label} ${s.service?.category}`.toLowerCase().includes(search.toLowerCase())
   )
+
+  // Group by category
+  const groupedServices = filteredServices.reduce((acc: Record<string, any[]>, s) => {
+    const cat = s.service?.category || 'Other Services'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(s)
+    return acc
+  }, {})
   const filteredInventory = inventory.filter(i =>
     `${i.name} ${i.brand || ''} ${i.sku || ''}`.toLowerCase().includes(search.toLowerCase())
   )
@@ -214,15 +222,19 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
                 {pickerType === 'service' ? (
                   filteredServices.length === 0
                     ? <p className="text-center text-xs text-gray-400 py-4">No services found</p>
-                    : filteredServices.map(s => (
-                      <button key={s.id} type="button" onClick={() => addService(s)}
-                        className="w-full flex justify-between items-center px-4 py-2.5 hover:bg-gray-50 text-sm text-left">
-                        <div>
-                          <span className="font-medium text-gray-800">{s.label || s.service?.name}</span>
-                          {s.service?.category && <span className="ml-2 text-xs text-gray-400">{s.service.category}</span>}
+                    : Object.entries(groupedServices).map(([cat, items]) => (
+                      <div key={cat}>
+                        <div className="px-4 py-1.5 bg-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0">
+                          {cat}
                         </div>
-                        <span className="text-brand-pink font-semibold ml-4 flex-shrink-0">S${parseFloat(s.price||0).toFixed(2)}</span>
-                      </button>
+                        {items.map(s => (
+                          <button key={s.id} type="button" onClick={() => addService(s)}
+                            className="w-full flex justify-between items-center px-4 py-2.5 hover:bg-pink-50 text-sm text-left border-b border-gray-50 last:border-0">
+                            <span className="font-medium text-gray-800">{s.label || s.service?.name}</span>
+                            <span className="text-brand-pink font-semibold ml-4 flex-shrink-0">S${parseFloat(s.price||0).toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
                     ))
                 ) : (
                   filteredInventory.length === 0
