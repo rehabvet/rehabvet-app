@@ -236,19 +236,15 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
                 {pickerType === 'service' ? (
                   filteredServices.length === 0
                     ? <p className="text-center text-xs text-gray-400 py-4">No services found</p>
-                    : Object.entries(groupedServices).map(([cat, items]) => (
-                      <div key={cat}>
-                        <div className="px-4 py-1.5 bg-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0">
-                          {cat}
+                    : filteredServices.map(s => (
+                      <button key={s.id} type="button" onClick={() => addService(s)}
+                        className="w-full flex justify-between items-center px-4 py-2.5 hover:bg-pink-50 text-sm text-left border-b border-gray-50 last:border-0 gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-xs font-semibold text-gray-400 uppercase whitespace-nowrap flex-shrink-0 w-32 truncate">{s.service?.category || 'Other'}</span>
+                          <span className="font-medium text-gray-800 truncate">{s.label || s.service?.name}</span>
                         </div>
-                        {items.map(s => (
-                          <button key={s.id} type="button" onClick={() => addService(s)}
-                            className="w-full flex justify-between items-center px-4 py-2.5 hover:bg-pink-50 text-sm text-left border-b border-gray-50 last:border-0">
-                            <span className="font-medium text-gray-800">{s.label || s.service?.name}</span>
-                            <span className="text-brand-pink font-semibold ml-4 flex-shrink-0">S${parseFloat(s.price||0).toFixed(2)}</span>
-                          </button>
-                        ))}
-                      </div>
+                        <span className="text-brand-pink font-semibold flex-shrink-0">S${parseFloat(s.price||0).toFixed(2)}</span>
+                      </button>
                     ))
                 ) : (
                   filteredInventory.length === 0
