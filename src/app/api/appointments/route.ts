@@ -36,11 +36,6 @@ export async function GET(req: NextRequest) {
     params.push(therapistId)
   }
 
-  // Therapists only see their own
-  if (user.role === 'therapist') {
-    conditions.push(`a.therapist_id = $${idx++}::uuid`)
-    params.push(user.id)
-  }
 
   if (status && status !== 'all') {
     conditions.push(`a.status::text = $${idx++}`)
