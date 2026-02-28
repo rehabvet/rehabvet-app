@@ -36,7 +36,7 @@ export default function ClientsPage() {
   async function fetchClients(p = 1) {
     setLoading(true)
     const params = new URLSearchParams()
-    if (search) params.set('search', encodeURIComponent(search))
+    if (search) params.set('search', search)
     params.set('page', String(p))
     params.set('limit', String(PAGE_SIZE))
     const res = await fetch(`/api/clients?${params}`)
