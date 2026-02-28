@@ -24,15 +24,15 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const invoice = rows[0]
 
   const [oldItems, lineItems, payments] = await Promise.all([
-    prisma.$queryRawUnsafe(`SELECT * FROM invoice_items WHERE invoice_id=$1::uuid`, params.id) as Promise<any[]>,
+    prisma.$queryRawUnsafe(`SELECT * FROM invoice_items WHERE invoice_id=$1::uuid`, params.id).catch(() => []) as Promise<any[]>,
     prisma.$queryRawUnsafe(
-      `SELECT il.*, u.name AS staff_name FROM invoice_line_items il LEFT JOIN users u ON u.id=il.staff_id WHERE il.invoice_id=$1::uuid ORDER BY il.sort_order NULLS LAST, il.created_at`,
+      `SELECT il.*, u.name AS staff_name FROM invoice_line_items il LEFT JOIN users u ON u.id=il.staff_id WHERE il.invoice_id=$1::uuid ORDER BY COALESCE(il.sort_order, 0), il.created_at`,
       params.id
-    ) as Promise<any[]>,
+    ).catch(() => []) as Promise<any[]>,
     prisma.$queryRawUnsafe(
       `SELECT p.*, u.name AS recorded_by_name FROM payments p LEFT JOIN users u ON u.id=p.recorded_by WHERE p.invoice_id=$1::uuid ORDER BY p.created_at ASC`,
       params.id
-    ) as Promise<any[]>,
+    ).catch(() => []) as Promise<any[]>,
   ])
   const items = (lineItems as any[]).length > 0 ? lineItems : oldItems
 

@@ -30,10 +30,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function InvoiceDetailPage() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = Array.isArray(params.id) ? params.id[0] : params.id
   const router = useRouter()
   const [data, setData]           = useState<any>(null)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string|null>(null)
   const [showPayment, setShowPayment] = useState(false)
   const [payForm, setPayForm]     = useState({
     amount: '', method: 'paynow', reference: '', date: new Date().toISOString().split('T')[0], notes: ''
@@ -43,10 +45,17 @@ export default function InvoiceDetailPage() {
 
   async function fetchData() {
     setLoading(true)
-    const d = await fetch(`/api/invoices/${id}`).then(r => r.json())
-    setData(d)
-    const outstanding = parseFloat(d.invoice?.total || 0) - parseFloat(d.invoice?.amount_paid || 0)
-    setPayForm(f => ({ ...f, amount: Math.max(0, outstanding).toFixed(2) }))
+    setError(null)
+    try {
+      const res = await fetch(`/api/invoices/${id}`)
+      const d = await res.json()
+      if (d.error) { setError(d.error); setLoading(false); return }
+      setData(d)
+      const outstanding = parseFloat(d.invoice?.total || 0) - parseFloat(d.invoice?.amount_paid || 0)
+      setPayForm(f => ({ ...f, amount: Math.max(0, outstanding).toFixed(2) }))
+    } catch (e: any) {
+      setError(e.message || 'Failed to load invoice')
+    }
     setLoading(false)
   }
 
@@ -76,6 +85,13 @@ export default function InvoiceDetailPage() {
   }
 
   if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
+  if (error) return (
+    <div className="text-center py-16 space-y-3">
+      <p className="text-red-500 font-medium">{error}</p>
+      <button onClick={fetchData} className="btn-secondary text-sm">Retry</button>
+      <button onClick={() => router.back()} className="btn-secondary text-sm ml-2">Go Back</button>
+    </div>
+  )
   if (!data?.invoice) return <div className="text-center py-16 text-gray-400">Invoice not found</div>
 
   const { invoice, items = [], payments = [] } = data
