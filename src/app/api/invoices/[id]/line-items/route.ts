@@ -10,7 +10,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     SELECT il.*, u.name AS staff_name
     FROM invoice_line_items il
     LEFT JOIN users u ON u.id = il.staff_id
-    WHERE il.invoice_id = $1::uuid
+    WHERE il.invoice_id = $1
     ORDER BY il.created_at ASC
   `, params.id) as any[]
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     INSERT INTO invoice_line_items
       (invoice_id, staff_id, item_type, description, qty, unit_price, total, package_id, is_package_redemption, dispensing_instructions)
     VALUES
-      ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *
   `,
     params.id,
@@ -64,7 +64,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const { line_item_id } = await req.json()
   await prisma.$queryRawUnsafe(
-    `DELETE FROM invoice_line_items WHERE id = $1::uuid AND invoice_id = $2::uuid`,
+    `DELETE FROM invoice_line_items WHERE id = $1 AND invoice_id = $2`,
     line_item_id, params.id
   )
 
@@ -75,7 +75,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 async function recalcInvoice(invoiceId: string) {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT COALESCE(SUM(total), 0)::numeric AS subtotal
-    FROM invoice_line_items WHERE invoice_id = $1::uuid
+    FROM invoice_line_items WHERE invoice_id = $1
   `, invoiceId) as any[]
 
   const subtotal = parseFloat(rows[0]?.subtotal ?? 0)

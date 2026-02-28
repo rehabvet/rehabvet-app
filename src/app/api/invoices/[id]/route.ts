@@ -104,7 +104,7 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (rows[0].status !== 'draft') return NextResponse.json({ error: 'Only draft invoices can be deleted' }, { status: 400 })
 
-  await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoice_items WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM payments WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoices WHERE id=$1::uuid`, params.id)
