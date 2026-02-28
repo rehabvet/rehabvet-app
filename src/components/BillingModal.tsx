@@ -24,7 +24,7 @@ interface Props {
   patientId: string
   existingInvoice?: any
   existingLineItems?: any[]
-  onSaved: () => void
+  onSaved: (invoiceId: string) => void
 }
 
 export default function BillingModal({ open, onClose, visitId, clientId, patientId, existingInvoice, existingLineItems = [], onSaved }: Props) {
@@ -165,7 +165,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
         })
       }
 
-      onSaved()
+      onSaved(invoiceId)
       onClose()
     } finally {
       setSaving(false)

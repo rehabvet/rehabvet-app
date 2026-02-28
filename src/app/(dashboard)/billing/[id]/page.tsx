@@ -101,9 +101,9 @@ export default function InvoiceDetailPage() {
                   {item.description}
                   {item.modality && <span className="badge-purple ml-2">{item.modality}</span>}
                 </td>
-                <td className="table-cell text-center">{item.quantity}</td>
-                <td className="table-cell text-right">${item.unit_price.toFixed(2)}</td>
-                <td className="table-cell text-right font-medium">${item.total.toFixed(2)}</td>
+                <td className="table-cell text-center">{item.qty ?? item.quantity}</td>
+                <td className="table-cell text-right">S${parseFloat(item.unit_price||0).toFixed(2)}</td>
+                <td className="table-cell text-right font-medium">S${parseFloat(item.total||item.amount||0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

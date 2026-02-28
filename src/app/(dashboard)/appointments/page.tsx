@@ -764,11 +764,13 @@ export default function AppointmentsPage() {
           patientId={editing.patient_id}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}
-          onSaved={async () => {
+          onSaved={async (invoiceId) => {
             if (apptVisit) {
               const inv = await fetch(`/api/visits/${apptVisit.id}/invoice`).then(r => r.json())
               if (inv.invoice) { setApptInvoice(inv.invoice); setApptLineItems(inv.line_items || []) }
             }
+            setShowEdit(false)
+            router.push(`/billing/${invoiceId}`)
           }}
         />
       )}

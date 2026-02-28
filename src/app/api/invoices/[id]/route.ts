@@ -15,10 +15,16 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   })
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const [items, payments] = await Promise.all([
+  const [oldItems, lineItems, payments] = await Promise.all([
     prisma.invoice_items.findMany({ where: { invoice_id: params.id } }),
+    prisma.$queryRawUnsafe(
+      `SELECT il.*, u.name AS staff_name FROM invoice_line_items il LEFT JOIN users u ON u.id=il.staff_id WHERE il.invoice_id=$1::uuid ORDER BY il.sort_order, il.created_at`,
+      params.id
+    ) as Promise<any[]>,
     prisma.payments.findMany({ where: { invoice_id: params.id }, orderBy: { date: 'desc' } }),
   ])
+  // Merge: prefer invoice_line_items if present, fall back to invoice_items
+  const items = (lineItems as any[]).length > 0 ? lineItems : oldItems
 
   const { client, patient, ...rest } = row as any
   const invoice = {

@@ -1284,12 +1284,14 @@ export default function CalendarPage() {
           patientId={selectedAppt.patient_id}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}
-          onSaved={async () => {
-            // Reload invoice data
+          onSaved={async (invoiceId) => {
+            // Reload invoice data then navigate to invoice
             if (apptVisit) {
               const inv = await fetch(`/api/visits/${apptVisit.id}/invoice`).then(r => r.json())
               if (inv.invoice) { setApptInvoice(inv.invoice); setApptLineItems(inv.line_items || []) }
             }
+            closeModal()
+            router.push(`/billing/${invoiceId}`)
           }}
         />
       )}
