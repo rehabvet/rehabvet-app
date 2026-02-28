@@ -4,19 +4,17 @@ import { Readable } from 'stream';
 const DRIVE_FOLDER_ID = '0AGjxzh574uvlUk9PVA';
 
 function getAuth() {
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!keyJson) return null;
-  try {
-    const key = JSON.parse(
-      Buffer.from(keyJson, 'base64').toString('utf-8')
-    );
-    return new google.auth.GoogleAuth({
-      credentials: key,
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
-    });
-  } catch {
+  const clientId     = process.env.GOOGLE_DRIVE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_DRIVE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
     return null;
   }
+
+  const oauth2 = new google.auth.OAuth2(clientId, clientSecret, 'urn:ietf:wg:oauth:2.0:oob');
+  oauth2.setCredentials({ refresh_token: refreshToken });
+  return oauth2;
 }
 
 /**
