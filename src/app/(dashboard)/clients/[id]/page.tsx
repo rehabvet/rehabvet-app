@@ -30,6 +30,10 @@ export default function ClientDetailPage() {
   const [form, setForm] = useState<any>({})
   const [visits, setVisits] = useState<any[]>([])
   const [tab, setTab] = useState<Tab>('visits')
+  const PAGE_SIZE = 20
+  const [visitPage, setVisitPage] = useState(1)
+  const [billingPage, setBillingPage] = useState(1)
+  const [apptPage, setApptPage] = useState(1)
 
   useEffect(() => {
     fetch(`/api/clients/${id}`).then(r => r.json()).then(d => {
@@ -47,6 +51,20 @@ export default function ClientDetailPage() {
     setEditing(false)
     const d = await fetch(`/api/clients/${id}`).then(r => r.json())
     setData(d); setForm(d.client)
+  }
+
+  function Pager({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
+    const pages = Math.ceil(total / PAGE_SIZE)
+    if (pages <= 1) return null
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+        <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+        <div className="flex gap-1">
+          <button disabled={page === 1} onClick={() => onChange(page - 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">←</button>
+          <button disabled={page === pages} onClick={() => onChange(page + 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">→</button>
+        </div>
+      </div>
+    )
   }
 
   if (!data) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
@@ -190,7 +208,7 @@ export default function ClientDetailPage() {
                     <th className="table-header"></th>
                   </tr></thead>
                   <tbody className="divide-y divide-gray-100">
-                    {visits.map((v: any) => (
+                    {visits.slice((visitPage-1)*PAGE_SIZE, visitPage*PAGE_SIZE).map((v: any) => (
                       <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/visits/${v.id}`)}>
                         <td className="table-cell font-medium text-brand-pink">{v.visit_number || '—'}</td>
                         <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
@@ -202,6 +220,7 @@ export default function ClientDetailPage() {
                   </tbody>
                 </table>
               </div>
+              <Pager page={visitPage} total={visits.length} onChange={setVisitPage} />
             )
           )}
 
@@ -220,7 +239,7 @@ export default function ClientDetailPage() {
                     <th className="table-header">Status</th>
                   </tr></thead>
                   <tbody className="divide-y divide-gray-100">
-                    {invoices.map((inv: any) => (
+                    {invoices.slice((billingPage-1)*PAGE_SIZE, billingPage*PAGE_SIZE).map((inv: any) => (
                       <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/billing/${inv.id}`)}>
                         <td className="table-cell font-medium">{inv.invoice_number || inv.bill_number || '—'}</td>
                         <td className="table-cell">{inv.date}</td>
@@ -232,6 +251,7 @@ export default function ClientDetailPage() {
                   </tbody>
                 </table>
               </div>
+              <Pager page={billingPage} total={invoices.length} onChange={setBillingPage} />
             )
           )}
 
@@ -251,7 +271,7 @@ export default function ClientDetailPage() {
                     <th className="table-header">Status</th>
                   </tr></thead>
                   <tbody className="divide-y divide-gray-100">
-                    {appointments.map((a: any) => (
+                    {appointments.slice((apptPage-1)*PAGE_SIZE, apptPage*PAGE_SIZE).map((a: any) => (
                       <tr key={a.id} className="hover:bg-gray-50">
                         <td className="table-cell">{a.date}</td>
                         <td className="table-cell">{a.start_time} – {a.end_time}</td>
@@ -264,6 +284,7 @@ export default function ClientDetailPage() {
                   </tbody>
                 </table>
               </div>
+              <Pager page={apptPage} total={appointments.length} onChange={setApptPage} />
             )
           )}
         </div>
