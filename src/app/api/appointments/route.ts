@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
       pat.name        AS patient_name,
       pat.species     AS species,
       pat.breed       AS breed,
+      pat.is_reactive AS is_reactive,
       cl.name         AS client_name,
       cl.phone        AS client_phone,
       u.name          AS therapist_name,

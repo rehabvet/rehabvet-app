@@ -36,7 +36,7 @@ export default function PatientsPage() {
   const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '' })
+  const [form, setForm] = useState({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { setPage(1) }, [search])
@@ -63,7 +63,7 @@ export default function PatientsPage() {
       body: JSON.stringify({ ...form, weight: form.weight ? parseFloat(form.weight) : null })
     })
     setShowAdd(false)
-    setForm({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '' })
+    setForm({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
     fetchPatients(page)
   }
 
@@ -112,7 +112,12 @@ export default function PatientsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">{speciesEmoji[p.species] || '🐾'}</span>
-                      <span className="font-semibold text-gray-900">{p.name}</span>
+                      <div>
+                        <span className="font-semibold text-gray-900">{p.name}</span>
+                        {p.is_reactive && (
+                          <span className="ml-2 text-xs font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">⚠️ Reactive</span>
+                        )}
+                      </div>
                     </div>
                   </td>
 
@@ -188,6 +193,18 @@ export default function PatientsPage() {
           </div>
           <div><label className="label">Medical History</label><textarea className="input" rows={3} value={form.medical_history} onChange={e => setForm({...form, medical_history: e.target.value})} /></div>
           <div><label className="label">Allergies</label><input className="input" value={form.allergies} onChange={e => setForm({...form, allergies: e.target.value})} /></div>
+          <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-red-200 bg-red-50 cursor-pointer hover:bg-red-100 transition-colors">
+            <input
+              type="checkbox"
+              checked={form.is_reactive}
+              onChange={e => setForm({...form, is_reactive: e.target.checked})}
+              className="w-4 h-4 accent-red-500"
+            />
+            <div>
+              <p className="text-sm font-semibold text-red-700">⚠️ Reactive Patient</p>
+              <p className="text-xs text-red-500">Mark this pet as reactive — a warning will show on all appointments and visit records</p>
+            </div>
+          </label>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary">Add Patient</button>

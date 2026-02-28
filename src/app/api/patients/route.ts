@@ -64,24 +64,18 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { client_id, name, species, breed, date_of_birth, weight, sex, microchip, medical_history, allergies, notes } = body
+  const { client_id, name, species, breed, date_of_birth, weight, sex, microchip, medical_history, allergies, notes, is_reactive } = body
   if (!client_id || !name || !species) return NextResponse.json({ error: 'Client, name, and species required' }, { status: 400 })
 
-  const patient = await prisma.patients.create({
-    data: {
-      client_id,
-      name,
-      species,
-      breed: breed || null,
-      date_of_birth: date_of_birth || null,
-      weight: weight ?? null,
-      sex: sex || null,
-      microchip: microchip || null,
-      medical_history: medical_history || null,
-      allergies: allergies || null,
-      notes: notes || null,
-    },
-  })
+  const { randomUUID } = await import('crypto')
+  const rows = await prisma.$queryRawUnsafe<any[]>(
+    `INSERT INTO patients (id, client_id, name, species, breed, date_of_birth, weight, sex, microchip, medical_history, allergies, notes, is_reactive, created_at, updated_at)
+     VALUES ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW()) RETURNING *`,
+    randomUUID(), client_id, name, species,
+    breed||null, date_of_birth||null, weight??null, sex||null, microchip||null,
+    medical_history||null, allergies||null, notes||null, is_reactive||false
+  )
+  const patient = rows[0]
 
   return NextResponse.json({ patient }, { status: 201 })
 }

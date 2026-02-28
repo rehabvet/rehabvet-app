@@ -573,7 +573,7 @@ export default function CalendarPage() {
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
                       <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs">{a.start_time?.slice(0,5)} {a.modality}</div>
-                      <div className="opacity-90 truncate text-[10px]">{a.patient_name}</div>
+                      <div className="opacity-90 truncate text-[10px]">{a.patient_name}{a.is_reactive ? ' ⚠️' : ''}</div>
                       {height > 38 && a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
                     </button>
                   )
@@ -1047,6 +1047,9 @@ export default function CalendarPage() {
                 <span className="font-semibold text-gray-900">
                   {selectedAppt.patient_name || <span className="text-gray-400 font-normal italic">No patient linked</span>}
                 </span>
+                {selectedAppt.is_reactive && (
+                  <span className="ml-2 text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ Reactive</span>
+                )}
               </div>
               {(selectedAppt.client_name || selectedAppt.client_phone) ? (
                 <p className="text-sm text-gray-500">{selectedAppt.client_name}{selectedAppt.client_phone ? ` • ${selectedAppt.client_phone}` : ''}</p>
