@@ -70,7 +70,10 @@ export default function ClientDetailPage() {
             </div>
             <div>
               {editing ? (
-                <input className="input text-lg font-bold" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                <div className="flex gap-2">
+                  <input className="input font-bold" placeholder="First name" value={form.first_name||''} onChange={e => setForm({...form, first_name: e.target.value})} />
+                  <input className="input font-bold" placeholder="Last name" value={form.last_name||''} onChange={e => setForm({...form, last_name: e.target.value})} />
+                </div>
               ) : (
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">{client.name}</h1>

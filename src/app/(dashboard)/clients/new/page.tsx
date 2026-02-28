@@ -14,7 +14,8 @@ export default function NewClientPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '+65 ',
     address: '',
@@ -39,7 +40,8 @@ export default function NewClientPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: form.name,
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         phone: form.phone,
         address: form.address,
@@ -80,16 +82,28 @@ export default function NewClientPage() {
         <div className="card space-y-4">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Owner Details</h2>
 
-          <div>
-            <label className="label">Owner Name *</label>
-            <input
-              className="input"
-              placeholder="Pet owner's full name"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              required
-              autoFocus
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">First Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. John"
+                value={form.first_name}
+                onChange={e => setForm({ ...form, first_name: e.target.value })}
+                required
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="label">Last Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. Tan"
+                value={form.last_name}
+                onChange={e => setForm({ ...form, last_name: e.target.value })}
+                required
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

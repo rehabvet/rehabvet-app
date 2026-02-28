@@ -9,11 +9,11 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const client = await prisma.clients.findUnique({ where: { id: params.id } })
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Fetch client_number (outside Prisma schema)
+  // Fetch client_number + first/last name (outside Prisma schema)
   const cnRows = await prisma.$queryRawUnsafe(
-    `SELECT client_number FROM clients WHERE id = $1::uuid`, params.id
+    `SELECT client_number, first_name, last_name FROM clients WHERE id = $1::uuid`, params.id
   ) as any[]
-  const clientWithNum = { ...client, client_number: cnRows[0]?.client_number ?? null }
+  const clientWithNum = { ...client, client_number: cnRows[0]?.client_number ?? null, first_name: cnRows[0]?.first_name ?? null, last_name: cnRows[0]?.last_name ?? null }
 
   const [patients, invoices, appointments] = await Promise.all([
     prisma.patients.findMany({ where: { client_id: params.id }, orderBy: { name: 'asc' } }),
@@ -36,20 +36,24 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, email, phone, address, notes } = body
+  const { first_name, last_name, name: rawName, email, phone, address, notes } = body
+
+  const firstName = (first_name || '').trim()
+  const lastName  = (last_name  || '').trim()
+  const fullName  = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || (rawName || '').trim()
 
   const client = await prisma.clients.update({
     where: { id: params.id },
-    data: {
-      name,
-      email,
-      phone,
-      address,
-      notes,
-    },
+    data: { name: fullName, email, phone, address, notes },
   })
 
-  return NextResponse.json({ client })
+  // Update first_name / last_name via raw SQL
+  await prisma.$queryRawUnsafe(
+    `UPDATE clients SET first_name = $1, last_name = $2 WHERE id = $3`,
+    firstName || null, lastName || null, params.id
+  )
+
+  return NextResponse.json({ client: { ...client, first_name: firstName || null, last_name: lastName || null } })
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
