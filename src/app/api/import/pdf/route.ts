@@ -3,6 +3,7 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parsePDF } from '@/lib/pdfImport';
 import { randomUUID } from 'crypto';
+import { backupPDFToDrive } from '@/lib/driveBackup';
 
 // Staff initials → user ID
 const STAFF_MAP: Record<string, string> = {
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+
+  // Back up PDF to Google Drive (fire and forget — never blocks import)
+  backupPDFToDrive(buffer, file.name).catch(() => {});
 
   // Extract text from PDF using pdf-parse
   let pdfText = '';
