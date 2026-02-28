@@ -73,8 +73,7 @@ export default function CalendarPage() {
       .then(r => r.json()).then(d => setStaff(d.staff || []))
     fetch('/api/treatment-types')
       .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
-    fetch('/api/patients?per_page=999')
-      .then(r => r.json()).then(d => setPatients(d.patients || []))
+    // patients loaded on-demand per client (see selectNewApptClient)
   }, [year, month])
 
   // Debounced client search via API
@@ -177,16 +176,18 @@ export default function CalendarPage() {
     return currentDate.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
   }
 
-  function selectNewApptClient(client: any) {
+  async function selectNewApptClient(client: any) {
     setSelectedClient(client)
     setClientSearch('')
-    const pets = patients.filter((p: any) => p.client_id === client.id)
+    setClientSearchResults([])
+    setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: '' }))
+    setClientPatients([])
+    const res = await fetch(`/api/patients?client_id=${client.id}&per_page=100`)
+    const data = await res.json()
+    const pets = data.patients || []
     setClientPatients(pets)
-    // Auto-select if only 1 pet
     if (pets.length === 1) {
       setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: pets[0].id }))
-    } else {
-      setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: '' }))
     }
   }
 
