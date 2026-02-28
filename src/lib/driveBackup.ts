@@ -39,10 +39,13 @@ export async function backupPDFToDrive(
       q: `name='${filename}' and '${DRIVE_FOLDER_ID}' in parents and trashed=false`,
       fields: 'files(id, name)',
       spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+      driveId: DRIVE_FOLDER_ID,
+      corpora: 'drive',
     });
 
     if (existing.data.files && existing.data.files.length > 0) {
-      // File already backed up — return existing file ID
       return existing.data.files[0].id ?? null;
     }
 
@@ -51,6 +54,7 @@ export async function backupPDFToDrive(
     stream.push(null);
 
     const res = await drive.files.create({
+      supportsAllDrives: true,
       requestBody: {
         name: filename,
         parents: [DRIVE_FOLDER_ID],

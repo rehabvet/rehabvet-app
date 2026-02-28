@@ -112,9 +112,9 @@ export async function POST(req: NextRequest) {
   );
   let visitCounter = parseInt(visitCountRow[0]?.count || '0') + 1;
 
-  // Generate next invoice number
+  // Generate next invoice number — extract only the last 6-digit sequence from RV-YYYY-NNNNNN
   const invCountRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
-    `SELECT MAX(CAST(REGEXP_REPLACE(invoice_number, '[^0-9]', '', 'g') AS INTEGER)) as max_num FROM invoices WHERE invoice_number LIKE 'RV-%'`
+    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'RV-\\d{4}-(\\d+)') AS BIGINT)) as max_num FROM invoices WHERE invoice_number ~ '^RV-\\d{4}-\\d+'`
   );
   let invCounter = (parseInt(invCountRow[0]?.max_num || '0') || 0) + 1;
 
