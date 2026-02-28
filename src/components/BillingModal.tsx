@@ -32,6 +32,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   const [inventory, setInventory] = useState<any[]>([])
   const [items, setItems]         = useState<LineItem[]>([])
   const [saving, setSaving]       = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<string>('')
 
   // Item picker state
   const [pickerType, setPickerType] = useState<'service'|'product'>('service')
@@ -169,6 +170,19 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
             unit_price: item.unit_price,
             dispensing_instructions: item.dispensing_instructions || null,
             is_package_redemption: item.unit_price === 0,
+          }),
+        })
+      }
+
+      // Record payment if method selected and total > 0
+      if (paymentMethod && total > 0) {
+        await fetch(`/api/invoices/${invoiceId}/payments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: total,
+            method: paymentMethod,
+            client_id: clientId,
           }),
         })
       }
@@ -312,12 +326,45 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
           </div>
         )}
 
+        {/* Payment Method */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Payment Method</p>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'visa',          label: 'VISA' },
+              { id: 'mastercard',    label: 'MASTER' },
+              { id: 'paynow',        label: 'PayNow' },
+              { id: 'bank_transfer', label: 'Bank Transfer' },
+              { id: 'cash',          label: 'Cash' },
+              { id: 'nets',          label: 'NETS' },
+            ].map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setPaymentMethod(prev => prev === m.id ? '' : m.id)}
+                className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${
+                  paymentMethod === m.id
+                    ? 'bg-brand-pink text-white border-brand-pink'
+                    : 'border-gray-200 text-gray-600 hover:border-brand-pink hover:text-brand-pink'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {!paymentMethod && items.length > 0 && (
+            <p className="text-xs text-gray-400 mt-1.5">Select a payment method to mark as paid, or skip to save as unpaid.</p>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
           <button type="button" onClick={handleSave} disabled={saving || items.length === 0}
             className="btn-primary">
-            {saving ? 'Saving…' : existingInvoice ? 'Update Bill' : 'Create Bill'}
+            {saving ? 'Saving…' : existingInvoice
+              ? (paymentMethod ? 'Update & Record Payment' : 'Update Bill')
+              : (paymentMethod ? 'Create Bill & Mark Paid' : 'Create Bill')}
           </button>
         </div>
       </div>
