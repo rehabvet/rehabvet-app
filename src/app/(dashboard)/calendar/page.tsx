@@ -57,20 +57,15 @@ export default function CalendarPage() {
   const month = currentDate.getMonth()
 
   useEffect(() => {
-    const cacheKey = `${year}-${month}`
-    if (apptCache.current.has(cacheKey)) {
-      setAppointments(apptCache.current.get(cacheKey)!)
-    } else {
-      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
-        .then(r => r.json())
-        .then(d => {
-          const appts = d.appointments || []
-          apptCache.current.set(cacheKey, appts)
-          setAppointments(appts)
-        })
-    }
+    const startDate = toSGTDateStr(new Date(year, month - 1, 1))
+    const endDate = toSGTDateStr(new Date(year, month + 2, 0))
+    fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
+      .then(r => r.json())
+      .then(d => {
+        const appts = d.appointments || []
+        apptCache.current.set(`${year}-${month}`, appts)
+        setAppointments(appts)
+      })
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
     fetch('/api/treatment-types')
