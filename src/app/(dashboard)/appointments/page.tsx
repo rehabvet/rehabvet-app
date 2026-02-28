@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, ChevronLeft, ChevronRight, X, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, X, Trash2, AlertTriangle, ClipboardList } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -47,6 +48,7 @@ const modalityBg: Record<string, string> = {
 }
 
 export default function AppointmentsPage() {
+  const router = useRouter()
   // ── List state ──────────────────────────────────────────────────────────────
   const [appointments, setAppointments] = useState<any[]>([])
   const [total, setTotal]               = useState(0)
@@ -67,6 +69,10 @@ export default function AppointmentsPage() {
   const [showEdit,        setShowEdit]        = useState(false)
   const [editing,         setEditing]         = useState<any>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [apptTab,         setApptTab]         = useState<'visit'|'billing'>('visit')
+  const [apptVisit,       setApptVisit]       = useState<any>(null)
+  const [apptInvoice,     setApptInvoice]     = useState<any>(null)
+  const [apptLineItems,   setApptLineItems]   = useState<any[]>([])
   const [deleting,        setDeleting]        = useState(false)
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
@@ -194,6 +200,23 @@ export default function AppointmentsPage() {
   }
 
   function openEdit(appt: any) {
+    setApptTab('visit')
+    setApptVisit(null)
+    setApptInvoice(null)
+    setApptLineItems([])
+    fetch(`/api/visits?appointment_id=${appt.id}&limit=1`)
+      .then(r => r.json())
+      .then(d => {
+        const v = d.visits?.[0]
+        if (v) {
+          setApptVisit(v)
+          fetch(`/api/visits/${v.id}/invoice`)
+            .then(r => r.json())
+            .then(inv => {
+              if (inv.invoice) { setApptInvoice(inv.invoice); setApptLineItems(inv.line_items || []) }
+            })
+        }
+      })
     setEditing({
       id: appt.id, patient_name: appt.patient_name, client_name: appt.client_name,
       therapist_id: appt.therapist_id || '', date: appt.date,
@@ -552,12 +575,113 @@ export default function AppointmentsPage() {
       </Modal>
 
       {/* ── Edit Appointment Modal ── */}
-      <Modal open={showEdit} onClose={() => { setShowEdit(false); setEditing(null) }} title="Edit Appointment" size="lg">
+      <Modal open={showEdit} onClose={() => { setShowEdit(false); setEditing(null); setApptVisit(null); setApptInvoice(null) }} title="Edit Appointment" size="lg">
         {editing && (
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
               <strong>{editing.patient_name}</strong> · <span className="text-gray-500">{editing.client_name}</span>
             </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 -mx-1">
+              {(['visit', 'billing'] as const).map(tab => (
+                <button key={tab} type="button" onClick={() => setApptTab(tab)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${apptTab === tab ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                  {tab === 'visit' ? '📋 Visit Record' : '💳 Billing'}
+                </button>
+              ))}
+            </div>
+
+            {/* Visit Record Tab */}
+            {apptTab === 'visit' && (
+              <div>
+                {apptVisit ? (
+                  <div className="rounded-xl border border-gray-200 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-gray-400">{apptVisit.visit_number}</span>
+                      <button type="button" onClick={() => { setShowEdit(false); router.push(`/visits/${apptVisit.id}`) }}
+                        className="text-xs text-brand-pink font-medium hover:underline">Open Full Record →</button>
+                    </div>
+                    {(apptVisit.weight_kg || apptVisit.temperature_c || apptVisit.heart_rate_bpm) && (
+                      <div className="flex flex-wrap gap-3 text-xs text-gray-600 pt-1">
+                        {apptVisit.weight_kg      && <span>⚖️ {apptVisit.weight_kg} kg</span>}
+                        {apptVisit.temperature_c  && <span>🌡️ {apptVisit.temperature_c}°C</span>}
+                        {apptVisit.heart_rate_bpm && <span>❤️ {apptVisit.heart_rate_bpm} bpm</span>}
+                      </div>
+                    )}
+                    {apptVisit.clinical_examination && (
+                      <p className="text-xs text-gray-500 line-clamp-2">{apptVisit.clinical_examination}</p>
+                    )}
+                    {apptVisit.staff_name && <p className="text-xs text-gray-400">by {apptVisit.staff_name}</p>}
+                  </div>
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-sm text-gray-400 mb-3">No visit record for this appointment yet.</p>
+                    <button type="button"
+                      onClick={async () => {
+                        const res = await fetch('/api/visits', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            appointment_id: editing.id,
+                            client_id: editing.client_id,
+                            patient_id: editing.patient_id,
+                            staff_id: editing.therapist_id,
+                            visit_date: editing.date,
+                          }),
+                        })
+                        const data = await res.json()
+                        if (data.visit?.id) { setShowEdit(false); router.push(`/visits/${data.visit.id}`) }
+                      }}
+                      className="btn-primary flex items-center gap-2 mx-auto text-sm"
+                    >
+                      <ClipboardList className="w-4 h-4" /> Create Visit Record
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Billing Tab */}
+            {apptTab === 'billing' && (
+              <div>
+                {apptInvoice ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400">Invoice</p>
+                        <p className="font-semibold text-sm">{apptInvoice.invoice_number || apptInvoice.bill_number}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${apptInvoice.status === 'paid' ? 'bg-green-100 text-green-700' : apptInvoice.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {apptInvoice.status?.toUpperCase()}
+                      </span>
+                    </div>
+                    {apptLineItems.length > 0 && (
+                      <div className="rounded-lg border border-gray-200 overflow-hidden text-xs">
+                        {apptLineItems.map((li: any) => (
+                          <div key={li.id} className="flex justify-between px-3 py-2 border-b border-gray-100 last:border-0">
+                            <span className="text-gray-700">{li.description}{li.qty !== 1 ? ` ×${li.qty}` : ''}</span>
+                            <span className="font-medium">S${parseFloat(li.total||li.amount||0).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between px-3 py-2 bg-gray-50 font-semibold">
+                          <span>Total</span>
+                          <span>S${parseFloat(apptInvoice.total||0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+                    {apptVisit && (
+                      <button type="button" onClick={() => { setShowEdit(false); router.push(`/visits/${apptVisit.id}`) }}
+                        className="text-xs text-brand-pink hover:underline">View full billing in visit record →</button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-3">
+                    {apptVisit ? 'No invoice yet. Open the visit record to create one.' : 'Create a visit record first to add billing.'}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="label">Provider</label>
@@ -611,8 +735,7 @@ export default function AppointmentsPage() {
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setShowEdit(false); setEditing(null) }} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Save Changes</button>
+                <button type="submit" className="btn-primary">Save</button>
               </div>
             </div>
           </form>
