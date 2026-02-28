@@ -63,7 +63,7 @@ export default function CalendarPage() {
     } else {
       const startDate = toSGTDateStr(new Date(year, month - 1, 1))
       const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=1000`)
+      fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
         .then(r => r.json())
         .then(d => {
           const appts = d.appointments || []
@@ -213,7 +213,7 @@ export default function CalendarPage() {
       apptCache.current.delete(`${year}-${month}`)
       const startDate = toSGTDateStr(new Date(year, month - 1, 1))
       const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=1000`)
+      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
       const data = await res.json()
       const fresh = data.appointments || []
       apptCache.current.set(`${year}-${month}`, fresh)
@@ -275,7 +275,7 @@ export default function CalendarPage() {
       apptCache.current.delete(`${year}-${month}`)
       const startDate = toSGTDateStr(new Date(year, month - 1, 1))
       const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=1000`)
+      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
       const data = await res.json()
       const fresh = data.appointments || []
       apptCache.current.set(`${year}-${month}`, fresh)
@@ -305,7 +305,7 @@ export default function CalendarPage() {
       apptCache.current.delete(`${year}-${month}`)
       const startDate = toSGTDateStr(new Date(year, month - 1, 1))
       const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res2 = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=1000`)
+      const res2 = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
       const data2 = await res2.json()
       const fresh = data2.appointments || []
       apptCache.current.set(`${year}-${month}`, fresh)

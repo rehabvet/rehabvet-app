@@ -8,66 +8,105 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const p = req.nextUrl.searchParams
-  const date       = p.get('date')
-  const startDate  = p.get('start_date')
-  const endDate    = p.get('end_date')
+  const date        = p.get('date')
+  const startDate   = p.get('start_date')
+  const endDate     = p.get('end_date')
   const therapistId = p.get('therapist_id')
-  const status     = p.get('status')
-  const q          = (p.get('q') || '').trim()
-  const page       = Math.max(1, parseInt(p.get('page') || '1', 10))
-  const perPage    = Math.min(5000, parseInt(p.get('per_page') || '20', 10))
+  const status      = p.get('status')
+  const q           = (p.get('q') || '').trim()
+  const page        = Math.max(1, parseInt(p.get('page') || '1', 10))
+  const perPage     = Math.min(5000, parseInt(p.get('per_page') || '20', 10))
+  const offset      = (page - 1) * perPage
 
-  const where: any = {}
+  // Build WHERE clauses
+  const conditions: string[] = []
+  const params: unknown[] = []
+  let idx = 1
 
-  if (date) where.date = date
-  else if (startDate && endDate) where.date = { gte: startDate, lte: endDate }
-  if (therapistId) where.therapist_id = therapistId
-  if (status && status !== 'all') where.status = status
-
-  // Therapists only see their own
-  if (user.role === 'therapist') where.therapist_id = user.id
-
-  // Full-text search across patient name, client name, therapist name, modality
-  if (q) {
-    where.OR = [
-      { patient:   { name: { contains: q, mode: 'insensitive' } } },
-      { client:    { name: { contains: q, mode: 'insensitive' } } },
-      { therapist: { name: { contains: q, mode: 'insensitive' } } },
-      { modality:  { contains: q, mode: 'insensitive' } },
-    ]
+  if (date) {
+    conditions.push(`a.date = $${idx++}`)
+    params.push(date)
+  } else if (startDate && endDate) {
+    conditions.push(`a.date >= $${idx++} AND a.date <= $${idx++}`)
+    params.push(startDate, endDate)
   }
 
-  const [total, rows] = await Promise.all([
-    prisma.appointments.count({ where }),
-    prisma.appointments.findMany({
-      where,
-      include: {
-        patient:   { select: { name: true, species: true, breed: true } },
-        client:    { select: { name: true, phone: true } },
-        therapist: { select: { name: true, role: true, photo_url: true } },
-      },
-      orderBy: [{ date: 'desc' }, { start_time: 'asc' }],
-      skip: (page - 1) * perPage,
-      take: perPage,
-    }),
+  if (therapistId) {
+    conditions.push(`a.therapist_id = $${idx++}::uuid`)
+    params.push(therapistId)
+  }
+
+  // Therapists only see their own
+  if (user.role === 'therapist') {
+    conditions.push(`a.therapist_id = $${idx++}::uuid`)
+    params.push(user.id)
+  }
+
+  if (status && status !== 'all') {
+    conditions.push(`a.status::text = $${idx++}`)
+    params.push(status)
+  }
+
+  if (q) {
+    conditions.push(`(
+      pat.name ILIKE $${idx} OR
+      cl.name  ILIKE $${idx} OR
+      u.name   ILIKE $${idx} OR
+      a.modality ILIKE $${idx}
+    )`)
+    params.push(`%${q}%`)
+    idx++
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  const countParams = [...params]
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM appointments a
+    LEFT JOIN patients pat ON pat.id = a.patient_id
+    LEFT JOIN clients  cl  ON cl.id  = a.client_id
+    LEFT JOIN users    u   ON u.id   = a.therapist_id
+    ${where}
+  `
+
+  const dataSql = `
+    SELECT
+      a.id, a.patient_id, a.client_id, a.therapist_id, a.treatment_plan_id,
+      a.date, a.start_time, a.end_time, a.modality, a.status::text AS status,
+      a.notes, a.created_at, a.updated_at,
+      pat.name        AS patient_name,
+      pat.species     AS species,
+      pat.breed       AS breed,
+      cl.name         AS client_name,
+      cl.phone        AS client_phone,
+      u.name          AS therapist_name,
+      u.role          AS therapist_role,
+      u.photo_url     AS therapist_photo
+    FROM appointments a
+    LEFT JOIN patients pat ON pat.id = a.patient_id
+    LEFT JOIN clients  cl  ON cl.id  = a.client_id
+    LEFT JOIN users    u   ON u.id   = a.therapist_id
+    ${where}
+    ORDER BY a.date DESC, a.start_time ASC
+    LIMIT $${idx++} OFFSET $${idx++}
+  `
+  params.push(perPage, offset)
+
+  const [countRows, rows] = await Promise.all([
+    prisma.$queryRawUnsafe<{ total: string }[]>(countSql, ...countParams),
+    prisma.$queryRawUnsafe<any[]>(dataSql, ...params),
   ])
 
-  const appointments = (rows as any[]).map((a) => {
-    const { patient, client, therapist, ...rest } = a
-    return {
-      ...rest,
-      patient_name:   patient?.name,
-      species:        patient?.species,
-      breed:          patient?.breed,
-      client_name:    client?.name,
-      client_phone:   client?.phone,
-      therapist_name: therapist?.name ?? null,
-      therapist_role: therapist?.role ?? null,
-      therapist_photo: therapist?.photo_url ?? null,
-    }
-  })
+  const total = parseInt(countRows[0]?.total || '0', 10)
 
-  const res = NextResponse.json({ appointments, total, page, per_page: perPage, total_pages: Math.ceil(total / perPage) })
+  const res = NextResponse.json({
+    appointments: rows,
+    total,
+    page,
+    per_page: perPage,
+    total_pages: Math.ceil(total / perPage),
+  })
   res.headers.set('Cache-Control', CACHE_SHORT)
   return res
 }
@@ -78,37 +117,41 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { patient_id, client_id, therapist_id, treatment_plan_id, date, start_time, end_time, modality, notes } = body
-  if (!patient_id || !client_id || !date || !start_time || !end_time || !modality) {
+  if (!date || !start_time || !end_time || !modality) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
   // Check for conflicts
   if (therapist_id) {
-    const conflict = await prisma.appointments.findFirst({
-      where: {
-        therapist_id,
-        date,
-        status: { notIn: ['cancelled', 'no_show'] },
-        AND: [{ start_time: { lt: end_time } }, { end_time: { gt: start_time } }],
-      },
-      select: { id: true },
-    })
-    if (conflict) return NextResponse.json({ error: 'Therapist has a scheduling conflict' }, { status: 409 })
+    const conflict = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM appointments
+       WHERE therapist_id = $1::uuid AND date = $2
+         AND status::text NOT IN ('cancelled','no_show')
+         AND start_time < $3 AND end_time > $4
+       LIMIT 1`,
+      therapist_id, date, end_time, start_time
+    )
+    if (conflict.length > 0) return NextResponse.json({ error: 'Therapist has a scheduling conflict' }, { status: 409 })
   }
 
-  const appointment = await prisma.appointments.create({
-    data: {
-      patient_id,
-      client_id,
-      therapist_id: therapist_id || null,
-      treatment_plan_id: treatment_plan_id || null,
-      date,
-      start_time,
-      end_time,
-      modality,
-      notes: notes || null,
-    },
-  })
+  const { randomUUID } = await import('crypto')
+  const id = randomUUID()
 
-  return NextResponse.json({ appointment }, { status: 201 })
+  await prisma.$queryRawUnsafe(
+    `INSERT INTO appointments (id, patient_id, client_id, therapist_id, treatment_plan_id, date, start_time, end_time, modality, notes, status, created_at, updated_at)
+     VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'confirmed', NOW(), NOW())`,
+    id,
+    patient_id || null,
+    client_id ? `${client_id}` : null,
+    therapist_id || null,
+    treatment_plan_id || null,
+    date, start_time, end_time, modality,
+    notes || null,
+  )
+
+  const appt = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT * FROM appointments WHERE id = $1::uuid LIMIT 1`, id
+  )
+
+  return NextResponse.json({ appointment: appt[0] }, { status: 201 })
 }
