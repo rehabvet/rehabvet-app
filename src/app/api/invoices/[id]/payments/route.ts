@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const inv = await prisma.$queryRawUnsafe(`SELECT total FROM invoices WHERE id = $1::uuid`, params.id) as any[]
   const total = parseFloat(inv[0]?.total ?? 0)
-  const status = amountPaid >= total && total > 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'draft'
+  const status = amountPaid >= total && total > 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'sent'
 
   await prisma.$queryRawUnsafe(`
     UPDATE invoices SET amount_paid=$1, status=$2, updated_at=NOW() WHERE id=$3::uuid

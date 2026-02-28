@@ -79,18 +79,18 @@ async function recalcInvoice(invoiceId: string) {
   `, invoiceId) as any[]
 
   const subtotal = parseFloat(rows[0]?.subtotal ?? 0)
-  const tax   = Math.round(subtotal * 0.09 * 100) / 100
-  const total = Math.round((subtotal + tax) * 100) / 100
+  // Prices are GST-inclusive — no tax added on top
+  const total = subtotal
 
   // Get amount paid
   const paid = await prisma.$queryRawUnsafe(`
     SELECT COALESCE(SUM(amount), 0)::numeric AS paid FROM payments WHERE invoice_id = $1::uuid
   `, invoiceId) as any[]
   const amountPaid = parseFloat(paid[0]?.paid ?? 0)
-  const status = amountPaid >= total && total > 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'draft'
+  const status = amountPaid >= total && total > 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'sent'
 
   await prisma.$queryRawUnsafe(`
-    UPDATE invoices SET subtotal=$1, tax=$2, total=$3, status=$4, updated_at=NOW()
-    WHERE id=$5::uuid
-  `, subtotal, tax, total, status, invoiceId)
+    UPDATE invoices SET subtotal=$1, tax=0, total=$2, status=$3, updated_at=NOW()
+    WHERE id=$4::uuid
+  `, subtotal, total, status, invoiceId)
 }
