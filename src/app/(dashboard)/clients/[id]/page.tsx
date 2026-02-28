@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, PawPrint, FileText, CalendarClock, Edit2, Save, X, ClipboardList, Receipt } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X, ClipboardList, Receipt } from 'lucide-react'
 import AddressInput from '@/components/AddressInput'
+
+type Tab = 'visits' | 'billing' | 'appointments'
 
 function splitAddress(full?: string) {
   const out = { block: '', street: '', unit: '', building: '', postalCode: '' }
@@ -26,6 +28,7 @@ export default function ClientDetailPage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<any>({})
   const [visits, setVisits] = useState<any[]>([])
+  const [tab, setTab] = useState<Tab>('visits')
 
   useEffect(() => {
     fetch(`/api/clients/${id}`).then(r => r.json()).then(d => {
@@ -138,118 +141,130 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      {/* Visit Records */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <ClipboardList className="w-5 h-5 text-brand-pink" /> Visit Records
-          {visits.length > 0 && (
-            <span className="ml-1 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{visits.length}</span>
-          )}
-        </h2>
-        {visits.length === 0 ? (
-          <p className="text-gray-400 text-sm">No visit records</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b border-gray-200">
-                <th className="table-header">Visit #</th>
-                <th className="table-header">Date</th>
-                <th className="table-header">Pet</th>
-                <th className="table-header">Therapist</th>
-                <th className="table-header">Chief Complaint</th>
-                <th className="table-header"></th>
-              </tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {visits.map((v: any) => (
-                  <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/visits/${v.id}`)}>
-                    <td className="table-cell font-medium text-brand-pink">{v.visit_number || '—'}</td>
-                    <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td className="table-cell">{v.patient_name || '—'}</td>
-                    <td className="table-cell">{v.staff_name || '—'}</td>
-                    <td className="table-cell text-gray-500 max-w-[200px] truncate">{v.chief_complaint || '—'}</td>
-                    <td className="table-cell text-right">
-                      <span className="text-xs text-brand-pink hover:underline">View →</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Tabbed: Visit Records / Billing / Appointments */}
+      <div className="card p-0 overflow-hidden">
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-200">
+          {([
+            { key: 'visits',       label: 'Visit Records',  icon: <ClipboardList className="w-4 h-4" />, count: visits.length },
+            { key: 'billing',      label: 'Billing',        icon: <Receipt className="w-4 h-4" />,       count: invoices?.length ?? 0 },
+            { key: 'appointments', label: 'Appointments',   icon: <CalendarClock className="w-4 h-4" />, count: appointments?.length ?? 0 },
+          ] as { key: Tab; label: string; icon: React.ReactNode; count: number }[]).map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors ${
+                tab === t.key
+                  ? 'border-brand-pink text-brand-pink'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t.icon}
+              {t.label}
+              {t.count > 0 && (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === t.key ? 'bg-brand-pink/10 text-brand-pink' : 'bg-gray-100 text-gray-500'}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
-      {/* Billing */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-brand-gold" /> Billing
-          {invoices?.length > 0 && (
-            <span className="ml-1 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{invoices.length}</span>
+        <div className="p-5">
+          {/* Visit Records tab */}
+          {tab === 'visits' && (
+            visits.length === 0 ? (
+              <p className="text-gray-400 text-sm py-2">No visit records</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b border-gray-200">
+                    <th className="table-header">Visit #</th>
+                    <th className="table-header">Date</th>
+                    <th className="table-header">Pet</th>
+                    <th className="table-header">Therapist</th>
+                    <th className="table-header">Chief Complaint</th>
+                    <th className="table-header"></th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visits.map((v: any) => (
+                      <tr key={v.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/visits/${v.id}`)}>
+                        <td className="table-cell font-medium text-brand-pink">{v.visit_number || '—'}</td>
+                        <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                        <td className="table-cell">{v.patient_name || '—'}</td>
+                        <td className="table-cell">{v.staff_name || '—'}</td>
+                        <td className="table-cell text-gray-500 max-w-[200px] truncate">{v.chief_complaint || '—'}</td>
+                        <td className="table-cell text-right"><span className="text-xs text-brand-pink">View →</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
-        </h2>
-        {!invoices?.length ? (
-          <p className="text-gray-400 text-sm">No invoices</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b border-gray-200">
-                <th className="table-header">Invoice #</th>
-                <th className="table-header">Date</th>
-                <th className="table-header">Total</th>
-                <th className="table-header">Paid</th>
-                <th className="table-header">Status</th>
-              </tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv: any) => (
-                  <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/billing/${inv.id}`)}>
-                    <td className="table-cell font-medium">{inv.invoice_number || inv.bill_number || '—'}</td>
-                    <td className="table-cell">{inv.date}</td>
-                    <td className="table-cell">S${Number(inv.total || 0).toFixed(2)}</td>
-                    <td className="table-cell">S${Number(inv.amount_paid || 0).toFixed(2)}</td>
-                    <td className="table-cell"><InvoiceStatusBadge status={inv.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      {/* Appointments */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <CalendarClock className="w-5 h-5 text-brand-gold" /> Appointments
-          {appointments?.length > 0 && (
-            <span className="ml-1 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{appointments.length}</span>
+          {/* Billing tab */}
+          {tab === 'billing' && (
+            !invoices?.length ? (
+              <p className="text-gray-400 text-sm py-2">No invoices</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b border-gray-200">
+                    <th className="table-header">Invoice #</th>
+                    <th className="table-header">Date</th>
+                    <th className="table-header">Total</th>
+                    <th className="table-header">Paid</th>
+                    <th className="table-header">Status</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {invoices.map((inv: any) => (
+                      <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/billing/${inv.id}`)}>
+                        <td className="table-cell font-medium">{inv.invoice_number || inv.bill_number || '—'}</td>
+                        <td className="table-cell">{inv.date}</td>
+                        <td className="table-cell">S${Number(inv.total || 0).toFixed(2)}</td>
+                        <td className="table-cell">S${Number(inv.amount_paid || 0).toFixed(2)}</td>
+                        <td className="table-cell"><InvoiceStatusBadge status={inv.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
-        </h2>
-        {!appointments?.length ? (
-          <p className="text-gray-400 text-sm">No appointments found</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b border-gray-200">
-                <th className="table-header">Date</th>
-                <th className="table-header">Time</th>
-                <th className="table-header">Pet</th>
-                <th className="table-header">Provider</th>
-                <th className="table-header">Treatment</th>
-                <th className="table-header">Status</th>
-              </tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {appointments.map((a: any) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="table-cell">{a.date}</td>
-                    <td className="table-cell">{a.start_time} - {a.end_time}</td>
-                    <td className="table-cell">{a.patient?.name || '—'}</td>
-                    <td className="table-cell">{a.therapist?.name || 'Unassigned'}</td>
-                    <td className="table-cell"><span className="badge-purple">{a.modality}</span></td>
-                    <td className="table-cell"><ApptStatusBadge status={a.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+
+          {/* Appointments tab */}
+          {tab === 'appointments' && (
+            !appointments?.length ? (
+              <p className="text-gray-400 text-sm py-2">No appointments found</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b border-gray-200">
+                    <th className="table-header">Date</th>
+                    <th className="table-header">Time</th>
+                    <th className="table-header">Pet</th>
+                    <th className="table-header">Provider</th>
+                    <th className="table-header">Treatment</th>
+                    <th className="table-header">Status</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {appointments.map((a: any) => (
+                      <tr key={a.id} className="hover:bg-gray-50">
+                        <td className="table-cell">{a.date}</td>
+                        <td className="table-cell">{a.start_time} – {a.end_time}</td>
+                        <td className="table-cell">{a.patient?.name || '—'}</td>
+                        <td className="table-cell">{a.therapist?.name || 'Unassigned'}</td>
+                        <td className="table-cell"><span className="badge-purple">{a.modality}</span></td>
+                        <td className="table-cell"><ApptStatusBadge status={a.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </div>
       </div>
     </div>
   )
