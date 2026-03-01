@@ -58,7 +58,7 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
   const [error, setError] = useState('')
   const [data, setData] = useState<AddressData>(() => parseAddress(value || ''))
   // Track whether the last onChange call came from inside this component.
-  // If so, skip re-syncing from the prop — prevents the typing→reset loop.
+  // If so, skip re-syncing from the prop -- prevents the typing->reset loop.
   const internalChange = useRef(false)
 
   // Sync internal state ONLY when value changes from an external source (e.g. parent loads existing record)
@@ -165,7 +165,7 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         <div className="flex-1 text-xs text-gray-400 flex items-center">
           {error && <span className="text-red-500">{error}</span>}
           {!error && !found && <span>Enter 6-digit postal code to auto-fill</span>}
-          {found && <span className="text-green-600">✓ Address found</span>}
+          {found && <span className="text-green-600">Found Address found</span>}
         </div>
       </div>
 

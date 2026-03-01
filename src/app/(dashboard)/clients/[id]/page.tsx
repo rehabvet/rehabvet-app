@@ -7,6 +7,8 @@ import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
 
+const PAGE_SIZE = 20
+
 type Tab = 'visits' | 'billing' | 'appointments'
 
 function splitAddress(full?: string) {
@@ -183,6 +185,7 @@ export default function ClientDetailPage() {
             visits.length === 0 ? (
               <p className="text-gray-400 text-sm py-2">No visit records</p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead><tr className="border-b border-gray-200">
@@ -199,13 +202,14 @@ export default function ClientDetailPage() {
                         <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                         <td className="table-cell">{v.patient_name || '—'}</td>
                         <td className="table-cell">{v.staff_name || '—'}</td>
-                        <td className="table-cell text-right"><span className="text-xs text-brand-pink">View Next</span></td>
+                        <td className="table-cell text-right"><span className="text-xs text-brand-pink">View</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               <Pager page={visitPage} total={visits.length} onChange={setVisitPage} />
+              </>
             )
           )}
 
@@ -214,6 +218,7 @@ export default function ClientDetailPage() {
             !invoices?.length ? (
               <p className="text-gray-400 text-sm py-2">No invoices</p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead><tr className="border-b border-gray-200">
@@ -237,6 +242,7 @@ export default function ClientDetailPage() {
                 </table>
               </div>
               <Pager page={billingPage} total={invoices.length} onChange={setBillingPage} />
+              </>
             )
           )}
 
@@ -245,6 +251,7 @@ export default function ClientDetailPage() {
             !appointments?.length ? (
               <p className="text-gray-400 text-sm py-2">No appointments found</p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead><tr className="border-b border-gray-200">
@@ -270,6 +277,7 @@ export default function ClientDetailPage() {
                 </table>
               </div>
               <Pager page={apptPage} total={appointments.length} onChange={setApptPage} />
+              </>
             )
           )}
         </div>
@@ -277,8 +285,6 @@ export default function ClientDetailPage() {
     </div>
   )
 }
-
-const PAGE_SIZE = 20
 
 function Pager({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
   const pages = Math.ceil(total / PAGE_SIZE)
