@@ -66,6 +66,7 @@ export default function LeadsPage() {
   const [convertDate, setConvertDate] = useState('')
   const [converting, setConverting] = useState(false)
   const [staffNote, setStaffNote] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -86,6 +87,12 @@ export default function LeadsPage() {
   }, [search, filterStatus, page])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || ''))
+    })
+  }, [])
 
   // Reset to page 1 when search or filter changes
   useEffect(() => { setPage(1) }, [search, filterStatus])
@@ -120,7 +127,6 @@ export default function LeadsPage() {
   async function updateStatus(id: string, status: string) {
     await fetch(`/api/leads/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
     fetchLeads()
-    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
     if (viewLead?.id === id) setViewLead(l => l ? { ...l, status } : null)
   }
 
@@ -130,7 +136,6 @@ export default function LeadsPage() {
     await fetch(`/api/leads/${viewLead.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_notes: staffNote }) })
     setSavingNote(false)
     fetchLeads()
-    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
   }
 
   async function doConvert() {
@@ -144,7 +149,6 @@ export default function LeadsPage() {
     setConvertLead(null)
     setConverting(false)
     fetchLeads()
-    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
   }
 
   async function confirmAndDelete() {
@@ -155,7 +159,6 @@ export default function LeadsPage() {
       if (viewLead?.id === confirmDeleteId) setViewLead(null)
       setConfirmDeleteId(null)
       fetchLeads()
-    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
     } finally {
       setDeleting(false)
     }
@@ -171,10 +174,18 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
           <p className="text-sm text-gray-500 mt-0.5">{totalLeads} total enquiries via app.rehabvet.com/appointment</p>
         </div>
-        <a href="/appointment" target="_blank"
-          className="btn-secondary flex items-center gap-2 text-sm">
-          <Megaphone className="w-4 h-4" /> View Booking Page ↗
-        </a>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <a href="/api/export/leads" download className="btn-secondary flex items-center gap-1.5 text-sm">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Export CSV
+            </a>
+          )}
+          <a href="/appointment" target="_blank"
+            className="btn-secondary flex items-center gap-2 text-sm">
+            <Megaphone className="w-4 h-4" /> View Booking Page &#8599;
+          </a>
+        </div>
       </div>
 
       {/* Pipeline stats */}
