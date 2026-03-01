@@ -16,6 +16,7 @@ interface Lead {
   has_pain: boolean | null; clinic_name: string | null; attending_vet: string | null
   first_visit: boolean; notes: string | null; status: string; staff_notes: string | null
   created_at: string
+  matched_client?: { id: string; name: string; email: string; appt_count: number; pet_names: string } | null
 }
 
 // OneMap postcode → address lookup (Singapore)
