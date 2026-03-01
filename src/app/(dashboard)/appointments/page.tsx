@@ -86,7 +86,6 @@ export default function AppointmentsPage() {
   const [apptLineItems,   setApptLineItems]   = useState<any[]>([])
   const [showBillingModal,setShowBillingModal]= useState(false)
   const [deleting,        setDeleting]        = useState(false)
-  const [isAdmin,         setIsAdmin]         = useState(false)
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
   const [patients,         setPatients]         = useState<any[]>([])
