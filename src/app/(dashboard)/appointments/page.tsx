@@ -65,6 +65,14 @@ export default function AppointmentsPage() {
   const [fromDate, setFromDate] = useState(todayStr) // default: from today
   const [page, setPage]     = useState(1)
   const PER_PAGE = 20
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || ''))
+    })
+  }, [])
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Modals ──────────────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ export default function AppointmentsPage() {
   const [apptLineItems,   setApptLineItems]   = useState<any[]>([])
   const [showBillingModal,setShowBillingModal]= useState(false)
   const [deleting,        setDeleting]        = useState(false)
+  const [isAdmin,         setIsAdmin]         = useState(false)
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
   const [patients,         setPatients]         = useState<any[]>([])
@@ -252,7 +261,15 @@ export default function AppointmentsPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
+          {isAdmin && (
+            <a href="/api/export/appointments" download className="btn-secondary flex items-center gap-1.5 text-sm">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Export CSV
+            </a>
+          )}
+        </div>
           <p className="text-gray-400 text-sm">{total > 0 ? `${total} appointment${total !== 1 ? 's' : ''}` : 'No appointments found'}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary">

@@ -120,6 +120,7 @@ export default function LeadsPage() {
   async function updateStatus(id: string, status: string) {
     await fetch(`/api/leads/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
     fetchLeads()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
     if (viewLead?.id === id) setViewLead(l => l ? { ...l, status } : null)
   }
 
@@ -129,6 +130,7 @@ export default function LeadsPage() {
     await fetch(`/api/leads/${viewLead.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_notes: staffNote }) })
     setSavingNote(false)
     fetchLeads()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
   }
 
   async function doConvert() {
@@ -142,6 +144,7 @@ export default function LeadsPage() {
     setConvertLead(null)
     setConverting(false)
     fetchLeads()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
   }
 
   async function confirmAndDelete() {
@@ -152,6 +155,7 @@ export default function LeadsPage() {
       if (viewLead?.id === confirmDeleteId) setViewLead(null)
       setConfirmDeleteId(null)
       fetchLeads()
+    fetch('/api/auth/me').then(r => r.json()).then(d => setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || '')))
     } finally {
       setDeleting(false)
     }

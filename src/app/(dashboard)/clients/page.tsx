@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Plus, Search, Phone, Mail, MapPin } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 
+const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
+
 export default function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<any[]>([])
@@ -14,6 +16,7 @@ export default function ClientsPage() {
   const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => { setPage(1) }, [search])
   useEffect(() => { fetchClients(page) }, [search, page])
@@ -36,6 +39,12 @@ export default function ClientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
+          {isAdmin && (
+            <a href="/api/export/clients" download className="btn-secondary flex items-center gap-1.5 text-sm">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Export CSV
+            </a>
+          )}
           <p className="text-gray-500 text-sm">{total > 0 ? `${total} clients total` : 'Manage pet owner profiles'}</p>
         </div>
         <Link href="/clients/new" className="btn-primary">
