@@ -199,7 +199,7 @@ export default function ClientDetailPage() {
                         <td className="table-cell">{v.visit_date ? new Date(v.visit_date).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                         <td className="table-cell">{v.patient_name || '—'}</td>
                         <td className="table-cell">{v.staff_name || '—'}</td>
-                        <td className="table-cell text-right"><span className="text-xs text-brand-pink">View →</span></td>
+                        <td className="table-cell text-right"><span className="text-xs text-brand-pink">View Next</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -259,7 +259,7 @@ export default function ClientDetailPage() {
                     {appointments.slice((apptPage-1)*PAGE_SIZE, apptPage*PAGE_SIZE).map((a: any) => (
                       <tr key={a.id} className="hover:bg-gray-50">
                         <td className="table-cell">{a.date}</td>
-                        <td className="table-cell">{a.start_time} – {a.end_time}</td>
+                        <td className="table-cell">{a.start_time} - {a.end_time}</td>
                         <td className="table-cell">{a.patient?.name || '—'}</td>
                         <td className="table-cell">{a.therapist?.name || 'Unassigned'}</td>
                         <td className="table-cell"><span className="badge-purple">{a.modality}</span></td>
@@ -285,10 +285,10 @@ function Pager({ page, total, onChange }: { page: number; total: number; onChang
   if (pages <= 1) return null
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
-      <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
+      <span>{(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} of {total}</span>
       <div className="flex gap-1">
-        <button disabled={page === 1} onClick={() => onChange(page - 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">←</button>
-        <button disabled={page === pages} onClick={() => onChange(page + 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">→</button>
+        <button disabled={page === 1} onClick={() => onChange(page - 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">Prev</button>
+        <button disabled={page === pages} onClick={() => onChange(page + 1)} className="px-3 py-1 rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50">Next</button>
       </div>
     </div>
   )
