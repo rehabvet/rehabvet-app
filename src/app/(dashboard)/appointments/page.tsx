@@ -49,17 +49,8 @@ const modalityBg: Record<string, string> = {
 }
 
 export default function AppointmentsPage() {
-  function downloadCSV(url: string, filename: string) {
-    fetch(url).then(r => r.blob()).then(blob => {
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
-    })
+  function downloadCSV(url: string, _filename: string) {
+    window.location.href = url
   }
 
   const router = useRouter()
