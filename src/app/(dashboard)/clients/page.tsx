@@ -11,11 +11,14 @@ const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
 export default function ClientsPage() {
   function downloadCSV(url: string, filename: string) {
     fetch(url).then(r => r.blob()).then(blob => {
+      const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
+      a.href = blobUrl
       a.download = filename
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(a.href)
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
     })
   }
 
