@@ -253,7 +253,7 @@ export default function AppointmentPage() {
             {/* Stats row */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-4 sm:gap-6 lg:gap-10">
               {[
-                { n: '10+', l: 'Years' },
+                { n: '8+', l: 'Years' },
                 { n: '2,500+', l: 'Pets treated' },
                 { n: `${gRating.rating}★`, l: 'Google rating' },
                 { n: `${gRating.total}+`, l: 'Reviews' },
