@@ -102,6 +102,7 @@ export default function AppointmentPage() {
   const [reviewIdx, setReviewIdx] = useState(0)
   const [reviews, setReviews] = useState(FALLBACK_REVIEWS)
   const [gRating, setGRating] = useState({ rating: 4.8, total: 193 })
+  const [latestReview, setLatestReview] = useState<any>(null)
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', owner_email: '', owner_phone: '+65 ', post_code: '',
@@ -151,6 +152,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     fetch('/api/google-reviews').then(r => r.json()).then(d => {
       if (d.reviews?.length > 0) setReviews(d.reviews)
+      if (d.latestReview) setLatestReview(d.latestReview)
       if (d.rating) setGRating({ rating: d.rating, total: d.total })
     }).catch(() => {})
 
@@ -269,6 +271,32 @@ export default function AppointmentPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               {/* Reviewer photo at top */}
               <div className="flex items-center gap-3 mb-4">
+                {/* Latest review */}
+                {latestReview && (
+                  <div className="mb-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {latestReview.photo
+                          ? <img src={latestReview.photo} alt={latestReview.author} className="w-8 h-8 rounded-full object-cover border border-gray-100" referrerPolicy="no-referrer" />
+                          : <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-xs font-bold">{latestReview.author?.[0] || '?'}</div>
+                        }
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800 leading-tight">{latestReview.author}</p>
+                          <p className="text-[10px] text-gray-400">{latestReview.time}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {'★★★★★'.split('').map((s,i) => <span key={i} className="text-yellow-400 text-xs">{s}</span>)}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">"{latestReview.text}"</p>
+                    <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
+                      <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
+                      Most recent Google review
+                    </p>
+                  </div>
+                )}
+
                 {reviews[reviewIdx]?.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={reviews[reviewIdx].photo} alt={reviews[reviewIdx].author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
