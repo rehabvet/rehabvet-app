@@ -361,17 +361,6 @@ export default function AppointmentPage() {
                       maxLength={6}
                       onChange={e => lookupPostal(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     />
-                    {addressLoading && (
-                      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-[#EC6496] rounded-full animate-spin" />
-                        Looking up address…
-                      </p>
-                    )}
-                    {form.address && !addressLoading && (
-                      <p className="text-xs text-gray-600 mt-1.5 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 font-medium">
-                        📍 {form.address}
-                      </p>
-                    )}
                     {addressError && !addressLoading && (
                       <p className="text-xs text-red-400 mt-1.5">{addressError}</p>
                     )}
