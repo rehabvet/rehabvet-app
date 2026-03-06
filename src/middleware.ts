@@ -13,6 +13,7 @@ const PUBLIC_PREFIXES = [
   '/api/google-reviews',    // public widget
   '/api/health',
   '/api/webhooks',          // Resend webhooks
+  '/api/funnel',             // anonymous booking funnel tracking
   '/api/unsubscribe',       // unsubscribe handler
   '/unsubscribe',           // unsubscribe page
   '/forgot-password',

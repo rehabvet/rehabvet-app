@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, Users, PawPrint, ClipboardList,
-  FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package, Megaphone,
+  FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package, Megaphone, TrendingUp,
   Stethoscope, UserCog, Layers, Mail, Clipboard, Upload
 } from 'lucide-react'
 
@@ -26,6 +26,7 @@ const nav = [
 
   { href: '/inventory', label: 'Inventory', icon: Package, roles: ['admin', 'vet', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist'] },
   { href: '/leads', label: 'Leads', icon: Megaphone, roles: ['admin', 'receptionist', 'administrator', 'office_manager', 'marketing'] },
+  { href: '/funnel', label: 'Booking Funnel', icon: TrendingUp, roles: ['admin', 'administrator'] },
   { href: '/campaigns', label: 'Campaigns', icon: Mail, roles: ['admin', 'administrator', 'office_manager', 'marketing'] },
 
   { href: '/import', label: 'Import', icon: Upload, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },

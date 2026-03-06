@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronLeft, Star } from 'lucide-react'
 import PhoneInput from '@/components/PhoneInput'
@@ -148,6 +148,28 @@ export default function AppointmentPage() {
     }
   }
 
+
+  // ── Funnel tracking ──────────────────────────────────────────────────────────
+  const sessionId = useRef<string>('')
+  useEffect(() => {
+    sessionId.current = Math.random().toString(36).slice(2) + Date.now().toString(36)
+    const device = window.innerWidth < 768 ? 'mobile' : 'desktop'
+    const track = (event: string) => fetch('/api/funnel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId.current, event, referrer: document.referrer, device }),
+    }).catch(() => {})
+    // Track landing
+    track('landed')
+    // Expose track fn on ref so step changes can use it
+    ;(sessionId as any).track = track
+  }, [])
+
+  function trackStep(event: string) {
+    const track = (sessionId as any).track
+    if (track) track(event)
+  }
+
   useEffect(() => {
     fetch('/api/google-reviews').then(r => r.json()).then(d => {
       if (d.reviews?.length > 0) setReviews(d.reviews)
@@ -194,6 +216,7 @@ export default function AppointmentPage() {
         reportError(msg, '', step, form as unknown as Record<string, unknown>)
         throw new Error(msg)
       }
+      trackStep('submitted')
       router.push('/appointment/thank-you')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Submission failed'
@@ -366,7 +389,7 @@ export default function AppointmentPage() {
                       <p className="text-xs text-red-400 mt-1.5">{addressError}</p>
                     )}
                   </div>
-                  <button onClick={() => setStep(2)} disabled={!ok1}
+                  <button onClick={() => { setStep(2); trackStep('step1') }} disabled={!ok1}
                     className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     style={{ background: ok1 ? '#EC6496' : '#f0a0bc' }}>
                     Continue <ChevronRight className="w-4 h-4" /></button>
@@ -416,7 +439,7 @@ export default function AppointmentPage() {
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(1)} className="flex-none w-10 h-11 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
                       <ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={() => setStep(3)} disabled={!ok2}
+                    <button onClick={() => { setStep(3); trackStep('step2') }} disabled={!ok2}
                       className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ background: ok2 ? '#EC6496' : '#f0a0bc' }}>
                       Continue <ChevronRight className="w-4 h-4" /></button>
@@ -449,7 +472,7 @@ export default function AppointmentPage() {
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(2)} className="flex-none w-10 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
                       <ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={() => setStep(4)} disabled={!ok3}
+                    <button onClick={() => { setStep(4); trackStep('step3') }} disabled={!ok3}
                       className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ background: ok3 ? '#EC6496' : '#f0a0bc' }}>
                       Review & Confirm <ChevronRight className="w-4 h-4" /></button>
