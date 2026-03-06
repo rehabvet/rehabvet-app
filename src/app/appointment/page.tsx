@@ -267,67 +267,30 @@ export default function AppointmentPage() {
               ))}
             </div>
 
-            {/* Review */}
+            {/* Most recent Google review */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-              {/* Reviewer photo at top */}
               <div className="flex items-center gap-3 mb-4">
-                {/* Latest review */}
-                {latestReview && (
-                  <div className="mb-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {latestReview.photo
-                          ? <img src={latestReview.photo} alt={latestReview.author} className="w-8 h-8 rounded-full object-cover border border-gray-100" referrerPolicy="no-referrer" />
-                          : <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink text-xs font-bold">{latestReview.author?.[0] || '?'}</div>
-                        }
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800 leading-tight">{latestReview.author}</p>
-                          <p className="text-[10px] text-gray-400">{latestReview.time}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {'★★★★★'.split('').map((s,i) => <span key={i} className="text-yellow-400 text-xs">{s}</span>)}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">"{latestReview.text}"</p>
-                    <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
-                      <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
-                      Most recent Google review
-                    </p>
-                  </div>
-                )}
-
-                {reviews[reviewIdx]?.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={reviews[reviewIdx].photo} alt={reviews[reviewIdx].author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
+                {(latestReview || reviews[0])?.photo ? (
+                  <img src={(latestReview || reviews[0]).photo} alt={(latestReview || reviews[0]).author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-11 h-11 rounded-full bg-[#EC6496]/10 flex items-center justify-center text-[#EC6496] text-sm font-bold flex-shrink-0">
-                    {reviews[reviewIdx]?.author?.[0] || '?'}
+                    {(latestReview || reviews[0])?.author?.[0] || '?'}
                   </div>
                 )}
-                <div>
-                  <p className="text-sm font-semibold text-gray-800 leading-tight">{reviews[reviewIdx]?.author}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">{(latestReview || reviews[0])?.author}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
                     <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#FDC61C] text-[#FDC61C]" />)}</div>
-                    <span className="text-xs text-gray-400">{reviews[reviewIdx]?.time || ''}</span>
+                    <span className="text-xs text-gray-400">{(latestReview || reviews[0])?.time || ''}</span>
                   </div>
                 </div>
               </div>
-              <p className="text-gray-700 text-sm leading-relaxed mb-5 min-h-[56px]">
-                "{reviews[reviewIdx]?.text}"
+              <p className="text-gray-700 text-sm leading-relaxed">
+                "{(latestReview || reviews[0])?.text}"
               </p>
-              <div className="flex items-center justify-between">
-                <div />
-                <div className="flex gap-1.5">
-                  {reviews.slice(0, 5).map((_, i) => (
-                    <button key={i} onClick={() => setReviewIdx(i)}
-                      className={`transition-all rounded-full ${i === reviewIdx ? 'w-4 h-2 bg-[#EC6496]' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`} />
-                  ))}
-                </div>
-              </div>
               <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-1.5">
                 <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
-                <span className="text-xs text-gray-400">Verified Google Review</span>
+                <span className="text-xs text-gray-400">Most recent Google review</span>
               </div>
             </div>
 
