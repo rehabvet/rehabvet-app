@@ -102,7 +102,6 @@ export default function AppointmentPage() {
   const [reviewIdx, setReviewIdx] = useState(0)
   const [reviews, setReviews] = useState(FALLBACK_REVIEWS)
   const [gRating, setGRating] = useState({ rating: 4.8, total: 193 })
-  const [latestReview, setLatestReview] = useState<any>(null)
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', owner_email: '', owner_phone: '+65 ', post_code: '',
@@ -152,7 +151,6 @@ export default function AppointmentPage() {
   useEffect(() => {
     fetch('/api/google-reviews').then(r => r.json()).then(d => {
       if (d.reviews?.length > 0) setReviews(d.reviews)
-      if (d.latestReview) setLatestReview(d.latestReview)
       if (d.rating) setGRating({ rating: d.rating, total: d.total })
     }).catch(() => {})
 
@@ -267,30 +265,42 @@ export default function AppointmentPage() {
               ))}
             </div>
 
-            {/* Most recent Google review */}
+            {/* Google reviews carousel */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
-                {(latestReview || reviews[0])?.photo ? (
-                  <img src={(latestReview || reviews[0]).photo} alt={(latestReview || reviews[0]).author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
+                {reviews[reviewIdx]?.photo ? (
+                  <img src={reviews[reviewIdx].photo} alt={reviews[reviewIdx].author} className="w-11 h-11 rounded-full object-cover border border-gray-100 flex-shrink-0" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-11 h-11 rounded-full bg-[#EC6496]/10 flex items-center justify-center text-[#EC6496] text-sm font-bold flex-shrink-0">
-                    {(latestReview || reviews[0])?.author?.[0] || '?'}
+                    {reviews[reviewIdx]?.author?.[0] || '?'}
                   </div>
                 )}
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800 leading-tight">{(latestReview || reviews[0])?.author}</p>
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">{reviews[reviewIdx]?.author}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="flex">{[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#FDC61C] text-[#FDC61C]" />)}</div>
-                    <span className="text-xs text-gray-400">{(latestReview || reviews[0])?.time || ''}</span>
+                    <span className="text-xs text-gray-400">{reviews[reviewIdx]?.date || reviews[reviewIdx]?.time || ''}</span>
                   </div>
                 </div>
               </div>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                "{(latestReview || reviews[0])?.text}"
+              <p className="text-gray-700 text-sm leading-relaxed mb-5 min-h-[72px]">
+                "{reviews[reviewIdx]?.text}"
               </p>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1.5">
+                  {reviews.slice(0, 10).map((_, i) => (
+                    <button key={i} onClick={() => setReviewIdx(i)}
+                      className={`transition-all rounded-full ${i === reviewIdx ? 'w-4 h-2 bg-[#EC6496]' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`} />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setReviewIdx(i => (i - 1 + reviews.length) % reviews.length)} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 text-xs">&#8249;</button>
+                  <button onClick={() => setReviewIdx(i => (i + 1) % reviews.length)} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 text-xs">&#8250;</button>
+                </div>
+              </div>
               <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-1.5">
                 <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
-                <span className="text-xs text-gray-400">Most recent Google review</span>
+                <span className="text-xs text-gray-400">Latest Google reviews</span>
               </div>
             </div>
 
