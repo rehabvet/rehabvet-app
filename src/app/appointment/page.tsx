@@ -9,11 +9,11 @@ const HOW_HEARD = ['Google Search', 'Vet or clinic referred', 'Friend or Family'
 const GENDERS = ['Male', 'Female', 'Male Neutered', 'Female Neutered']
 
 const FALLBACK_REVIEWS = [
-  { author: 'Logan W.', rating: 5, time: 'a month ago', photo: '', text: 'Dr. Sara and the team\'s explanations on joint care were very helpful. When my dog was injured, the treatment and home care really helped his recovery. Kind team and a lovely newly renovated space!' },
-  { author: 'Shalene L.', rating: 5, time: '2 months ago', photo: '', text: 'After consulting RehabVet, Scotty went from constant limping to running again. The therapists are so detailed and patient — couldn\'t recommend them more highly.' },
-  { author: 'Cherly K.', rating: 5, time: '3 months ago', photo: '', text: 'Haru has been going to RehabVet since Nov 2025. We witnessed huge improvements through ultrasound/laser therapy, land exercises and hydrotherapy. Exceptional care all round!' },
-  { author: 'Jas S.', rating: 5, time: '4 months ago', photo: '', text: 'Truly grateful to Dr. Sara, the entire team, and especially Xan. Milo was diagnosed with IVDD Grade 3. The whole team has shown such genuine care throughout his recovery journey.' },
-  { author: 'Henrietta T.', rating: 5, time: '5 months ago', photo: '', text: 'Always a pleasant experience — clean area, calm ambience and super patient therapists. Staff share tips on home care and explain in detail how your pet\'s muscles work.' },
+  { author: 'Logan W.', rating: 5, time: 'a month ago', date: '', photo: '', text: 'Dr. Sara and the team\'s explanations on joint care were very helpful. When my dog was injured, the treatment and home care really helped his recovery. Kind team and a lovely newly renovated space!' },
+  { author: 'Shalene L.', rating: 5, time: '2 months ago', date: '', photo: '', text: 'After consulting RehabVet, Scotty went from constant limping to running again. The therapists are so detailed and patient — couldn\'t recommend them more highly.' },
+  { author: 'Cherly K.', rating: 5, time: '3 months ago', date: '', photo: '', text: 'Haru has been going to RehabVet since Nov 2025. We witnessed huge improvements through ultrasound/laser therapy, land exercises and hydrotherapy. Exceptional care all round!' },
+  { author: 'Jas S.', rating: 5, time: '4 months ago', date: '', photo: '', text: 'Truly grateful to Dr. Sara, the entire team, and especially Xan. Milo was diagnosed with IVDD Grade 3. The whole team has shown such genuine care throughout his recovery journey.' },
+  { author: 'Henrietta T.', rating: 5, time: '5 months ago', date: '', photo: '', text: 'Always a pleasant experience — clean area, calm ambience and super patient therapists. Staff share tips on home care and explain in detail how your pet\'s muscles work.' },
 ]
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
