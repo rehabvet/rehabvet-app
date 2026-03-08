@@ -36,9 +36,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <img src="/logo.webp" alt="RehabVet" className="h-12" />
+            <div className="bg-white rounded-2xl px-8 py-4 shadow-lg inline-block">
+              <img src="/logo.webp" alt="RehabVet" className="h-14 w-auto" />
+            </div>
           </div>
-          <p className="text-gray-400 text-sm mt-1">Proven steps to pain free mobility</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card space-y-4">
