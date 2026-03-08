@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
     where.category = category
   }
 
-  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
-  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1') || 1)
+  const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20') || 20))
 
   const [allItems, allActive] = await Promise.all([
     prisma.inventory_items.findMany({ where, orderBy: [{ category: 'asc' }, { name: 'asc' }] }),
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const {
     name, category, sku, brand, cost_price, sell_price, markup_pct,
     stock_on_hand, stock_min, stock_max, unit, expiry_date, notes

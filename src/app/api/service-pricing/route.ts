@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { service_id, label, sessions, price } = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const { service_id, label, sessions, price } = body
   if (!service_id || !label || price == null) {
     return NextResponse.json({ error: 'service_id, label and price are required' }, { status: 400 })
   }

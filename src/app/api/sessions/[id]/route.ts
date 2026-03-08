@@ -33,7 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
   const data: any = {}
   const fields = [
@@ -51,9 +52,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (body[f] !== undefined) data[f] = body[f]
   }
 
-  data.measurements = body.measurements ? JSON.stringify(body.measurements) : null
-  data.exercises = body.exercises ? JSON.stringify(body.exercises) : null
-  data.home_exercises = body.home_exercises ? JSON.stringify(body.home_exercises) : null
+  if (body.measurements !== undefined) data.measurements = body.measurements ? JSON.stringify(body.measurements) : null
+  if (body.exercises !== undefined) data.exercises = body.exercises ? JSON.stringify(body.exercises) : null
+  if (body.home_exercises !== undefined) data.home_exercises = body.home_exercises ? JSON.stringify(body.home_exercises) : null
 
   const session = await prisma.sessions.update({ where: { id: params.id }, data })
   return NextResponse.json({ session })

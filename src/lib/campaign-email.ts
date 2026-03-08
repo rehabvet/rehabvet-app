@@ -28,7 +28,7 @@ export function wrapCampaignEmail(
   recipientEmail: string,
   campaignId: string
 ): string {
-  const firstName = recipientName.split(' ')[0]
+  const firstName = (recipientName || 'there').split(' ')[0]
   const token = createHmac('sha256', process.env.JWT_SECRET || 'rehabvet').update(recipientEmail.toLowerCase()).digest('hex')
   const unsubUrl = `https://app.rehabvet.com/unsubscribe?email=${encodeURIComponent(recipientEmail)}&token=${token}`
   const year = new Date().getFullYear()

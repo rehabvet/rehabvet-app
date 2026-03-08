@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
       }
     : {}
 
-  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
-  const limit = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const page  = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1') || 1)
+  const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20') || 20))
   const skip  = (page - 1) * limit
 
   const [clients, total] = await Promise.all([
@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { first_name, last_name, name: rawName, email, phone, address, notes, pet, pets } = body
 
   // Support both first_name+last_name and legacy name field

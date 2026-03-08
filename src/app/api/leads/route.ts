@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') || ''
   const search = req.nextUrl.searchParams.get('search') || ''
 
-  const page   = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1'))
-  const limit  = Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20'))
+  const page   = Math.max(1, parseInt(req.nextUrl.searchParams.get('page')  || '1') || 1)
+  const limit  = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '20') || 20))
   const offset = (page - 1) * limit
 
   // Build WHERE

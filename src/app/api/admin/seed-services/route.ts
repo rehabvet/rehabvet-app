@@ -42,7 +42,7 @@ const SERVICES = [
 
 export async function POST() {
   const user = await getCurrentUser()
-  if (!user || user.role !== 'admin') {
+  if (!user || !['admin', 'administrator', 'office_manager'].includes(user.role)) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 })
   }
 

@@ -36,10 +36,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show']
 
   // If just updating status
   if (body.status && Object.keys(body).length === 1) {
+    if (!validStatuses.includes(body.status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     const appointment = await prisma.appointments.update({
       where: { id: params.id },
       data: { status: body.status },
@@ -48,6 +51,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 
   const { therapist_id, date, start_time, end_time, modality, notes, status } = body
+  if (status && !validStatuses.includes(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   const appointment = await prisma.appointments.update({
     where: { id: params.id },
     data: {
@@ -71,6 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await prisma.appointments.delete({ where: { id: params.id } })
   return NextResponse.json({ ok: true })

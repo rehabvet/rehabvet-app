@@ -58,6 +58,9 @@ const DEFAULTS = {
 }
 
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const row = await prisma.clinic_settings.findUnique({ where: { id: 'default' } })
   const data = row ? JSON.parse(row.data) : DEFAULTS
   // Merge with defaults to ensure new keys always exist
@@ -78,7 +81,8 @@ export async function PUT(req: NextRequest) {
   const isAdmin = ['admin', 'administrator', 'office_manager'].includes(user.role)
   if (!isAdmin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   await prisma.clinic_settings.upsert({
     where: { id: 'default' },
     create: { id: 'default', data: JSON.stringify(body) },

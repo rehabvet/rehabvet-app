@@ -3,10 +3,11 @@
  * Sends real-time error alerts to Marcus via Telegram
  */
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo'
-const CHAT_ID = '246605723'
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '246605723'
 
 export async function sendAlert(title: string, body: string, data?: Record<string, unknown>) {
+  if (!BOT_TOKEN) { console.warn('[alert] TELEGRAM_BOT_TOKEN not set — skipping alert'); return }
   try {
     const dataBlock = data
       ? `\n\n<b>📋 Details:</b>\n<pre>${JSON.stringify(data, null, 2).slice(0, 800)}</pre>`

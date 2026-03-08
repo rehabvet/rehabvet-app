@@ -94,7 +94,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
-      setIsAdmin(['admin@rehabvet.com', 'sara@rehabvet.com'].includes(d.user?.email || ''))
+      setIsAdmin(['admin', 'administrator', 'office_manager'].includes(d.user?.role || ''))
     })
   }, [])
 

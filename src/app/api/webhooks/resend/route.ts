@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 async function verifyWebhookSignature(req: NextRequest, body: string): Promise<boolean> {
   const secret = process.env.RESEND_WEBHOOK_SECRET
   if (!secret) {
-    console.warn('[webhook/resend] RESEND_WEBHOOK_SECRET not set — skipping signature verification')
-    return true
+    console.warn('[webhook/resend] RESEND_WEBHOOK_SECRET not set — rejecting webhook')
+    return false
   }
 
   const svixId = req.headers.get('svix-id')

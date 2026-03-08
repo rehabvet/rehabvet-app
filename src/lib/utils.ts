@@ -15,12 +15,16 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
+  // Append noon time to date-only strings to avoid UTC offset shifting the date
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date + 'T12:00:00') : new Date(date)
+  return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function formatTime(time: string): string {
+  if (!time || typeof time !== 'string') return ''
   const [h, m] = time.split(':')
   const hour = parseInt(h)
+  if (isNaN(hour)) return ''
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const h12 = hour % 12 || 12
   return `${h12}:${m} ${ampm}`

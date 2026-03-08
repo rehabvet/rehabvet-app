@@ -146,7 +146,7 @@ export default function PatientDetailPage() {
                   <h3 className="font-semibold text-gray-900">{plan.title}</h3>
                   <p className="text-sm text-gray-500 mt-1">{plan.diagnosis}</p>
                   <div className="flex gap-2 mt-2">
-                    {plan.modalities && JSON.parse(plan.modalities).map((m: string) => (
+                    {plan.modalities && (() => { try { return JSON.parse(plan.modalities) } catch { return [] } })().map((m: string) => (
                       <span key={m} className="badge-purple">{m}</span>
                     ))}
                   </div>

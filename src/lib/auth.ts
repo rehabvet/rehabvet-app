@@ -12,11 +12,11 @@ export interface AuthUser {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hashSync(password, 10)
+  return bcrypt.hash(password, 10)
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compareSync(password, hash)
+  return bcrypt.compare(password, hash)
 }
 
 export function createToken(user: AuthUser): string {
@@ -27,6 +27,10 @@ export function createToken(user: AuthUser): string {
 }
 
 export function verifyToken(token: string): AuthUser | null {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('[auth] JWT_SECRET not set in production — rejecting token')
+    return null
+  }
   try {
     return jwt.verify(token, JWT_SECRET) as AuthUser
   } catch {

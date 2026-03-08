@@ -34,7 +34,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const {
     staff_id, visit_date, weight_kg, temperature_c, heart_rate_bpm, respiratory_rate_bpm, body_condition_score,
     history, clinical_examination, diagnosis,

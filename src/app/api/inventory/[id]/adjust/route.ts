@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
   const { type, quantity, notes } = body
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const qty = parseFloat(quantity)
   const beforeQty = item.stock_on_hand
   const afterQty = beforeQty + qty
+
+  if (afterQty < 0) return NextResponse.json({ error: 'Insufficient stock' }, { status: 400 })
 
   // Update stock and create movement in a transaction
   const [updated] = await prisma.$transaction([

@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
-const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
-
 function esc(v: any): string {
   if (v == null) return ''
   const s = String(v)
+  if (/^[=+\-@]/.test(s)) return "'" + s
   if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"'
   return s
 }
@@ -14,7 +13,7 @@ function esc(v: any): string {
 export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser()
-    if (!user || !ADMIN_EMAILS.includes(user.email)) {
+    if (!user || !['admin', 'administrator', 'office_manager'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

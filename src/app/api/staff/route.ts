@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user || !isAdminRole(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { name, email, phone, role, specializations, password, photo_url } = body
   if (!name || !email || !role) return NextResponse.json({ error: 'Name, email, and role required' }, { status: 400 })
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: 'Email already exists' }, { status: 409 })
 
   const tempPassword = password || crypto.randomBytes(9).toString('base64url').slice(0, 12)
-  const hash = bcrypt.hashSync(tempPassword, 10)
+  const hash = await bcrypt.hash(tempPassword, 10)
 
   const staff = await prisma.users.create({
     data: {
@@ -74,7 +75,8 @@ export async function PUT(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user || !isAdminRole(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { id, name, email, phone, role, specializations, photo_url, active, schedule } = body || {}
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
   if (!name || !email || !role) return NextResponse.json({ error: 'Name, email, and role required' }, { status: 400 })
@@ -102,7 +104,9 @@ export async function DELETE(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user || !isAdminRole(user.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const { id } = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const { id } = body
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
   if (id === user.id) return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 })
 

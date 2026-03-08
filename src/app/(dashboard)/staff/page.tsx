@@ -53,12 +53,10 @@ const SPEC_OPTIONS = [
   'Canine Rehabilitation', 'Feline Rehabilitation',
 ]
 
-const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
-
 export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentUserEmail, setCurrentUserEmail] = useState('')
+  const [currentUserRole, setCurrentUserRole] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [showDelete, setShowDelete] = useState<any>(null)
   const [showReset, setShowReset] = useState<any>(null)
@@ -83,10 +81,10 @@ export default function StaffPage() {
 
   useEffect(() => {
     fetchStaff()
-    fetch('/api/auth/me').then(r => r.json()).then(d => setCurrentUserEmail(d.user?.email || ''))
+    fetch('/api/auth/me').then(r => r.json()).then(d => setCurrentUserRole(d.user?.role || ''))
   }, [])
 
-  const isAdmin = ADMIN_EMAILS.includes(currentUserEmail)
+  const isAdmin = ['admin', 'administrator', 'office_manager'].includes(currentUserRole)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -106,7 +104,7 @@ export default function StaffPage() {
   }
 
   function openEditModal(s: any) {
-    const specs = s.specializations ? JSON.parse(s.specializations) : []
+    const specs = (() => { try { return s.specializations ? JSON.parse(s.specializations) : [] } catch { return [] } })()
     let sched: WeekSchedule = DEFAULT_SCHEDULE
     try { if (s.schedule) sched = { ...DEFAULT_SCHEDULE, ...JSON.parse(s.schedule) } } catch {}
     setEditForm({
@@ -124,7 +122,7 @@ export default function StaffPage() {
   }
 
   function openScheduleEdit(s: any) {
-    const specs = s.specializations ? JSON.parse(s.specializations) : []
+    const specs = (() => { try { return s.specializations ? JSON.parse(s.specializations) : [] } catch { return [] } })()
     let sched: WeekSchedule = DEFAULT_SCHEDULE
     try { if (s.schedule) sched = { ...DEFAULT_SCHEDULE, ...JSON.parse(s.schedule) } } catch {}
     setEditForm({
@@ -334,7 +332,7 @@ export default function StaffPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {staff.map(s => {
-            const specs = s.specializations ? JSON.parse(s.specializations) : []
+            const specs = (() => { try { return s.specializations ? JSON.parse(s.specializations) : [] } catch { return [] } })()
             return (
               <div key={s.id} className="card group relative">
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">

@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { name, subject, preheader, body_blocks, body_html } = body
 
   if (!name || !subject) {
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     INSERT INTO email_campaigns (name, subject, preheader, body_blocks, body_html)
     VALUES ($1, $2, $3, $4, $5)
     RETURNING *
-  `, name, subject, preheader || null, body_blocks || '[]', body_html || '') as any[]
+  `, name, subject, preheader || null, typeof body_blocks === 'string' ? body_blocks : JSON.stringify(body_blocks || []), body_html || '') as any[]
 
   return NextResponse.json({ campaign: rows[0] })
 }

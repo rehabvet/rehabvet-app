@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const movements = await prisma.stock_movements.findMany({
     where: { item_id: params.id },
     orderBy: { created_at: 'desc' },

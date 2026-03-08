@@ -4,7 +4,9 @@ import crypto from 'crypto'
 import { sendPasswordResetEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const { email } = body
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   // Always return success to prevent email enumeration
@@ -15,6 +17,7 @@ export async function POST(req: NextRequest) {
 
   const user = users[0]
   const token = crypto.randomBytes(32).toString('hex')
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
   const expires = new Date(Date.now() + 1000 * 60 * 60) // 1 hour
 
   // Invalidate any existing tokens for this user
@@ -24,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.$queryRawUnsafe(
     `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
-    user.id, token, expires
+    user.id, tokenHash, expires
   )
 
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.rehabvet.com'}/reset-password?token=${token}`

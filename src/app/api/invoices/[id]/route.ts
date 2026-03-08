@@ -83,6 +83,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   // Update status
   if (body.status) {
+    const validStatuses = ['draft', 'sent', 'paid', 'overdue', 'void', 'partial']
+    if (!validStatuses.includes(body.status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     await prisma.$queryRawUnsafe(
       `UPDATE invoices SET status=$1, updated_at=NOW() WHERE id=$2::uuid`,
       body.status, params.id

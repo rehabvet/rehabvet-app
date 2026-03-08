@@ -42,6 +42,10 @@ const GOLD      = '#FDC61C'
 const FONT      = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 function badge(text: string, color: string, bg: string) {
   return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.3px;padding:3px 10px;border-radius:20px;">${text}</span>`
 }
@@ -155,18 +159,18 @@ function emailFooter(internal = false) {
 
 // ─── Customer confirmation email ──────────────────────────────────────────────
 function customerHtml(d: LeadEmailData): string {
-  const firstName = d.owner_name.split(' ')[0]
+  const firstName = escapeHtml(d.owner_name.split(' ')[0])
 
   const ownerRows = [
-    dataRow('Name', d.owner_name),
+    dataRow('Name', escapeHtml(d.owner_name)),
     dataRow('Phone', d.owner_phone),
     dataRow('Postal code', d.post_code),
-    dataRow('How you found us', d.how_heard),
+    dataRow('How you found us', d.how_heard ? escapeHtml(d.how_heard) : undefined),
   ].join('')
 
   const petRows = [
-    dataRow('Pet name', d.pet_name),
-    dataRow('Species / Breed', d.breed),
+    dataRow('Pet name', escapeHtml(d.pet_name)),
+    dataRow('Species / Breed', d.breed ? escapeHtml(d.breed) : undefined),
     dataRow('Age', d.age),
     dataRow('Gender', d.pet_gender),
   ].join('')
@@ -204,7 +208,7 @@ function customerHtml(d: LeadEmailData): string {
         Hi ${firstName}! We've got your request 🐾
       </h1>
       <p class="ev-p" style="margin:0 auto;font-size:15px;color:#374151;line-height:1.75;max-width:440px;">
-        Thank you for reaching out about <strong>${d.pet_name}</strong>. Our team will review your details and contact you within <strong>1 business day</strong>. We can't wait to meet you! 🥰
+        Thank you for reaching out about <strong>${escapeHtml(d.pet_name)}</strong>. Our team will review your details and contact you within <strong>1 business day</strong>. We can't wait to meet you! 🥰
       </p>
     </td>
   </tr>
@@ -258,7 +262,7 @@ function customerHtml(d: LeadEmailData): string {
           </td>
           <td style="vertical-align:top;padding:0 0 18px;">
             <p class="ev-step-title" style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">We review your details</p>
-            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">Our team looks over ${d.pet_name}'s condition and medical background.</p>
+            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">Our team looks over ${escapeHtml(d.pet_name)}'s condition and medical background.</p>
           </td>
         </tr>
 
@@ -278,7 +282,7 @@ function customerHtml(d: LeadEmailData): string {
           </td>
           <td style="vertical-align:top;">
             <p class="ev-step-title" style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">We schedule your visit</p>
-            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">We lock in a date and time that works for you and ${d.pet_name}.</p>
+            <p class="ev-step-desc" style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">We lock in a date and time that works for you and ${escapeHtml(d.pet_name)}.</p>
           </td>
         </tr>
 
@@ -312,16 +316,16 @@ function customerHtml(d: LeadEmailData): string {
 function internalHtml(d: LeadEmailData): string {
 
   const ownerRows = [
-    dataRow('Name', d.owner_name),
-    dataRow('Email', `<a href="mailto:${d.owner_email}" style="color:${PINK};text-decoration:none;">${d.owner_email}</a>`),
+    dataRow('Name', escapeHtml(d.owner_name)),
+    dataRow('Email', `<a href="mailto:${escapeHtml(d.owner_email)}" style="color:${PINK};text-decoration:none;">${escapeHtml(d.owner_email)}</a>`),
     dataRow('Phone', d.owner_phone ? `<a href="tel:${d.owner_phone}" style="color:${PINK};text-decoration:none;">${d.owner_phone}</a>` : undefined),
     dataRow('Postal Code', d.post_code),
-    dataRow('How they found us', d.how_heard),
+    dataRow('How they found us', d.how_heard ? escapeHtml(d.how_heard) : undefined),
   ].join('')
 
   const petRows = [
-    dataRow('Pet Name', d.pet_name),
-    dataRow('Breed', d.breed),
+    dataRow('Pet Name', escapeHtml(d.pet_name)),
+    dataRow('Breed', d.breed ? escapeHtml(d.breed) : undefined),
     dataRow('Age', d.age),
     dataRow('Gender', d.pet_gender),
   ].join('')
@@ -360,9 +364,9 @@ function internalHtml(d: LeadEmailData): string {
           <td>
             <p style="margin:0 0 3px;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${GOLD};">Internal Notification</p>
             <p class="ev-h1" style="margin:0;font-size:18px;font-weight:800;color:#ffffff;">
-              ${d.owner_name}
-              ${d.pet_name ? `<span style="color:${PINK};"> &bull; ${d.pet_name}</span>` : ''}
-              ${d.breed ? `<span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);"> (${d.breed})</span>` : ''}
+              ${escapeHtml(d.owner_name)}
+              ${d.pet_name ? `<span style="color:${PINK};"> &bull; ${escapeHtml(d.pet_name)}</span>` : ''}
+              ${d.breed ? `<span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);"> (${escapeHtml(d.breed)})</span>` : ''}
             </p>
           </td>
           <td align="right" style="vertical-align:middle;">
@@ -418,10 +422,12 @@ function internalHtml(d: LeadEmailData): string {
 // ─── Alert helper ─────────────────────────────────────────────────────────────
 async function tgAlert(text: string) {
   try {
-    await fetch(`https://api.telegram.org/bot8561245766:AAHytz33Xw46AreO7BxUxqgtAoym9H-dwfo/sendMessage`, {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || ''
+    if (!botToken) { console.warn('[email] TELEGRAM_BOT_TOKEN not set — skipping alert'); return }
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: '246605723', text, parse_mode: 'HTML' }),
+      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT_ID || '246605723', text, parse_mode: 'HTML' }),
     })
   } catch { /* never crash */ }
 }
@@ -431,7 +437,7 @@ export async function sendLeadEmails(data: LeadEmailData) {
   if (!process.env.RESEND_API_KEY && !process.env.RESEND_KEY_B64) {
     console.warn('[email] No Resend key configured — skipping emails')
     await tgAlert(
-      `🔴 <b>RehabVet Alert</b>\n\n<b>RESEND key missing in Railway</b>\n\n<b>Customer:</b> ${data.owner_name}\n<b>Email:</b> ${data.owner_email}\n<b>Pet:</b> ${data.pet_name}`
+      `🔴 <b>RehabVet Alert</b>\n\n<b>RESEND key missing in Railway</b>\n\n<b>Customer:</b> ${escapeHtml(data.owner_name)}\n<b>Email:</b> ${escapeHtml(data.owner_email)}\n<b>Pet:</b> ${escapeHtml(data.pet_name)}`
     )
     return
   }

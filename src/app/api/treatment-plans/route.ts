@@ -43,13 +43,14 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { patient_id, title, diagnosis, goals, modalities, frequency, total_sessions, start_date, notes } = body
   if (!patient_id || !title) return NextResponse.json({ error: 'Patient and title required' }, { status: 400 })
 
   // Vets can create as active (self-approve), others create as pending
-  const status = user.role === 'vet' ? 'active' : 'pending_approval'
-  const approvedBy = user.role === 'vet' ? user.id : null
+  const status = ['vet', 'veterinarian'].includes(user.role) ? 'active' : 'pending_approval'
+  const approvedBy = ['vet', 'veterinarian'].includes(user.role) ? user.id : null
 
   const plan = await prisma.treatment_plans.create({
     data: {

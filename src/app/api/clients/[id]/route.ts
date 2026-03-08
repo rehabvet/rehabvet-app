@@ -35,7 +35,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { first_name, last_name, name: rawName, email, phone, address, notes } = body
 
   const firstName = (first_name || '').trim()
@@ -49,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   // Update first_name / last_name via raw SQL
   await prisma.$queryRawUnsafe(
-    `UPDATE clients SET first_name = $1, last_name = $2 WHERE id = $3`,
+    `UPDATE clients SET first_name = $1, last_name = $2 WHERE id = $3::uuid`,
     firstName || null, lastName || null, params.id
   )
 
@@ -60,6 +61,11 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const user = await getCurrentUser()
   if (!user || !['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  await prisma.clients.delete({ where: { id: params.id } })
-  return NextResponse.json({ ok: true })
+  try {
+    await prisma.clients.delete({ where: { id: params.id } })
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    if (err?.code === 'P2003') return NextResponse.json({ error: 'Cannot delete client with existing records. Please remove associated patients and appointments first.' }, { status: 400 })
+    throw err
+  }
 }

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (!description) return NextResponse.json({ error: 'Description required' }, { status: 400 })
 
-  const total = parseFloat(qty) * parseFloat(unit_price)
+  const total = Math.round(parseFloat(qty) * parseFloat(unit_price) * 100) / 100
 
   const rows = await prisma.$queryRawUnsafe(`
     INSERT INTO invoice_line_items
@@ -62,9 +62,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { line_item_id } = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const { line_item_id } = body
   await prisma.$queryRawUnsafe(
-    `DELETE FROM invoice_line_items WHERE id = $1 AND invoice_id = $2`,
+    `DELETE FROM invoice_line_items WHERE id = $1::uuid AND invoice_id = $2::uuid`,
     line_item_id, params.id
   )
 

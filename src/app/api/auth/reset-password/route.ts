@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
+import { createHash } from 'crypto'
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
   if (!token) return NextResponse.json({ valid: false })
 
+  const tokenHash = hashToken(token)
   const rows = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, expires_at, used_at FROM password_reset_tokens WHERE token = $1 LIMIT 1`, token
+    `SELECT id, expires_at, used_at FROM password_reset_tokens WHERE token = $1 LIMIT 1`, tokenHash
   )
   if (!rows.length) return NextResponse.json({ valid: false })
   if (rows[0].used_at) return NextResponse.json({ valid: false, reason: 'used' })
@@ -17,13 +23,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { token, password } = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+  const { token, password } = body
   if (!token || !password) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   if (password.length < 8) return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
 
+  const tokenHash = hashToken(token)
   const rows = await prisma.$queryRawUnsafe<any[]>(
     `SELECT prt.id, prt.user_id, prt.expires_at, prt.used_at
-     FROM password_reset_tokens prt WHERE prt.token = $1 LIMIT 1`, token
+     FROM password_reset_tokens prt WHERE prt.token = $1 LIMIT 1`, tokenHash
   )
   if (!rows.length) return NextResponse.json({ error: 'Invalid or expired link' }, { status: 400 })
   if (rows[0].used_at) return NextResponse.json({ error: 'This link has already been used' }, { status: 400 })

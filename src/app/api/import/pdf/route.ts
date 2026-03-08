@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   const user = token ? verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   // Parse multipart form
   const formData = await req.formData();
@@ -134,61 +135,62 @@ export async function POST(req: NextRequest) {
     const visitId = randomUUID();
     const visitNumber = `VR-${visit.date.slice(0, 4)}-${String(visitCounter++).padStart(6, '0')}`;
 
-    // Create visit record
-    await prisma.$queryRawUnsafe(
-      `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, internal_notes, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
-      visitId,
-      clientId,
-      patientId,
-      staffId,
-      visit.date,
-      visitNumber,
-      visit.weight ?? null,
-      visit.temperature ?? null,
-      visit.history || null,
-      visit.clinicalExamination || null,
-      visit.treatment ? JSON.stringify([visit.treatment]) : null,
-      visit.comments || null,
-    );
-
-    // Create invoice
-    const invoiceId = randomUUID();
-    const year = visit.date.slice(0, 4);
-    const invoiceNumber = `RV-${year}-${String(invCounter++).padStart(6, '0')}`;
-    const subtotal = visit.lineItems.reduce((s, li) => s + li.price * li.qty, 0);
-
-    await prisma.$queryRawUnsafe(
-      `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, due_date, status, subtotal, tax, total, notes, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
-      invoiceId,
-      clientId,
-      patientId,
-      visitId,
-      invoiceNumber,
-      visit.billNumber,
-      visit.date,
-      'paid',
-      subtotal,
-      0,
-      subtotal,
-      `Imported from old PMS (Bill# ${visit.billNumber})`
-    );
-
-    // Create line items
-    for (const li of visit.lineItems) {
-      const liStaffId = STAFF_MAP[li.staffInitials] || staffId;
-      await prisma.$queryRawUnsafe(
-        `INSERT INTO invoice_line_items (id, invoice_id, description, quantity, unit_price, amount, total, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$6,NOW())`,
-        randomUUID(),
-        invoiceId,
-        li.name,
-        li.qty,
-        li.price,
-        li.price * li.qty,
+    await prisma.$transaction(async (tx) => {
+      // Create visit record
+      await tx.$queryRawUnsafe(
+        `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, internal_notes, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
+        visitId,
+        clientId,
+        patientId,
+        staffId,
+        visit.date,
+        visitNumber,
+        visit.weight ?? null,
+        visit.temperature ?? null,
+        visit.history || null,
+        visit.clinicalExamination || null,
+        visit.treatment ? JSON.stringify([visit.treatment]) : null,
+        visit.comments || null,
       );
-    }
+
+      // Create invoice
+      const invoiceId = randomUUID();
+      const year = visit.date.slice(0, 4);
+      const invoiceNumber = `RV-${year}-${String(invCounter++).padStart(6, '0')}`;
+      const subtotal = visit.lineItems.reduce((s: number, li: any) => s + li.price * li.qty, 0);
+
+      await tx.$queryRawUnsafe(
+        `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, due_date, status, subtotal, tax, total, notes, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
+        invoiceId,
+        clientId,
+        patientId,
+        visitId,
+        invoiceNumber,
+        visit.billNumber,
+        visit.date,
+        'paid',
+        subtotal,
+        0,
+        subtotal,
+        `Imported from old PMS (Bill# ${visit.billNumber})`
+      );
+
+      // Create line items
+      for (const li of visit.lineItems) {
+        await tx.$queryRawUnsafe(
+          `INSERT INTO invoice_line_items (id, invoice_id, description, quantity, unit_price, amount, total, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$6,NOW())`,
+          randomUUID(),
+          invoiceId,
+          li.name,
+          li.qty,
+          li.price,
+          li.price * li.qty,
+        );
+      }
+    });
 
     imported++;
   }

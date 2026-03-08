@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { client_id, patient_id, treatment_type_id, sessions_total, purchase_date, expiry_date, price_paid, notes } = body
 
   if (!client_id || !treatment_type_id || !sessions_total || !purchase_date) {

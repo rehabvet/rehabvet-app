@@ -110,7 +110,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { patient_id, client_id, therapist_id, treatment_plan_id, date, start_time, end_time, modality, notes } = body
   if (!date || !start_time || !end_time || !modality) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

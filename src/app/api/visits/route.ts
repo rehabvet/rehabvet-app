@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const {
     appointment_id, client_id, patient_id, staff_id,
     visit_date, weight_kg, temperature_c, heart_rate_bpm, body_condition_score,
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       treatment, hep, internal_notes, client_notes, plan
     ) VALUES (
       $1,
-      $2, $3::uuid, $4::uuid, $5,
+      $2::uuid, $3::uuid, $4::uuid, $5::uuid,
       $6, $7, $8, $9, $10,
       $11, $12, $13,
       $14, $15, $16, $17, $18

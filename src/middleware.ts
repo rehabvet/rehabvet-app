@@ -10,7 +10,6 @@ const PUBLIC_PREFIXES = [
   '/api/appointment',       // public booking form POST (note: singular, not /appointments)
   '/api/error-report',      // client-side error reporting (unauthenticated)
   '/api/google-reviews',    // public widget
-  '/api/health',
   '/api/webhooks',          // Resend webhooks
   '/api/funnel',             // anonymous booking funnel tracking
   '/api/unsubscribe',       // unsubscribe handler
@@ -88,7 +87,7 @@ export function middleware(req: NextRequest) {
   const payload = decodeJwtPayload(token)
   const nowSeconds = Math.floor(Date.now() / 1000)
 
-  if (!payload || !payload.id || (payload.exp && payload.exp < nowSeconds)) {
+  if (!payload || !payload.id || !payload.exp || payload.exp < nowSeconds) {
     // Expired or malformed token
     if (pathname.startsWith('/api/')) {
       const res = NextResponse.json({ error: 'Session expired' }, { status: 401 })

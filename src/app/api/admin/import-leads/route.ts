@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-const IMPORT_SECRET = process.env.IMPORT_SECRET || 'rv-import-2024'
+const IMPORT_SECRET = process.env.IMPORT_SECRET || ''
 
 function checkAuth(req: NextRequest) {
   return req.headers.get('x-import-secret') === IMPORT_SECRET

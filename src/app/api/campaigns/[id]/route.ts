@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     SET name=$1, subject=$2, preheader=$3, body_blocks=$4, body_html=$5, updated_at=NOW()
     WHERE id=$6 AND status='draft'
     RETURNING *
-  `, name, subject, preheader || null, body_blocks, body_html, id) as any[]
+  `, name, subject, preheader || null, typeof body_blocks === 'string' ? body_blocks : JSON.stringify(body_blocks || []), body_html, id) as any[]
 
   if (!rows.length) return NextResponse.json({ error: 'Not found or not editable' }, { status: 404 })
   return NextResponse.json({ campaign: rows[0] })

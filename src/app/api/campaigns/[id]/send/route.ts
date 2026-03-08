@@ -17,17 +17,22 @@ function getResendKey(): string {
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!['admin', 'administrator', 'office_manager'].includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
 
-  // Get campaign
-  const campaigns = await prisma.$queryRawUnsafe(
-    `SELECT * FROM email_campaigns WHERE id=$1`, id
-  ) as any[]
-  if (!campaigns.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  const campaign = campaigns[0]
-  if (campaign.status !== 'draft') {
-    return NextResponse.json({ error: 'Campaign already sent or sending' }, { status: 400 })
+  // Atomically claim the campaign — only succeeds if status is 'draft'
+  const claimed = await prisma.$queryRawUnsafe(`
+    UPDATE email_campaigns SET status='sending', updated_at=NOW()
+    WHERE id=$1 AND status='draft'
+    RETURNING *
+  `, id) as any[]
+  if (!claimed.length) {
+    // Check if campaign exists at all
+    const exists = await prisma.$queryRawUnsafe(`SELECT id, status FROM email_campaigns WHERE id=$1`, id) as any[]
+    if (!exists.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Campaign already sent or sending' }, { status: 409 })
   }
+  const campaign = claimed[0]
 
   // Get eligible clients (have email, not unsubscribed)
   const clients = await prisma.$queryRawUnsafe(`
@@ -39,12 +44,13 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
   `) as any[]
 
   if (!clients.length) {
+    await prisma.$executeRawUnsafe(`UPDATE email_campaigns SET status='draft', updated_at=NOW() WHERE id=$1`, id)
     return NextResponse.json({ error: 'No eligible recipients' }, { status: 400 })
   }
 
-  // Mark as sending
+  // Update total recipients
   await prisma.$executeRawUnsafe(`
-    UPDATE email_campaigns SET status='sending', total_recipients=$1, updated_at=NOW() WHERE id=$2
+    UPDATE email_campaigns SET total_recipients=$1, updated_at=NOW() WHERE id=$2
   `, clients.length, id)
 
   // Insert recipients

@@ -44,11 +44,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  let body: any
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
   // Approve action (vet only)
   if (body.action === 'approve') {
-    if (user.role !== 'vet') return NextResponse.json({ error: 'Only vets can approve treatment plans' }, { status: 403 })
+    if (!['vet', 'veterinarian'].includes(user.role)) return NextResponse.json({ error: 'Only vets can approve treatment plans' }, { status: 403 })
 
     const plan = await prisma.treatment_plans.update({
       where: { id: params.id },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 const PLACE_ID = 'ChIJY_ZBds8Z2jERjMFPzYxwLxI'
-const API_KEY = process.env.GOOGLE_PLACES_API_KEY || 'AIzaSyAgtDO5Ep19b69eCE-kWsu7R1TM3yiJ3xo'
+const API_KEY = process.env.GOOGLE_PLACES_API_KEY || ''
 
 let cache: { data: any; ts: number } | null = null
 const CACHE_MS = 6 * 60 * 60 * 1000
@@ -15,6 +15,10 @@ export async function GET() {
   try {
     if (cache && Date.now() - cache.ts < CACHE_MS) {
       return NextResponse.json(cache.data)
+    }
+
+    if (!API_KEY) {
+      return NextResponse.json({ rating: 4.8, total: 194, reviews: [] })
     }
 
     // Fetch newest reviews (Places API returns max 5 per call, sorted by newest)
