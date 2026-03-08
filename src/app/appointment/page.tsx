@@ -216,6 +216,7 @@ export default function AppointmentPage() {
         reportError(msg, '', step, form as unknown as Record<string, unknown>)
         throw new Error(msg)
       }
+      trackStep('step4')
       trackStep('submitted')
       router.push('/appointment/thank-you')
     } catch (err) {
@@ -472,7 +473,7 @@ export default function AppointmentPage() {
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setStep(2)} className="flex-none w-10 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
                       <ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={() => { setStep(4); trackStep('step3') }} disabled={!ok3}
+                    <button onClick={() => { setStep(4); trackStep('step3'); trackStep('step4') }} disabled={!ok3}
                       className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       style={{ background: ok3 ? '#EC6496' : '#f0a0bc' }}>
                       Review & Confirm <ChevronRight className="w-4 h-4" /></button>
