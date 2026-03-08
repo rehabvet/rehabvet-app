@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const hashed = await hashPassword(password)
 
   await prisma.$queryRawUnsafe(
-    `UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2`, hashed, rows[0].user_id
+    `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, hashed, rows[0].user_id
   )
   await prisma.$queryRawUnsafe(
     `UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`, rows[0].id

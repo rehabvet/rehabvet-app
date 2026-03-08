@@ -12,10 +12,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const lead = await prisma.leads.findUnique({ where: { id: params.id } })
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
 
-  // Check if client already exists by email
-  let client = await prisma.clients.findFirst({
-    where: { email: lead.owner_email }
-  })
+  // Check if client already exists by email (only if email is present)
+  let client = lead.owner_email
+    ? await prisma.clients.findFirst({ where: { email: lead.owner_email } })
+    : null
 
   if (!client) {
     client = await prisma.clients.create({

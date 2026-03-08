@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { wrapCampaignEmail } from '@/lib/campaign-email'
+import { createHmac } from 'crypto'
 
 const BATCH_SIZE = 50
 const FROM = 'RehabVet <hello@rehabvet.com>'
@@ -65,7 +66,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       from: FROM,
       to: c.email,
       subject: campaign.subject,
-      headers: { 'List-Unsubscribe': `<https://app.rehabvet.com/unsubscribe?email=${encodeURIComponent(c.email)}&token=${Buffer.from(c.email).toString('base64url')}>` },
+      headers: { 'List-Unsubscribe': `<https://app.rehabvet.com/unsubscribe?email=${encodeURIComponent(c.email)}&token=${createHmac('sha256', process.env.JWT_SECRET || 'rehabvet').update(c.email.toLowerCase()).digest('hex')}>` },
       html: wrapCampaignEmail(campaign.body_html, c.name, c.email, id),
     }))
 
@@ -80,7 +81,8 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
       })
 
       if (res.ok) {
-        const data = await res.json() as any[]
+        const json = await res.json()
+        const data = (json.data || json) as any[]
         // Update each recipient's resend_id and status
         for (let j = 0; j < batch.length; j++) {
           const rid = data[j]?.id

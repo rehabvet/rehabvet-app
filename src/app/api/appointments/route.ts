@@ -73,7 +73,6 @@ export async function GET(req: NextRequest) {
       pat.name        AS patient_name,
       pat.species     AS species,
       pat.breed       AS breed,
-      pat.is_reactive AS is_reactive,
       cl.name         AS client_name,
       cl.phone        AS client_phone,
       u.name          AS therapist_name,
@@ -135,7 +134,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.$queryRawUnsafe(
     `INSERT INTO appointments (id, patient_id, client_id, therapist_id, treatment_plan_id, date, start_time, end_time, modality, notes, status, created_at, updated_at)
-     VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'confirmed', NOW(), NOW())`,
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6, $7, $8, $9, $10, 'confirmed', NOW(), NOW())`,
     id,
     patient_id || null,
     client_id ? `${client_id}` : null,

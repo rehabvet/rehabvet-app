@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || !['admin', 'receptionist'].includes(user.role)) {
+  if (!user || !['admin', 'administrator', 'office_manager', 'receptionist'].includes(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -47,44 +47,55 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Generate invoice number (simple incremental approach)
-  const count = await prisma.invoices.count()
-  const invoiceNumber = `RV-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`
-
   let subtotal = 0
   for (const item of items) subtotal += Number(item.quantity) * Number(item.unit_price)
   const tax = 0
   const total = subtotal
 
-  const invoice = await prisma.$transaction(async (tx) => {
-    const inv = await tx.invoices.create({
-      data: {
-        invoice_number: invoiceNumber,
-        client_id,
-        patient_id: patient_id || null,
-        date,
-        due_date,
-        subtotal,
-        tax,
-        total,
-        status: 'draft',
-        notes: notes || null,
-      },
-    })
+  // Retry loop to handle unique constraint violations on invoice_number
+  const MAX_RETRIES = 5
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const count = await prisma.invoices.count()
+      const invoiceNumber = `RV-${new Date().getFullYear()}-${String(count + 1 + attempt).padStart(6, '0')}`
 
-    await tx.invoice_items.createMany({
-      data: items.map((it: any) => ({
-        invoice_id: inv.id,
-        description: it.description,
-        modality: it.modality || null,
-        quantity: Number(it.quantity) || 1,
-        unit_price: Number(it.unit_price),
-        total: Number(it.quantity) * Number(it.unit_price),
-      })),
-    })
+      const invoice = await prisma.$transaction(async (tx) => {
+        const inv = await tx.invoices.create({
+          data: {
+            invoice_number: invoiceNumber,
+            client_id,
+            patient_id: patient_id || null,
+            date,
+            due_date,
+            subtotal,
+            tax,
+            total,
+            status: 'draft',
+            notes: notes || null,
+          },
+        })
 
-    return inv
-  })
+        await tx.invoice_items.createMany({
+          data: items.map((it: any) => ({
+            invoice_id: inv.id,
+            description: it.description,
+            modality: it.modality || null,
+            quantity: Number(it.quantity) || 1,
+            unit_price: Number(it.unit_price),
+            total: Number(it.quantity) * Number(it.unit_price),
+          })),
+        })
 
-  return NextResponse.json({ invoice }, { status: 201 })
+        return inv
+      })
+
+      return NextResponse.json({ invoice }, { status: 201 })
+    } catch (err: any) {
+      // Retry on unique constraint violation (P2002)
+      if (err?.code === 'P2002' && attempt < MAX_RETRIES - 1) continue
+      throw err
+    }
+  }
+
+  return NextResponse.json({ error: 'Failed to generate unique invoice number' }, { status: 500 })
 }

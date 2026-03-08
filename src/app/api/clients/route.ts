@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { CACHE_MEDIUM } from '@/lib/cache'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()

@@ -466,7 +466,7 @@ export async function sendLeadEmails(data: LeadEmailData) {
 export const sendAppointmentConfirmation = sendLeadEmails
 
 // ── Password Reset Email ──────────────────────────────────────────────────────
-const FROM = 'RehabVet <hello@rehabvet.com>'
+const RESET_FROM = 'RehabVet <hello@rehabvet.com>'
 
 export async function sendPasswordResetEmail({ name, email, resetUrl }: { name: string; email: string; resetUrl: string }) {
   const html = `
@@ -495,7 +495,7 @@ export async function sendPasswordResetEmail({ name, email, resetUrl }: { name: 
 </html>`
 
   return getResend().emails.send({
-    from: FROM,
+    from: RESET_FROM,
     to: email,
     subject: 'Reset your RehabVet password',
     html,

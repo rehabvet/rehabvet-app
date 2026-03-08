@@ -177,7 +177,7 @@ export default function AppointmentPage() {
     }).catch(() => {})
 
     // Auto-rotate reviews
-    const t = setInterval(() => setReviewIdx(i => (i + 1) % 5), 5000)
+    const t = setInterval(() => setReviewIdx(i => reviews.length > 0 ? (i + 1) % reviews.length : 0), 5000)
 
     // Global JS error catcher
     const handleError = (event: ErrorEvent) => {

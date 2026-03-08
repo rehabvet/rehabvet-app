@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 function isAdminRole(role?: string) {
   return ['admin', 'administrator', 'office_manager'].includes(String(role || '').toLowerCase())
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.users.findUnique({ where: { email } })
   if (existing) return NextResponse.json({ error: 'Email already exists' }, { status: 409 })
 
-  const hash = bcrypt.hashSync(password || 'password123', 10)
+  const tempPassword = password || crypto.randomBytes(9).toString('base64url').slice(0, 12)
+  const hash = bcrypt.hashSync(tempPassword, 10)
 
   const staff = await prisma.users.create({
     data: {

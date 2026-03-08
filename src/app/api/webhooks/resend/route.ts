@@ -1,9 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+async function verifyWebhookSignature(req: NextRequest, body: string): Promise<boolean> {
+  const secret = process.env.RESEND_WEBHOOK_SECRET
+  if (!secret) {
+    console.warn('[webhook/resend] RESEND_WEBHOOK_SECRET not set — skipping signature verification')
+    return true
+  }
+
+  const svixId = req.headers.get('svix-id')
+  const svixTimestamp = req.headers.get('svix-timestamp')
+  const svixSignature = req.headers.get('svix-signature')
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return false
+  }
+
+  try {
+    const { Webhook } = await import('svix')
+    const wh = new Webhook(secret)
+    wh.verify(body, { 'svix-id': svixId, 'svix-timestamp': svixTimestamp, 'svix-signature': svixSignature })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const rawBody = await req.text()
+
+    if (!(await verifyWebhookSignature(req, rawBody))) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    const body = JSON.parse(rawBody)
     const { type, data } = body
 
     const resendId: string = data?.email_id
