@@ -1,4 +1,5 @@
 // Campaign email wrapper
+import { createHmac } from 'crypto'
 export { type Block, renderBlocks } from './blocks'
 
 const PINK      = '#EC6496'
@@ -28,7 +29,7 @@ export function wrapCampaignEmail(
   campaignId: string
 ): string {
   const firstName = recipientName.split(' ')[0]
-  const token = Buffer.from(recipientEmail).toString('base64url')
+  const token = createHmac('sha256', process.env.JWT_SECRET || 'rehabvet').update(recipientEmail.toLowerCase()).digest('hex')
   const unsubUrl = `https://app.rehabvet.com/unsubscribe?email=${encodeURIComponent(recipientEmail)}&token=${token}`
   const year = new Date().getFullYear()
 
