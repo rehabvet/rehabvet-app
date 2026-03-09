@@ -434,6 +434,8 @@ model treatment_types {
   color               String?  @default("bg-gray-400")
   active              Boolean  @default(true)
   sort_order          Int      @default(0)
+  bin_no              Int?
+  appointment_names   String[]
   created_at          DateTime @default(now())
 
   client_packages  client_packages[]

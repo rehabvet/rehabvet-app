@@ -1,47 +1,108 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, DollarSign } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Pencil, Trash2, DollarSign, Search, Tag } from 'lucide-react'
 import Modal from '@/components/Modal'
 
-interface PricingEntry {
+interface Service {
   id: string
-  service_id: string
-  label: string
-  sessions: number
-  price: number
-  service: { id: string; name: string; category: string; color: string; duration: number }
+  name: string
+  category: string
+  bin_no: number | null
+  duration: number
+  price: number | null
+  appointment_names: string[]
+  active: boolean
+  color: string
 }
 
-const EMPTY_FORM = { service_id: '', label: '', sessions: '1', price: '' }
+const CAT_COLORS: Record<string, string> = {
+  'Acupuncture':       'bg-purple-100 text-purple-700 border-purple-200',
+  'Diagnostics':       'bg-blue-100 text-blue-700 border-blue-200',
+  'Fees':              'bg-gray-100 text-gray-600 border-gray-200',
+  'Consultation':      'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Fitness Swim':      'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'UWTM':              'bg-teal-100 text-teal-700 border-teal-200',
+  'Hyperbaric Oxygen': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Laser Therapy':     'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'Rehabilitation':    'bg-pink-100 text-pink-700 border-pink-200',
+  'Other Treatments':  'bg-orange-100 text-orange-700 border-orange-200',
+}
+
+const DOT_COLORS: Record<string, string> = {
+  'Acupuncture': 'bg-purple-400', 'Diagnostics': 'bg-blue-400',
+  'Fees': 'bg-gray-400', 'Consultation': 'bg-indigo-400',
+  'Fitness Swim': 'bg-cyan-400', 'UWTM': 'bg-teal-400',
+  'Hyperbaric Oxygen': 'bg-sky-400', 'Laser Therapy': 'bg-yellow-400',
+  'Rehabilitation': 'bg-pink-400', 'Other Treatments': 'bg-orange-400',
+}
+
+const EMPTY_FORM = {
+  name: '', category: '', bin_no: '', duration: '', price: '', appointment_names: '',
+}
+
+const ALL_CATEGORIES = [
+  'Acupuncture', 'Consultation', 'Diagnostics', 'Fees', 'Fitness Swim',
+  'Hyperbaric Oxygen', 'Laser Therapy', 'Other Treatments', 'Rehabilitation', 'UWTM',
+]
 
 export default function ServicePricingPanel() {
-  const [pricing, setPricing] = useState<PricingEntry[]>([])
-  const [services, setServices] = useState<any[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filterCat, setFilterCat] = useState('All')
   const [showAdd, setShowAdd] = useState(false)
-  const [showEdit, setShowEdit] = useState<PricingEntry | null>(null)
-  const [showDelete, setShowDelete] = useState<PricingEntry | null>(null)
+  const [showEdit, setShowEdit] = useState<Service | null>(null)
+  const [showDelete, setShowDelete] = useState<Service | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [saving, setSaving] = useState(false)
 
   async function load() {
     setLoading(true)
-    const [pRes, sRes] = await Promise.all([
-      fetch('/api/service-pricing').then(r => r.json()),
-      fetch('/api/treatment-types').then(r => r.json()),
-    ])
-    setPricing(pRes.pricing || [])
-    setServices(sRes.types || [])
+    const res = await fetch('/api/service-pricing').then(r => r.json())
+    setServices(res.services || [])
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  const filtered = useMemo(() => {
+    let s = services
+    if (filterCat !== 'All') s = s.filter(x => x.category === filterCat)
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      s = s.filter(x =>
+        x.name.toLowerCase().includes(q) ||
+        (x.bin_no?.toString() || '').includes(q) ||
+        x.appointment_names.some(a => a.toLowerCase().includes(q))
+      )
+    }
+    return s
+  }, [services, filterCat, search])
+
+  const grouped = useMemo(() => {
+    const g: Record<string, Service[]> = {}
+    for (const s of filtered) {
+      if (!g[s.category]) g[s.category] = []
+      g[s.category].push(s)
+    }
+    return g
+  }, [filtered])
+
+  const categories = useMemo(() => [...new Set(services.map(s => s.category))].sort(), [services])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     await fetch('/api/service-pricing', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, sessions: parseInt(form.sessions)||1, price: parseFloat(form.price) }),
+      body: JSON.stringify({
+        ...form,
+        price: parseFloat(form.price) || 0,
+        duration: parseInt(form.duration) || 0,
+        bin_no: form.bin_no ? parseInt(form.bin_no) : null,
+        appointment_names: form.appointment_names
+          ? form.appointment_names.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+      }),
     })
     setSaving(false); setShowAdd(false); setForm({ ...EMPTY_FORM }); load()
   }
@@ -53,10 +114,12 @@ export default function ServicePricingPanel() {
     await fetch(`/api/service-pricing/${showEdit.id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        service_id: showEdit.service_id,
-        label: showEdit.label,
-        sessions: showEdit.sessions,
+        name: showEdit.name,
+        category: showEdit.category,
+        bin_no: showEdit.bin_no,
+        duration: showEdit.duration,
         price: showEdit.price,
+        appointment_names: showEdit.appointment_names,
       }),
     })
     setSaving(false); setShowEdit(null); load()
@@ -68,102 +131,147 @@ export default function ServicePricingPanel() {
     setShowDelete(null); load()
   }
 
-  // Group by service name
-  const grouped: Record<string, PricingEntry[]> = {}
-  for (const p of pricing) {
-    const key = p.service?.name || 'Unknown'
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(p)
-  }
+  const totalServices = services.length
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-semibold text-gray-900">Service Pricing</h2>
-          <p className="text-sm text-gray-500">Manage prices and session packages for each service.</p>
+          <p className="text-sm text-gray-500">{totalServices} services across {categories.length} categories</p>
         </div>
         <button onClick={() => { setForm({ ...EMPTY_FORM }); setShowAdd(true) }} className="btn-primary text-sm">
-          <Plus className="w-4 h-4 mr-1" /> Add Pricing
+          <Plus className="w-4 h-4 mr-1" /> Add Service
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text" placeholder="Search by name, bin no, or appointment type…"
+            className="input pl-9 text-sm"
+            value={search} onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {['All', ...categories].map(c => (
+            <button
+              key={c}
+              onClick={() => setFilterCat(c)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                filterCat === c
+                  ? 'bg-brand-pink text-white border-brand-pink'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {c === 'All' ? `All (${services.length})` : c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
-        <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" /></div>
-      ) : pricing.length === 0 ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" />
+        </div>
+      ) : Object.keys(grouped).length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <DollarSign className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">No pricing set yet.</p>
-          <button onClick={() => { setForm({ ...EMPTY_FORM }); setShowAdd(true) }} className="mt-3 btn-primary text-sm">
-            Add First Pricing Entry
-          </button>
+          <p className="text-sm">{search || filterCat !== 'All' ? 'No services match your search.' : 'No services yet.'}</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([svcName, entries]) => {
-            const color = entries[0]?.service?.color || 'bg-gray-400'
-            return (
-              <div key={svcName}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${color}`} />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{svcName}</h3>
-                  <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{entries.length}</span>
-                </div>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Label / Type</th>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">No. of Sessions</th>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price (S$)</th>
-                        <th className="w-20"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {entries.map(p => (
-                        <tr key={p.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">{p.label}</td>
-                          <td className="px-4 py-3 text-gray-600">{p.sessions}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">
-                            {p.service?.duration > 0 ? `${p.service.duration} mins` : '—'}
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-gray-800">S${p.price.toFixed(2)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-1">
-                              <button onClick={() => setShowEdit({ ...p })} className="p-1.5 text-gray-400 hover:text-brand-pink rounded-lg"><Pencil className="w-4 h-4" /></button>
-                              <button onClick={() => setShowDelete(p)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+          {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, entries]) => (
+            <div key={cat}>
+              {/* Category header */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${DOT_COLORS[cat] || 'bg-gray-400'}`} />
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{cat}</h3>
+                <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{entries.length}</span>
               </div>
-            )
-          })}
+
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-20">Bin No</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Appt Type(s)</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price (S$)</th>
+                      <th className="w-20" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {entries.map(s => (
+                      <tr key={s.id} className="hover:bg-gray-50/60">
+                        <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
+                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{s.bin_no || '—'}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">
+                          {s.duration > 0 ? `${s.duration} mins` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {s.appointment_names.length > 0
+                              ? s.appointment_names.map(a => (
+                                  <span key={a} className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border font-medium ${CAT_COLORS[cat] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                    <Tag className="w-2.5 h-2.5" />{a}
+                                  </span>
+                                ))
+                              : <span className="text-gray-300 text-xs">—</span>
+                            }
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-gray-800">
+                          {s.price != null ? `S$${s.price.toFixed(2)}` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1">
+                            <button onClick={() => setShowEdit({ ...s })} className="p-1.5 text-gray-400 hover:text-brand-pink rounded-lg transition-colors">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => setShowDelete(s)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Add Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Pricing Entry">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Service">
         <form onSubmit={handleAdd} className="space-y-4">
           <div>
-            <label className="label">Service *</label>
-            <select className="input" value={form.service_id} onChange={e => setForm({...form, service_id: e.target.value})} required>
-              <option value="">— Select a service —</option>
-              {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Label / Type *</label>
-            <input className="input" placeholder="e.g. Single Session, 5-Session Package…" value={form.label} onChange={e => setForm({...form, label: e.target.value})} required />
+            <label className="label">Service Name *</label>
+            <input className="input" placeholder="e.g. Rehab Single Session &lt;15kg" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">No. of Sessions *</label>
-              <input type="number" className="input" min="1" placeholder="e.g. 1" value={form.sessions} onChange={e => setForm({...form, sessions: e.target.value})} required />
+              <label className="label">Category *</label>
+              <select className="input" value={form.category} onChange={e => setForm({...form, category: e.target.value})} required>
+                <option value="">— Select —</option>
+                {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Bin No</label>
+              <input type="number" className="input" placeholder="e.g. 1467" value={form.bin_no} onChange={e => setForm({...form, bin_no: e.target.value})} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Duration (mins)</label>
+              <input type="number" className="input" placeholder="e.g. 60" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} />
             </div>
             <div>
               <label className="label">Price (S$) *</label>
@@ -173,39 +281,54 @@ export default function ServicePricingPanel() {
               </div>
             </div>
           </div>
+          <div>
+            <label className="label">Appointment Type(s)</label>
+            <input className="input" placeholder="e.g. Rehabilitation, TCVM Tui Na (comma-separated)" value={form.appointment_names} onChange={e => setForm({...form, appointment_names: e.target.value})} />
+            <p className="text-xs text-gray-400 mt-1">Separate multiple types with commas.</p>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Add Pricing'}</button>
+            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Add Service'}</button>
           </div>
         </form>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Pricing Entry">
+      <Modal open={!!showEdit} onClose={() => setShowEdit(null)} title="Edit Service">
         {showEdit && (
           <form onSubmit={handleEdit} className="space-y-4">
             <div>
-              <label className="label">Service *</label>
-              <select className="input" value={showEdit.service_id} onChange={e => setShowEdit({...showEdit, service_id: e.target.value})} required>
-                {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Label / Type *</label>
-              <input className="input" value={showEdit.label} onChange={e => setShowEdit({...showEdit, label: e.target.value})} required />
+              <label className="label">Service Name *</label>
+              <input className="input" value={showEdit.name} onChange={e => setShowEdit({...showEdit, name: e.target.value})} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">No. of Sessions *</label>
-                <input type="number" className="input" min="1" value={showEdit.sessions} onChange={e => setShowEdit({...showEdit, sessions: parseInt(e.target.value)||1})} required />
+                <label className="label">Category *</label>
+                <select className="input" value={showEdit.category} onChange={e => setShowEdit({...showEdit, category: e.target.value})} required>
+                  {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Bin No</label>
+                <input type="number" className="input" value={showEdit.bin_no ?? ''} onChange={e => setShowEdit({...showEdit, bin_no: parseInt(e.target.value)||0})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Duration (mins)</label>
+                <input type="number" className="input" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)||0})} />
               </div>
               <div>
                 <label className="label">Price (S$) *</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">S$</span>
-                  <input type="number" className="input pl-9" min="0" step="0.01" value={showEdit.price} onChange={e => setShowEdit({...showEdit, price: parseFloat(e.target.value)||0})} required />
+                  <input type="number" className="input pl-9" min="0" step="0.01" value={showEdit.price ?? ''} onChange={e => setShowEdit({...showEdit, price: parseFloat(e.target.value)||0})} required />
                 </div>
               </div>
+            </div>
+            <div>
+              <label className="label">Appointment Type(s)</label>
+              <input className="input" placeholder="Comma-separated" value={showEdit.appointment_names.join(', ')} onChange={e => setShowEdit({...showEdit, appointment_names: e.target.value.split(',').map(s=>s.trim()).filter(Boolean)})} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancel</button>
@@ -216,10 +339,10 @@ export default function ServicePricingPanel() {
       </Modal>
 
       {/* Delete */}
-      <Modal open={!!showDelete} onClose={() => setShowDelete(null)} title="Remove Pricing Entry">
+      <Modal open={!!showDelete} onClose={() => setShowDelete(null)} title="Remove Service">
         {showDelete && (
           <div className="space-y-4">
-            <p className="text-gray-600">Remove <strong>{showDelete.label}</strong> for <strong>{showDelete.service?.name}</strong>?</p>
+            <p className="text-gray-600">Remove <strong>{showDelete.name}</strong>? It will be hidden from all pricing and booking options.</p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowDelete(null)} className="btn-secondary">Cancel</button>
               <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Remove</button>
