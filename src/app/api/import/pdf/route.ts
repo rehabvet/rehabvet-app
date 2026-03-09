@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
         const omData = await omRes.json();
         if (omData.results?.length > 0) {
           const r = omData.results[0];
-          clientAddress = `${r.BLK_NO ? r.BLK_NO + ' ' : ''}${r.ROAD_NAME || ''}, Singapore ${parsed.ownerPostcode}`.trim();
+          const parts = [r.BLK_NO, r.ROAD_NAME, r.BUILDING].filter(Boolean);
+          clientAddress = `${parts.join(', ')}, Singapore ${parsed.ownerPostcode}`;
         }
       } catch { /* ignore OneMap errors */ }
     }
