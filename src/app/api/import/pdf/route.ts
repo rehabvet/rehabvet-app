@@ -14,6 +14,9 @@ const STAFF_MAP: Record<string, string> = {
   SJT: '711b00d1-2870-4920-bd3a-b036ecaeb1a7', // Sean
   NL:  '994103e5-100e-4e7c-a3de-a722c49ae6e5', // Noelle
   AS:  '0864ab3c-6676-4e68-8650-560b8e8c0408', // Angeline Soon (former staff)
+  YEN: '1e0832ed-d6fe-4bfd-ab18-e35cbea66a98', // Chee Yen (former staff)
+  SA:  'bb878995-7ba8-4f68-bb04-8357dc9e01ac', // Dr Sara (alias)
+  OWN: '413c8865-4399-452a-9df8-07e308297e45', // Owner-entered notes → mapped to admin
 };
 
 function normalizePhone(p: string) {
