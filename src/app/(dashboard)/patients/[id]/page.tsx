@@ -27,11 +27,23 @@ export default function PatientDetailPage() {
 
   async function savePatient() {
     setSaving(true)
-    await fetch(`/api/patients/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) })
-    const d = await fetch(`/api/patients/${id}`).then(r => r.json())
-    setData(d)
+    try {
+      const res = await fetch(`/api/patients/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(`Save failed: ${err.error || res.statusText}`)
+        setSaving(false)
+        return
+      }
+      const d = await fetch(`/api/patients/${id}`).then(r => r.json())
+      setData(d)
+      const p = d?.patient
+      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '' })
+      setEditing(false)
+    } catch (e) {
+      alert(`Save failed: ${e}`)
+    }
     setSaving(false)
-    setEditing(false)
   }
 
   useEffect(() => {
