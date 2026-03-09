@@ -8,18 +8,21 @@ type ListItem = { id: string; text: string }
 
 function AutoTextarea({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   const ref = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => {
-    if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = ref.current.scrollHeight + 'px' }
-  }, [value])
+  const resize = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = '0px'
+    el.style.height = el.scrollHeight + 'px'
+  }
+  useEffect(() => { resize() }, [value])
   return (
     <textarea
       ref={ref}
       className={className}
       placeholder={placeholder}
       value={value}
-      rows={1}
-      style={{ overflow: 'hidden', resize: 'none' }}
-      onChange={e => { onChange(e.target.value); if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = ref.current.scrollHeight + 'px' } }}
+      style={{ overflow: 'hidden', resize: 'none', minHeight: '4rem' }}
+      onChange={e => { onChange(e.target.value); resize() }}
     />
   )
 }
@@ -29,7 +32,7 @@ function uid() { return Math.random().toString(36).slice(2) }
 function Section({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className="card p-0">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
