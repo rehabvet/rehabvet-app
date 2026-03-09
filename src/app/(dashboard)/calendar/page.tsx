@@ -72,8 +72,8 @@ export default function CalendarPage() {
       })
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
-    fetch('/api/treatment-types')
-      .then(r => r.json()).then(d => { setTreatmentTypes(d.types || []); setTreatmentGrouped(d.grouped || {}) })
+    fetch('/api/appointment-types')
+      .then(r => r.json()).then(d => { setTreatmentGrouped(d.grouped || {}) })
     // patients loaded on-demand per client (see selectNewApptClient)
   }, [year, month])
 
