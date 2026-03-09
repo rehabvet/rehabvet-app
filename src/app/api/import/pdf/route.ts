@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const parsed = parsePDF(pdfText);
   if (!parsed) return NextResponse.json({ error: 'Could not parse PDF structure' }, { status: 400 });
 
-  // --- Match client by phone ---
+  // --- Match or auto-create client ---
   const normPhone = normalizePhone(parsed.ownerPhone);
   let clientId: string | null = null;
   let patientId: string | null = null;
@@ -68,45 +68,72 @@ export async function POST(req: NextRequest) {
     if (clients.length > 0) clientId = clients[0].id;
   }
 
-  // --- Match patient by name (within that client) ---
-  if (clientId) {
-    const pname = parsed.patientName.toLowerCase().trim();
-
-    // 1. Exact case-insensitive match
-    const exact = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
-      `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(TRIM(name)) = $2 LIMIT 1`,
-      clientId, pname
+  if (!clientId) {
+    // Auto-create client from PDF data
+    const newClientId = randomUUID();
+    const nameParts = parsed.ownerName.trim().split(' ');
+    const firstName = nameParts[0] || 'Unknown';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const fullName = parsed.ownerName.trim() || 'Unknown';
+    const numRow = await prisma.$queryRawUnsafe<{ max_num: number | null }[]>(
+      `SELECT COALESCE(MAX(client_number), 0) as max_num FROM clients`
     );
-    if (exact.length > 0) patientId = exact[0].id;
+    const nextNum = (Number(numRow[0]?.max_num) || 0) + 1;
+    await prisma.$queryRawUnsafe(
+      `INSERT INTO clients (id, client_number, name, first_name, last_name, phone, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      newClientId, nextNum, fullName, firstName, lastName, parsed.ownerPhone || null
+    );
+    clientId = newClientId;
+    warnings.push(`New client created: ${fullName} (${parsed.ownerPhone || 'no phone'})`);
+  }
 
-    // 2. Partial match (name contains search term)
-    if (!patientId) {
-      const partial = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
-        `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(name) LIKE $2 LIMIT 1`,
-        clientId, `%${pname}%`
-      );
-      if (partial.length > 0) patientId = partial[0].id;
-    }
+  // --- Match or auto-create patient ---
+  const pname = parsed.patientName.toLowerCase().trim();
 
-    // 3. If client has exactly 1 patient, use it regardless of name
-    if (!patientId) {
-      const all = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
-        `SELECT id, name FROM patients WHERE client_id = $1`,
-        clientId
-      );
-      if (all.length === 1) {
-        patientId = all[0].id;
-        warnings.push(`Patient name "${parsed.patientName}" not matched — used only pet "${all[0].name}" on file`);
-      }
+  // 1. Exact case-insensitive match
+  const exact = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+    `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(TRIM(name)) = $2 LIMIT 1`,
+    clientId, pname
+  );
+  if (exact.length > 0) patientId = exact[0].id;
+
+  // 2. Partial match
+  if (!patientId) {
+    const partial = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+      `SELECT id, name FROM patients WHERE client_id = $1 AND LOWER(name) LIKE $2 LIMIT 1`,
+      clientId, `%${pname}%`
+    );
+    if (partial.length > 0) patientId = partial[0].id;
+  }
+
+  // 3. Single patient fallback
+  if (!patientId) {
+    const all = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
+      `SELECT id, name FROM patients WHERE client_id = $1`,
+      clientId
+    );
+    if (all.length === 1) {
+      patientId = all[0].id;
+      warnings.push(`Patient name "${parsed.patientName}" not matched — used only pet "${all[0].name}" on file`);
     }
+  }
+
+  // 4. Auto-create patient
+  if (!patientId) {
+    const newPatientId = randomUUID();
+    await prisma.$queryRawUnsafe(
+      `INSERT INTO patients (id, client_id, name, species, created_at, updated_at)
+       VALUES ($1, $2, $3, 'Dog', NOW(), NOW())`,
+      newPatientId, clientId, parsed.patientName || 'Unknown'
+    );
+    patientId = newPatientId;
+    warnings.push(`New patient created: ${parsed.patientName || 'Unknown'}`);
   }
 
   // --- Import visits ---
   let imported = 0;
   let skipped = 0;
-
-  if (!clientId) warnings.push(`Client not found for phone ${parsed.ownerPhone} (${parsed.ownerName})`);
-  if (!patientId) warnings.push(`Patient "${parsed.patientName}" not found`);
 
   // Generate next visit number
   const visitCountRow = await prisma.$queryRawUnsafe<{ count: string }[]>(
