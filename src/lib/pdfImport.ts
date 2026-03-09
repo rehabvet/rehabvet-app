@@ -131,18 +131,19 @@ export function parsePDF(text: string): ParsedPDF | null {
     const treatment = extractSection(block, 'Treatment', ['Comments', 'Staff']);
     const comments = extractSection(block, 'Comments', ['Staff', 'Bill#']);
 
-    // Line items: lines matching "{INITIALS} {qty} {name} ${price}"
+    // Line items: lines matching "{INITIALS}{qty}{name}${price}" (no spaces between fields)
+    // e.g. "XC0.5Rehab 5 (<15kg) Visit$0.00" or "SL63Gabapentin 50mg$40.68"
     const lineItems: ParsedLineItem[] = [];
-    const liPattern = /^([A-Z]+)\s+(\d+(?:\.\d+)?)\s+(.+?)\s+\$(\d+(?:\.\d+)?)$/gm;
+    const liPattern = /^([A-Z]+)([\d.]+)(.+?)\$([\d,]+(?:\.\d+)?)$/gm;
     let lm;
     while ((lm = liPattern.exec(block)) !== null) {
-      // Skip if it looks like a direction header
-      if (lm[3].startsWith('*')) continue;
+      // Skip direction headers and the column header line
+      if (lm[3].startsWith('*') || lm[3].trim() === 'Name') continue;
       lineItems.push({
         staffInitials: lm[1],
         qty: parseFloat(lm[2]),
         name: lm[3].trim(),
-        price: parseFloat(lm[4]),
+        price: parseFloat(lm[4].replace(/,/g, '')), // strip comma thousands separators
       });
     }
 
