@@ -150,8 +150,9 @@ export default function CalendarPage() {
     'Half Day Off':                'bg-gray-400',
     'Other':                       'bg-orange-400',
   }
+  // MODALITY_COLORS always wins — overrides any appointment_names colour mapping
   for (const [key, val] of Object.entries(MODALITY_COLORS)) {
-    if (!treatmentColors[key]) treatmentColors[key] = val
+    treatmentColors[key] = val
   }
 
   // Build deduplicated list of appointment types for the modality dropdown
