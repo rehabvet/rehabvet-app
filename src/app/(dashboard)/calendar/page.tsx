@@ -119,10 +119,39 @@ export default function CalendarPage() {
     dayScrollRef.current.scrollTo({ top: Math.max(0, topPx - 200), behavior: 'smooth' })
   }, [view])
   
-  // Build color map from treatment types
+  // Build color map from treatment types — index by both name AND appointment_names
+  // so modality values (which store appointment type names) also resolve to a color
   const treatmentColors: Record<string, string> = {}
   for (const t of treatmentTypes) {
     treatmentColors[t.name] = t.color
+    if (Array.isArray(t.appointment_names)) {
+      for (const apptName of t.appointment_names) {
+        if (!treatmentColors[apptName]) treatmentColors[apptName] = t.color
+      }
+    }
+  }
+  // Hardcoded fallbacks for modality values not covered by appointment_names
+  const MODALITY_COLORS: Record<string, string> = {
+    'Rehabilitation Hydrotherapy': 'bg-pink-400',
+    'Rehabilitation':              'bg-pink-500',
+    'TCVM Tui Na':                 'bg-purple-500',
+    'Fitness Swim':                'bg-cyan-400',
+    'Hyperbaric Oxygen':           'bg-sky-400',
+    'UWTM':                        'bg-teal-400',
+    'Consultation Off Peak':       'bg-indigo-400',
+    'Consultation Peak':           'bg-indigo-600',
+    'Reassessment':                'bg-violet-400',
+    'Acupuncture':                 'bg-purple-400',
+    'Lunch':                       'bg-gray-400',
+    'Do Not Book':                 'bg-red-300',
+    'OFF':                         'bg-gray-300',
+    'On Leave':                    'bg-gray-300',
+    'Admin':                       'bg-gray-500',
+    'Half Day Off':                'bg-gray-400',
+    'Other':                       'bg-orange-400',
+  }
+  for (const [key, val] of Object.entries(MODALITY_COLORS)) {
+    if (!treatmentColors[key]) treatmentColors[key] = val
   }
   
   function formatDuration(mins: number) {
@@ -908,13 +937,13 @@ export default function CalendarPage() {
         {view === 'day' && renderDayView()}
       </div>
 
-      {/* Legend */}
-      {view === 'month' && treatmentTypes.length > 0 && (
+      {/* Legend — show distinct modality types */}
+      {view === 'month' && (
         <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 pt-3 border-t border-gray-100">
-          {treatmentTypes.filter(t => !['Admin','Lunch','OFF','On Leave','Half Day Off','DO NOT BOOK'].includes(t.name)).slice(0, 12).map(t => (
-            <div key={t.name} className="flex items-center gap-1 sm:gap-1.5">
-              <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${t.color}`} />
-              <span className="text-[10px] sm:text-xs text-gray-500">{t.name}</span>
+          {Object.entries(MODALITY_COLORS).filter(([k]) => !['Lunch','Do Not Book','OFF','On Leave','Admin','Half Day Off'].includes(k)).map(([label, color]) => (
+            <div key={label} className="flex items-center gap-1 sm:gap-1.5">
+              <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${color}`} />
+              <span className="text-[10px] sm:text-xs text-gray-500">{label}</span>
             </div>
           ))}
         </div>
