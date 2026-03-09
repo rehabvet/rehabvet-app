@@ -21,9 +21,8 @@ export async function GET() {
   const grouped: Record<string, { name: string; duration: number }[]> = {}
 
   for (const svc of services) {
-    const rawNames = (svc.appointment_names as string[]) || []
-    // Fall back to the service's own name if no appointment_names defined
-    const names = rawNames.length > 0 ? rawNames : [svc.name]
+    const names = (svc.appointment_names as string[]) || []
+    if (names.length === 0) continue // skip services without appointment types
     const durOverrides = (svc.appointment_durations as Record<string, number>) || {}
     
     for (const apptName of names) {
