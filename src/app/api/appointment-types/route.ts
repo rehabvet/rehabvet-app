@@ -16,15 +16,15 @@ export async function GET() {
   })
 
   // Build a deduplicated list of appointment types, grouped by category
+  // Only include services that have appointment_names defined (those are bookable appt types)
   const seen = new Set<string>()
   const grouped: Record<string, { name: string; duration: number }[]> = {}
 
   for (const svc of services) {
     const names = (svc.appointment_names as string[]) || []
-    // If no appointment_names, use the service name itself
-    const apptNames = names.length > 0 ? names : [svc.name]
+    if (names.length === 0) continue // skip services without appointment types
     
-    for (const apptName of apptNames) {
+    for (const apptName of names) {
       if (seen.has(apptName)) continue
       seen.add(apptName)
       const cat = svc.category || 'Uncategorized'
