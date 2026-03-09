@@ -132,7 +132,7 @@ export default function CalendarPage() {
   }
   // Hardcoded fallbacks for modality values not covered by appointment_names
   const MODALITY_COLORS: Record<string, string> = {
-    'Rehabilitation Hydrotherapy': 'bg-pink-400',
+    'Rehabilitation Hydrotherapy': 'bg-blue-500',
     'Rehabilitation':              'bg-pink-500',
     'TCVM Tui Na':                 'bg-purple-500',
     'Fitness Swim':                'bg-cyan-400',
