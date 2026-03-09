@@ -123,12 +123,16 @@ export async function POST(req: NextRequest) {
   if (!patientId) {
     const newPatientId = randomUUID();
     await prisma.$queryRawUnsafe(
-      `INSERT INTO patients (id, client_id, name, species, created_at, updated_at)
-       VALUES ($1, $2, $3, 'Dog', NOW(), NOW())`,
-      newPatientId, clientId, parsed.patientName || 'Unknown'
+      `INSERT INTO patients (id, client_id, name, species, breed, gender, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      newPatientId, clientId,
+      parsed.patientName || 'Unknown',
+      parsed.patientSpecies || 'Dog',
+      parsed.patientBreed || null,
+      parsed.patientGender || null
     );
     patientId = newPatientId;
-    warnings.push(`New patient created: ${parsed.patientName || 'Unknown'}`);
+    warnings.push(`New patient created: ${parsed.patientName || 'Unknown'} (${parsed.patientBreed || parsed.patientSpecies || 'Dog'})`);
   }
 
   // --- Import visits ---

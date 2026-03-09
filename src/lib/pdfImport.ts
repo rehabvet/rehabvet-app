@@ -26,6 +26,9 @@ export interface ParsedVisit {
 export interface ParsedPDF {
   patientName: string;       // e.g. "Shiro"
   patientOldId: string;      // e.g. "1/5227"
+  patientSpecies: string;    // e.g. "Dog"
+  patientBreed: string;      // e.g. "Maltese"
+  patientGender: string;     // e.g. "Male"
   ownerName: string;
   ownerOldId: string;
   ownerPhone: string;        // normalized 8-digit SG mobile
@@ -68,12 +71,21 @@ export function parsePDF(text: string): ParsedPDF | null {
 
   // --- Extract patient header ---
   // "For Shiro (1/5227)"
+  // followed by "Dog, Male, Maltese,"
   const forLine = lines.find(l => l.startsWith('For ') && l.includes('('));
   if (!forLine) return null;
   const forMatch = forLine.match(/^For (.+?)\s*\(([^)]+)\)/);
   if (!forMatch) return null;
   const patientName = forMatch[1].trim();
   const patientOldId = forMatch[2].trim();
+
+  // Parse species/gender/breed from the next line e.g. "Dog, Male, Maltese,"
+  const forLineIdx = lines.indexOf(forLine);
+  const detailLine = lines[forLineIdx + 1] || '';
+  const detailParts = detailLine.split(',').map(p => p.trim()).filter(Boolean);
+  const patientSpecies = detailParts[0] || 'Dog';
+  const patientGender  = detailParts[1] || '';
+  const patientBreed   = detailParts[2] || '';
 
   // --- Extract owner ---
   // "Owner Ho Khim Rong (1/3776)"
@@ -161,5 +173,5 @@ export function parsePDF(text: string): ParsedPDF | null {
     });
   }
 
-  return { patientName, patientOldId, ownerName, ownerOldId, ownerPhone, visits };
+  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, ownerName, ownerOldId, ownerPhone, visits };
 }
