@@ -183,12 +183,14 @@ export async function POST(req: NextRequest) {
   let invCounter = (parseInt(invCountRow[0]?.max_num || '0') || 0) + 1;
 
   for (const visit of parsed.visits) {
-    // Skip if bill already imported
-    const existing = await prisma.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT id FROM invoices WHERE bill_number = $1 LIMIT 1`,
-      visit.billNumber
-    );
-    if (existing.length > 0) { skipped++; continue; }
+    // Skip if bill already imported (only check when bill_number is non-empty)
+    if (visit.billNumber) {
+      const existing = await prisma.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM invoices WHERE bill_number = $1 LIMIT 1`,
+        visit.billNumber
+      );
+      if (existing.length > 0) { skipped++; continue; }
+    }
 
     if (!visit.date) { warnings.push(`Bill# ${visit.billNumber}: invalid date`); continue; }
 
@@ -199,10 +201,11 @@ export async function POST(req: NextRequest) {
     const visitNumber = `VR-${visit.date.slice(0, 4)}-${String(visitCounter++).padStart(6, '0')}`;
 
     await prisma.$transaction(async (tx) => {
-      // Create visit record
+      // Create visit record — ON CONFLICT handles rare duplicate visit_number races
       await tx.$queryRawUnsafe(
         `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, internal_notes, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
+         ON CONFLICT (visit_number) DO NOTHING`,
         visitId,
         clientId,
         patientId,
