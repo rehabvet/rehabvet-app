@@ -170,11 +170,11 @@ export async function POST(req: NextRequest) {
   let imported = 0;
   let skipped = 0;
 
-  // Generate next visit number
-  const visitCountRow = await prisma.$queryRawUnsafe<{ count: string }[]>(
-    `SELECT COUNT(*) as count FROM visit_records WHERE visit_number LIKE 'VR-%'`
+  // Generate next visit number — use MAX (not COUNT) to handle gaps from deleted records
+  const visitMaxRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
+    `SELECT MAX(CAST(SUBSTRING(visit_number FROM 'VR-\\d{4}-(\\d+)') AS BIGINT)) as max_num FROM visit_records WHERE visit_number ~ '^VR-\\d{4}-\\d+'`
   );
-  let visitCounter = parseInt(visitCountRow[0]?.count || '0') + 1;
+  let visitCounter = (parseInt(visitMaxRow[0]?.max_num || '0') || 0) + 1;
 
   // Generate next invoice number — extract only the last 6-digit sequence from RV-YYYY-NNNNNN
   const invCountRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
