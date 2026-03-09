@@ -93,7 +93,7 @@ export default function AppointmentsPage() {
 
   // ── Form helpers ─────────────────────────────────────────────────────────────
   const [patients,         setPatients]         = useState<any[]>([])
-  const [clients,          setClients]          = useState<any[]>([])
+  // clients searched via debounced API (see clientResults below)
   const [staff,            setStaff]            = useState<any[]>([])
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
 
@@ -103,9 +103,24 @@ export default function AppointmentsPage() {
   })
   // client/patient search state for Add modal
   const [clientSearch,   setClientSearch]   = useState('')
+  const [clientResults,  setClientResults]  = useState<any[]>([])
+  const [clientLoading,  setClientLoading]  = useState(false)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [clientPatients, setClientPatients] = useState<any[]>([])
   const [patientSearch,  setPatientSearch]  = useState('')
+
+  // Debounced client search via API
+  useEffect(() => {
+    if (clientSearch.length < 1) { setClientResults([]); return }
+    setClientLoading(true)
+    const timer = setTimeout(() => {
+      fetch(`/api/clients?search=${encodeURIComponent(clientSearch)}&limit=15`)
+        .then(r => r.json())
+        .then(d => { setClientResults(d.clients || []); setClientLoading(false) })
+        .catch(() => setClientLoading(false))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [clientSearch])
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
   const fetchAppts = useCallback(async () => {
@@ -133,7 +148,7 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetch('/api/treatment-types').then(r => r.json()).then(d => setTreatmentGrouped(d.grouped || {}))
     fetch('/api/patients?per_page=999').then(r => r.json()).then(d => setPatients(d.patients || []))
-    fetch('/api/clients?per_page=999').then(r => r.json()).then(d => setClients(d.clients || []))
+    // clients now searched via debounced API call
     fetch('/api/staff').then(r => r.json()).then(d =>
       setStaff((d.staff || []).filter((s: any) =>
         ['vet','therapist','veterinarian','senior_therapist','assistant_therapist','hydrotherapist'].includes(s.role)
@@ -544,18 +559,18 @@ export default function AppointmentsPage() {
                   value={clientSearch} onChange={e => setClientSearch(e.target.value)} autoComplete="off" />
                 {clientSearch.length >= 1 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                    {clients.filter((c: any) =>
-                      c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                      c.phone?.includes(clientSearch)
-                    ).slice(0,10).map((c: any) => (
-                      <button key={c.id} type="button"
-                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                        onClick={() => selectClient(c)}>
-                        <span className="font-semibold text-sm">{c.name}</span>
-                        <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
-                      </button>
-                    ))}
-                    {clients.filter((c: any) => c.name?.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                    {clientLoading ? (
+                      <p className="px-4 py-3 text-sm text-gray-400">Searching...</p>
+                    ) : clientResults.length > 0 ? (
+                      clientResults.map((c: any) => (
+                        <button key={c.id} type="button"
+                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                          onClick={() => selectClient(c)}>
+                          <span className="font-semibold text-sm">{c.name}</span>
+                          <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
+                        </button>
+                      ))
+                    ) : (
                       <p className="px-4 py-3 text-sm text-gray-400">No clients found</p>
                     )}
                   </div>
