@@ -189,12 +189,12 @@ export async function POST(req: NextRequest) {
     const visitId = randomUUID();
     const visitNumber = `VR-${visit.date.slice(0, 4)}-${String(visitCounter++).padStart(6, '0')}`;
 
+    try {
     await prisma.$transaction(async (tx) => {
-      // Create visit record — ON CONFLICT handles rare duplicate visit_number races
+      // Create visit record
       await tx.$queryRawUnsafe(
         `INSERT INTO visit_records (id, client_id, patient_id, staff_id, visit_date, visit_number, weight_kg, temperature_c, history, clinical_examination, treatment, internal_notes, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
-         ON CONFLICT (visit_number) DO NOTHING`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())`,
         visitId,
         clientId,
         patientId,
@@ -208,6 +208,15 @@ export async function POST(req: NextRequest) {
         visit.treatment ? JSON.stringify([visit.treatment]) : null,
         visit.comments || null,
       );
+
+      // Verify visit was created before inserting invoice
+      const visitCheck = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM visit_records WHERE id = $1`, visitId
+      );
+      if (visitCheck.length === 0) {
+        warnings.push(`Bill# ${visit.billNumber}: visit record insert failed, skipping invoice`);
+        return;
+      }
 
       // Create invoice
       const invoiceId = randomUUID();
@@ -248,6 +257,9 @@ export async function POST(req: NextRequest) {
     });
 
     imported++;
+    } catch (visitErr: any) {
+      warnings.push(`Bill# ${visit.billNumber}: ${visitErr.message?.slice(0, 120) || 'unknown error'}`);
+    }
   }
 
   return NextResponse.json({
