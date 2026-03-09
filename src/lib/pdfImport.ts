@@ -29,6 +29,7 @@ export interface ParsedPDF {
   patientSpecies: string;    // e.g. "Dog"
   patientBreed: string;      // e.g. "Maltese"
   patientGender: string;     // e.g. "Male"
+  patientDOB: string | null; // approximate DOB from age e.g. "2021-08-01"
   ownerName: string;
   ownerOldId: string;
   ownerPhone: string;        // normalized 8-digit SG mobile
@@ -86,6 +87,18 @@ export function parsePDF(text: string): ParsedPDF | null {
   const patientSpecies = detailParts[0] || 'Dog';
   const patientGender  = (detailParts[1] || '').toLowerCase().trim();
   const patientBreed   = detailParts[2] || '';
+  // Extract age e.g. "Age: 4 yr 6 mth" → approximate DOB
+  const ageStr = detailParts.slice(3).join(',');
+  const ageMatch = ageStr.match(/Age:\s*(\d+)\s*yr(?:\s*(\d+)\s*mth)?/i);
+  let patientDOB: string | null = null;
+  if (ageMatch) {
+    const years = parseInt(ageMatch[1]) || 0;
+    const months = parseInt(ageMatch[2] || '0') || 0;
+    const approxDOB = new Date();
+    approxDOB.setFullYear(approxDOB.getFullYear() - years);
+    approxDOB.setMonth(approxDOB.getMonth() - months);
+    patientDOB = approxDOB.toISOString().split('T')[0];
+  }
 
   // --- Extract owner ---
   // "Owner Ho Khim Rong (1/3776)"
@@ -173,5 +186,5 @@ export function parsePDF(text: string): ParsedPDF | null {
     });
   }
 
-  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, ownerName, ownerOldId, ownerPhone, visits };
+  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, patientDOB, ownerName, ownerOldId, ownerPhone, visits };
 }

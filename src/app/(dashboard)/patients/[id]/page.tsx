@@ -12,11 +12,27 @@ export default function PatientDetailPage() {
   const [tab, setTab] = useState('overview')
   const [visits, setVisits] = useState<any[]>([])
   const [imageError, setImageError] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState<any>({})
 
   useEffect(() => {
-    fetch(`/api/patients/${id}`).then(r => r.json()).then(setData)
+    fetch(`/api/patients/${id}`).then(r => r.json()).then(d => {
+      setData(d)
+      const p = d?.patient
+      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '' })
+    })
     fetch(`/api/patients/${id}/visits`).then(r => r.json()).then(d => setVisits(d.visits || []))
   }, [id])
+
+  async function savePatient() {
+    setSaving(true)
+    await fetch(`/api/patients/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) })
+    const d = await fetch(`/api/patients/${id}`).then(r => r.json())
+    setData(d)
+    setSaving(false)
+    setEditing(false)
+  }
 
   useEffect(() => {
     setImageError(false)
@@ -60,14 +76,40 @@ export default function PatientDetailPage() {
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-            <p className="text-gray-500">{patient.species} · {patient.breed || 'Unknown breed'} · Owner: <Link href={`/clients/${patient.client_id}`} className="text-brand-pink hover:underline">{patient.client_name}</Link></p>
-            <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
-              {patient.date_of_birth && <span>DOB: {patient.date_of_birth}</span>}
-              {patient.weight && <span>Weight: {patient.weight}kg</span>}
-              {patient.gender && <span>Gender: {patient.gender.replace('_', ' ')}</span>}
-              {patient.microchip && <span>Microchip: {patient.microchip}</span>}
-            </div>
+            {editing ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500">Name</label><input className="input w-full mt-1" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Species</label><input className="input w-full mt-1" value={editForm.species} onChange={e => setEditForm({...editForm, species: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Breed</label><input className="input w-full mt-1" value={editForm.breed} onChange={e => setEditForm({...editForm, breed: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Gender</label><input className="input w-full mt-1" value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Date of Birth</label><input type="date" className="input w-full mt-1" value={editForm.date_of_birth} onChange={e => setEditForm({...editForm, date_of_birth: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Weight (kg)</label><input className="input w-full mt-1" value={editForm.weight} onChange={e => setEditForm({...editForm, weight: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Microchip</label><input className="input w-full mt-1" value={editForm.microchip} onChange={e => setEditForm({...editForm, microchip: e.target.value})} /></div>
+                </div>
+                <div><label className="text-xs text-gray-500">Notes</label><textarea className="input w-full mt-1" rows={2} value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} /></div>
+                <div className="flex gap-2">
+                  <button onClick={savePatient} disabled={saving} className="btn-primary flex items-center gap-1"><Save className="w-3.5 h-3.5" />{saving ? 'Saving…' : 'Save'}</button>
+                  <button onClick={() => setEditing(false)} className="btn-secondary flex items-center gap-1"><X className="w-3.5 h-3.5" />Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
+                    <p className="text-gray-500">{patient.species} · {patient.breed || 'Unknown breed'} · Owner: <Link href={`/clients/${patient.client_id}`} className="text-brand-pink hover:underline">{patient.client_name}</Link></p>
+                  </div>
+                  <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-1 text-sm"><Edit2 className="w-3.5 h-3.5" />Edit</button>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
+                  {patient.date_of_birth && <span>DOB: {patient.date_of_birth}</span>}
+                  {patient.weight && <span>Weight: {patient.weight}kg</span>}
+                  {patient.gender && <span>Gender: {patient.gender.replace('_', ' ')}</span>}
+                  {patient.microchip && <span>Microchip: {patient.microchip}</span>}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
