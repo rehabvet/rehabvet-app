@@ -11,6 +11,7 @@ interface Service {
   duration: number
   price: number | null
   appointment_names: string[]
+  appointment_durations: Record<string, number>
   active: boolean
   color: string
 }
@@ -120,6 +121,7 @@ export default function ServicePricingPanel() {
         duration: showEdit.duration,
         price: showEdit.price,
         appointment_names: showEdit.appointment_names,
+        appointment_durations: showEdit.appointment_durations || {},
       }),
     })
     setSaving(false); setShowEdit(null); load()
@@ -330,6 +332,33 @@ export default function ServicePricingPanel() {
               <label className="label">Appointment Type(s)</label>
               <input className="input" placeholder="Comma-separated" value={showEdit.appointment_names.join(', ')} onChange={e => setShowEdit({...showEdit, appointment_names: e.target.value.split(',').map(s=>s.trim()).filter(Boolean)})} />
             </div>
+            {showEdit.appointment_names.length > 0 && (
+              <div>
+                <label className="label">Duration per Appt Type (mins)</label>
+                <p className="text-xs text-gray-400 mb-2">Leave blank to use the default service duration ({showEdit.duration} mins)</p>
+                <div className="space-y-2">
+                  {showEdit.appointment_names.map(apptName => (
+                    <div key={apptName} className="flex items-center gap-3">
+                      <span className="text-sm text-gray-700 flex-1 truncate">{apptName}</span>
+                      <input
+                        type="number"
+                        className="input w-24 text-sm"
+                        placeholder={`${showEdit.duration}`}
+                        value={(showEdit.appointment_durations || {})[apptName] ?? ''}
+                        onChange={e => {
+                          const val = e.target.value ? parseInt(e.target.value) : undefined
+                          const durations = { ...(showEdit.appointment_durations || {}) }
+                          if (val) durations[apptName] = val
+                          else delete durations[apptName]
+                          setShowEdit({ ...showEdit, appointment_durations: durations })
+                        }}
+                      />
+                      <span className="text-xs text-gray-400 w-8">mins</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowEdit(null)} className="btn-secondary">Cancel</button>
               <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save Changes'}</button>

@@ -435,7 +435,8 @@ model treatment_types {
   active              Boolean  @default(true)
   sort_order          Int      @default(0)
   bin_no              Int?
-  appointment_names   String[]
+  appointment_names     String[]
+  appointment_durations Json?    @default("{}")
   created_at          DateTime @default(now())
 
   client_packages  client_packages[]
