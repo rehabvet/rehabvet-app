@@ -20,24 +20,37 @@ function parseAddress(full: string): AddressData {
   const data: AddressData = { postalCode: '', block: '', street: '', building: '', unit: '' }
   if (!full) return data
 
-  const parts = full.split(',').map(p => p.trim()).filter(Boolean)
+  // Extract postal code from anywhere in the string
+  const postalMatch = full.match(/(\d{6})\s*$/i)
+  if (postalMatch) data.postalCode = postalMatch[1]
 
-  // Postal code: handles "Singapore 123456" or just "123456"
-  const postalPart = parts.find(p => /(?:Singapore\s+)?\d{6}$/i.test(p))
-  if (postalPart) {
-    const m = postalPart.match(/(\d{6})$/)
-    if (m) data.postalCode = m[1]
+  if (full.includes(',')) {
+    // Comma-separated structured format: "Block, Street, Building, Singapore XXXXXX"
+    const parts = full.split(',').map(p => p.trim()).filter(Boolean)
+
+    // Unit: #01-23
+    const unitPart = parts.find(p => /^#/.test(p))
+    if (unitPart) data.unit = unitPart.replace(/^#/, '')
+
+    const normalParts = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
+    if (normalParts[0]) data.block = normalParts[0]
+    if (normalParts[1]) data.street = normalParts[1]
+    if (normalParts[2]) data.building = normalParts[2]
+  } else {
+    // Raw OneMap format: "BLK STREET BUILDING SINGAPORE XXXXXX"
+    let remainder = full.replace(/\s*SINGAPORE\s+\d{6}\s*$/i, '').trim()
+    // Unit number (#XX-XX)
+    const unitMatch = remainder.match(/(#[\d\w-]+)/)
+    if (unitMatch) { data.unit = unitMatch[1].replace('#', ''); remainder = remainder.replace(unitMatch[0], '').trim() }
+    // First token is block number, rest is street
+    const blockMatch = remainder.match(/^([A-Z0-9]+[A-Z]?)\s+(.+)$/i)
+    if (blockMatch) {
+      data.block = blockMatch[1]
+      data.street = blockMatch[2]
+    } else {
+      data.block = remainder
+    }
   }
-
-  // Unit: #01-23
-  const unitPart = parts.find(p => /^#/.test(p))
-  if (unitPart) data.unit = unitPart.replace(/^#/, '')
-
-  // First non-special part as block, second as street, third as building
-  const normalParts = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
-  if (normalParts[0]) data.block = normalParts[0]
-  if (normalParts[1]) data.street = normalParts[1]
-  if (normalParts[2]) data.building = normalParts[2]
 
   return data
 }
