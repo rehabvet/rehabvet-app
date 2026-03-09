@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [clients, setClients] = useState<any[]>([])
   const [clientSearch, setClientSearch] = useState('')
   const [clientSearchResults, setClientSearchResults] = useState<any[]>([])
+  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([])
   const [clientSearchLoading, setClientSearchLoading] = useState(false)
   const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedClient, setSelectedClient] = useState<any>(null)
@@ -80,12 +81,16 @@ export default function CalendarPage() {
   function handleClientSearchChange(val: string) {
     setClientSearch(val)
     if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current)
-    if (!val.trim()) { setClientSearchResults([]); return }
+    if (!val.trim()) { setClientSearchResults([]); setPatientSearchResults([]); return }
     setClientSearchLoading(true)
     clientSearchTimer.current = setTimeout(async () => {
-      const res = await fetch(`/api/clients?search=${encodeURIComponent(val)}&limit=20`)
-      const data = await res.json()
-      setClientSearchResults(data.clients || [])
+      const [clientRes, patientRes] = await Promise.all([
+        fetch(`/api/clients?search=${encodeURIComponent(val)}&limit=10`),
+        fetch(`/api/patients?search=${encodeURIComponent(val)}&limit=10`),
+      ])
+      const [clientData, patientData] = await Promise.all([clientRes.json(), patientRes.json()])
+      setClientSearchResults(clientData.clients || [])
+      setPatientSearchResults(patientData.patients || [])
       setClientSearchLoading(false)
     }, 250)
   }
@@ -251,11 +256,26 @@ export default function CalendarPage() {
     }
   }
 
+  async function selectNewApptPatient(patient: any) {
+    // Patient result clicked — fetch the client, then auto-select both
+    const res = await fetch(`/api/clients/${patient.client_id}`)
+    const data = await res.json()
+    const client = data.client || data
+    setSelectedClient(client)
+    setClientSearch('')
+    setClientSearchResults([])
+    setPatientSearchResults([])
+    const allPets = await fetch(`/api/patients?client_id=${client.id}&per_page=100`).then(r => r.json())
+    setClientPatients(allPets.patients || [])
+    setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: patient.id }))
+  }
+
   function resetNewApptModal() {
     setNewApptForm(null)
     setClientSearch('')
     setSelectedClient(null)
     setClientPatients([])
+    setPatientSearchResults([])
   }
 
   function openNewApptModal(date: string, time: string, therapistId = '') {
@@ -1016,27 +1036,48 @@ export default function CalendarPage() {
                   <span className="text-sm font-semibold text-gray-900">{selectedClient.name}
                     {selectedClient.phone && <span className="text-gray-400 font-normal ml-2 text-xs">{selectedClient.phone}</span>}
                   </span>
-                  <button type="button" onClick={() => { setSelectedClient(null); setClientPatients([]); setNewApptForm({...newApptForm, client_id: '', patient_id: ''}); setClientSearch(''); setClientSearchResults([]) }}
+                  <button type="button" onClick={() => { setSelectedClient(null); setClientPatients([]); setNewApptForm({...newApptForm, client_id: '', patient_id: ''}); setClientSearch(''); setClientSearchResults([]); setPatientSearchResults([]) }}
                     className="text-gray-400 hover:text-red-400 ml-2 text-xs flex-shrink-0">✕ Change</button>
                 </div>
               ) : (
                 <>
-                  <input className="input" placeholder="Search by client name or phone..."
+                  <input className="input" placeholder="Search by client name, phone or pet name..."
                     value={clientSearch} onChange={e => handleClientSearchChange(e.target.value)} autoComplete="off" />
                   {clientSearch.length >= 1 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
                       {clientSearchLoading && <p className="px-4 py-3 text-sm text-gray-400">Searching…</p>}
-                      {!clientSearchLoading && clientSearchResults.map((c: any) => (
-                        <button key={c.id} type="button"
-                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                          onClick={() => selectNewApptClient(c)}>
-                          <span className="font-semibold text-sm text-gray-900">{c.name}</span>
-                          <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
-                        </button>
-                      ))}
-                      {!clientSearchLoading && clientSearchResults.length === 0 && (
-                        <p className="px-4 py-3 text-sm text-gray-400">No clients found</p>
-                      )}
+                      {!clientSearchLoading && (<>
+                        {clientSearchResults.length > 0 && (
+                          <>
+                            <p className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Clients</p>
+                            {clientSearchResults.map((c: any) => (
+                              <button key={c.id} type="button"
+                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                                onClick={() => selectNewApptClient(c)}>
+                                <span className="font-semibold text-sm text-gray-900">{c.name}</span>
+                                <span className="text-xs text-gray-400 ml-2">{c.phone}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                        {patientSearchResults.length > 0 && (
+                          <>
+                            <p className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Pets</p>
+                            {patientSearchResults.map((p: any) => (
+                              <button key={p.id} type="button"
+                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                                onClick={() => selectNewApptPatient(p)}>
+                                <span className="font-semibold text-sm text-gray-900">{p.name}</span>
+                                <span className="text-xs text-gray-400 ml-1">· {p.breed || p.species}</span>
+                                <span className="text-xs text-gray-400 ml-2">({p.client_name || 'Unknown owner'})</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                        {clientSearchResults.length === 0 && patientSearchResults.length === 0 && (
+                          <p className="px-4 py-3 text-sm text-gray-400">No clients or pets found</p>
+                        )}
+                      </>)}
                     </div>
                   )}
                 </>
