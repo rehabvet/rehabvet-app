@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!ADMIN_ROLES.includes(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, category, bin_no, duration, price, appointment_names, appointment_durations, active } = await req.json()
+  const { name, category, bin_no, duration, price, appointment_names, appointment_durations, active, sessions_in_package } = await req.json()
 
   const service = await prisma.treatment_types.update({
     where: { id: params.id },
@@ -18,6 +18,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       ...(name !== undefined && { name }),
       ...(category !== undefined && { category }),
       ...(bin_no !== undefined && { bin_no: bin_no ? parseInt(bin_no) : null }),
+      ...(sessions_in_package !== undefined && { sessions_in_package: sessions_in_package ? parseInt(sessions_in_package) : 1 }),
       ...(duration !== undefined && { duration: parseInt(duration) || 0 }),
       ...(price !== undefined && { price: parseFloat(price) }),
       ...(appointment_names !== undefined && { appointment_names }),

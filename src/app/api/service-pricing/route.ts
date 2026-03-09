@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
-  const { name, category, bin_no, duration, price, appointment_names, color } = body
+  const { name, category, bin_no, duration, price, appointment_names, color, sessions_in_package } = body
   if (!name || !category || price == null) {
     return NextResponse.json({ error: 'name, category and price are required' }, { status: 400 })
   }
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       bin_no: bin_no ? parseInt(bin_no) : null,
       duration: duration ? parseInt(duration) : 0,
       price: parseFloat(price),
+      sessions_in_package: sessions_in_package ? parseInt(sessions_in_package) : 1,
       appointment_names: appointment_names || [],
       color: color || CAT_COLORS[category] || 'bg-gray-400',
       active: true,

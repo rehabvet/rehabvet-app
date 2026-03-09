@@ -10,6 +10,7 @@ interface Service {
   bin_no: number | null
   duration: number
   price: number | null
+  sessions_in_package: number | null
   appointment_names: string[]
   appointment_durations: Record<string, number>
   active: boolean
@@ -38,7 +39,7 @@ const DOT_COLORS: Record<string, string> = {
 }
 
 const EMPTY_FORM = {
-  name: '', category: '', bin_no: '', duration: '', price: '', appointment_names: '',
+  name: '', category: '', bin_no: '', duration: '', price: '', appointment_names: '', sessions_in_package: '1',
 }
 
 const ALL_CATEGORIES = [
@@ -100,6 +101,7 @@ export default function ServicePricingPanel() {
         price: parseFloat(form.price) || 0,
         duration: parseInt(form.duration) || 0,
         bin_no: form.bin_no ? parseInt(form.bin_no) : null,
+        sessions_in_package: form.sessions_in_package ? parseInt(form.sessions_in_package) : 1,
         appointment_names: form.appointment_names
           ? form.appointment_names.split(',').map(s => s.trim()).filter(Boolean)
           : [],
@@ -189,6 +191,7 @@ export default function ServicePricingPanel() {
           <table className="w-full text-sm table-fixed">
             <colgroup>
               <col className="w-auto" />
+              <col className="w-16" />
               <col className="w-20" />
               <col className="w-24" />
               <col className="w-64" />
@@ -198,6 +201,7 @@ export default function ServicePricingPanel() {
             <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
+                <th className="text-center px-2 py-2.5 text-xs font-medium text-gray-500">Qty</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Bin No</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Duration</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Appt Type(s)</th>
@@ -210,7 +214,7 @@ export default function ServicePricingPanel() {
                 <>
                   {/* Category header row */}
                   <tr key={`cat-${cat}`} className="bg-gray-50/80 border-t border-gray-100">
-                    <td colSpan={6} className="px-4 py-2">
+                    <td colSpan={7} className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className={`w-2.5 h-2.5 rounded-full ${DOT_COLORS[cat] || 'bg-gray-400'}`} />
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{cat}</span>
@@ -222,6 +226,7 @@ export default function ServicePricingPanel() {
                   {entries.map(s => (
                     <tr key={s.id} className="hover:bg-gray-50/60 border-t border-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-800 truncate">{s.name}</td>
+                      <td className="px-2 py-3 text-center text-gray-700 font-semibold text-sm">{s.sessions_in_package ?? 1}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs">{s.bin_no || '—'}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{s.duration > 0 ? `${s.duration} mins` : '—'}</td>
                       <td className="px-4 py-3">
@@ -278,7 +283,11 @@ export default function ServicePricingPanel() {
               <input type="number" className="input" placeholder="e.g. 1467" value={form.bin_no} onChange={e => setForm({...form, bin_no: e.target.value})} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="label">Qty <span className="text-gray-400">(default 1)</span></label>
+              <input type="number" className="input" min="1" placeholder="1" value={form.sessions_in_package} onChange={e => setForm({...form, sessions_in_package: e.target.value})} />
+            </div>
             <div>
               <label className="label">Duration (mins)</label>
               <input type="number" className="input" placeholder="e.g. 60" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} />
@@ -323,7 +332,11 @@ export default function ServicePricingPanel() {
                 <input type="number" className="input" value={showEdit.bin_no ?? ''} onChange={e => setShowEdit({...showEdit, bin_no: parseInt(e.target.value)||0})} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">Qty <span className="text-gray-400">(default 1)</span></label>
+                <input type="number" className="input" min="1" value={showEdit.sessions_in_package ?? 1} onChange={e => setShowEdit({...showEdit, sessions_in_package: parseInt(e.target.value)||1})} />
+              </div>
               <div>
                 <label className="label">Duration (mins)</label>
                 <input type="number" className="input" value={showEdit.duration} onChange={e => setShowEdit({...showEdit, duration: parseInt(e.target.value)||0})} />
