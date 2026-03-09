@@ -25,7 +25,7 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const staff = await prisma.users.findMany({ select: STAFF_SELECT })
+  const staff = await prisma.users.findMany({ where: { active: true }, select: STAFF_SELECT })
 
   const roleOrder: Record<string, number> = {
     administrator: 1, office_manager: 2, marketing: 3, veterinarian: 4,
