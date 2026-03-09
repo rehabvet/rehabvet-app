@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const lastName = nameParts.slice(1).join(' ') || '';
     const fullName = parsed.ownerName.trim() || 'Unknown';
     const numRow = await prisma.$queryRawUnsafe<{ max_num: number | null }[]>(
-      `SELECT COALESCE(MAX(client_number), 0) as max_num FROM clients`
+      `SELECT COALESCE(MAX(client_number::integer), 0) as max_num FROM clients`
     );
     const nextNum = (Number(numRow[0]?.max_num) || 0) + 1;
     await prisma.$queryRawUnsafe(
