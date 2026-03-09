@@ -146,7 +146,7 @@ export default function AppointmentsPage() {
 
   // load treatment types once
   useEffect(() => {
-    fetch('/api/treatment-types').then(r => r.json()).then(d => setTreatmentGrouped(d.grouped || {}))
+    fetch('/api/appointment-types').then(r => r.json()).then(d => setTreatmentGrouped(d.grouped || {}))
     fetch('/api/patients?per_page=999').then(r => r.json()).then(d => setPatients(d.patients || []))
     // clients now searched via debounced API call
     fetch('/api/staff').then(r => r.json()).then(d =>
@@ -167,13 +167,18 @@ export default function AppointmentsPage() {
   function selectClient(c: any) {
     setSelectedClient(c)
     setClientSearch('')
-    const pets = patients.filter((p: any) => p.client_id === c.id)
-    setClientPatients(pets)
-    if (pets.length === 1) {
-      setForm(f => ({ ...f, client_id: c.id, patient_id: pets[0].id }))
-    } else {
-      setForm(f => ({ ...f, client_id: c.id, patient_id: '' }))
-    }
+    setClientPatients([])
+    setForm(f => ({ ...f, client_id: c.id, patient_id: '' }))
+    // Fetch this client's patients from API
+    fetch(`/api/patients?client_id=${c.id}&limit=100`)
+      .then(r => r.json())
+      .then(d => {
+        const pets = d.patients || []
+        setClientPatients(pets)
+        if (pets.length === 1) {
+          setForm(f => ({ ...f, patient_id: pets[0].id }))
+        }
+      })
   }
 
   function resetAddModal() {
