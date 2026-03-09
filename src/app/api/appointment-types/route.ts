@@ -20,6 +20,12 @@ export async function GET() {
   const seen = new Set<string>()
   const grouped: Record<string, { name: string; duration: number }[]> = {}
 
+  // Per-appointment-type duration overrides (in minutes)
+  // When an appointment type has a different duration than its parent service
+  const durationOverrides: Record<string, number> = {
+    'Pain Relief': 30,
+  }
+
   for (const svc of services) {
     const names = (svc.appointment_names as string[]) || []
     if (names.length === 0) continue // skip services without appointment types
@@ -29,7 +35,8 @@ export async function GET() {
       seen.add(apptName)
       const cat = svc.category || 'Uncategorized'
       if (!grouped[cat]) grouped[cat] = []
-      grouped[cat].push({ name: apptName, duration: svc.duration ?? 60 })
+      const dur = durationOverrides[apptName] ?? svc.duration ?? 60
+      grouped[cat].push({ name: apptName, duration: dur })
     }
   }
 
