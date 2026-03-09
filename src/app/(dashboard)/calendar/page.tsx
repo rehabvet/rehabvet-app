@@ -153,7 +153,37 @@ export default function CalendarPage() {
   for (const [key, val] of Object.entries(MODALITY_COLORS)) {
     if (!treatmentColors[key]) treatmentColors[key] = val
   }
-  
+
+  // Build deduplicated list of appointment types for the modality dropdown
+  // Collect unique appointment_names across all treatment types, then add system types
+  const appointmentTypeOptions: { label: string; duration: number }[] = []
+  const seen = new Set<string>()
+  for (const t of treatmentTypes) {
+    if (Array.isArray(t.appointment_names) && t.appointment_names.length > 0) {
+      for (const apptName of t.appointment_names) {
+        if (!seen.has(apptName)) {
+          seen.add(apptName)
+          appointmentTypeOptions.push({ label: apptName, duration: t.duration ?? 60 })
+        }
+      }
+    }
+  }
+  // Add system/block types (they have no appointment_names)
+  const SYSTEM_TYPES = ['Lunch', 'Admin', 'On Leave', 'Do Not Book', 'OFF', 'Half Day Off']
+  for (const sys of SYSTEM_TYPES) {
+    if (!seen.has(sys)) {
+      seen.add(sys)
+      appointmentTypeOptions.push({ label: sys, duration: 60 })
+    }
+  }
+  // Sort clinical types alphabetically, keep system types at end
+  appointmentTypeOptions.sort((a, b) => {
+    const aSystem = SYSTEM_TYPES.includes(a.label)
+    const bSystem = SYSTEM_TYPES.includes(b.label)
+    if (aSystem !== bSystem) return aSystem ? 1 : -1
+    return a.label.localeCompare(b.label)
+  })
+
   function formatDuration(mins: number) {
     if (mins >= 60) {
       const hours = Math.floor(mins / 60)
@@ -1037,25 +1067,21 @@ export default function CalendarPage() {
 
             {/* 4. Treatment Type */}
             <div>
-              <label className="label">Treatment Type *</label>
+              <label className="label">Appointment Type *</label>
               <select className="input" value={newApptForm.modality}
                 onChange={e => {
-                  const t = treatmentTypes.find((x: any) => x.name === e.target.value)
-                  if (t) {
+                  const opt = appointmentTypeOptions.find(x => x.label === e.target.value)
+                  if (opt) {
                     const [sh, sm] = newApptForm.start_time.split(':').map(Number)
-                    const endTotal = sh * 60 + sm + (t.duration || 60)
+                    const endTotal = sh * 60 + sm + (opt.duration || 60)
                     setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`})
                   } else {
                     setNewApptForm({...newApptForm, modality: e.target.value})
                   }
                 }} required>
-                <option value="">Select treatment...</option>
-                {Object.entries(treatmentGrouped).map(([category, items]) => (
-                  <optgroup key={category} label={category}>
-                    {(items as any[]).map(t => (
-                      <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>
-                    ))}
-                  </optgroup>
+                <option value="">Select appointment type...</option>
+                {appointmentTypeOptions.map(opt => (
+                  <option key={opt.label} value={opt.label}>{opt.label}</option>
                 ))}
               </select>
             </div>
@@ -1216,19 +1242,15 @@ export default function CalendarPage() {
 
             {/* Treatment Type */}
             <div>
-              <label className="label">Treatment Type</label>
+              <label className="label">Appointment Type</label>
               <select
                 className="input"
                 value={editForm.modality}
                 onChange={e => setEditForm({...editForm, modality: e.target.value})}
               >
-                <option value="">Select treatment...</option>
-                {Object.entries(treatmentGrouped).map(([category, items]) => (
-                  <optgroup key={category} label={category}>
-                    {(items as any[]).map(t => (
-                      <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>
-                    ))}
-                  </optgroup>
+                <option value="">Select appointment type...</option>
+                {appointmentTypeOptions.map(opt => (
+                  <option key={opt.label} value={opt.label}>{opt.label}</option>
                 ))}
               </select>
             </div>
