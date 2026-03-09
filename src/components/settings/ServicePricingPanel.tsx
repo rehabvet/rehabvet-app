@@ -185,68 +185,76 @@ export default function ServicePricingPanel() {
           <p className="text-sm">{search || filterCat !== 'All' ? 'No services match your search.' : 'No services yet.'}</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, entries]) => (
-            <div key={cat}>
-              {/* Category header */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${DOT_COLORS[cat] || 'bg-gray-400'}`} />
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{cat}</h3>
-                <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{entries.length}</span>
-              </div>
-
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-20">Bin No</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 w-24">Duration</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Appt Type(s)</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500 w-28">Price (S$)</th>
-                      <th className="w-20" />
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-auto" />
+              <col className="w-20" />
+              <col className="w-24" />
+              <col className="w-64" />
+              <col className="w-28" />
+              <col className="w-20" />
+            </colgroup>
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+              <tr>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Service Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Bin No</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Duration</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Appt Type(s)</th>
+                <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Price (S$)</th>
+                <th className="w-20" />
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, entries]) => (
+                <>
+                  {/* Category header row */}
+                  <tr key={`cat-${cat}`} className="bg-gray-50/80 border-t border-gray-100">
+                    <td colSpan={6} className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${DOT_COLORS[cat] || 'bg-gray-400'}`} />
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{cat}</span>
+                        <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{entries.length}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  {/* Service rows */}
+                  {entries.map(s => (
+                    <tr key={s.id} className="hover:bg-gray-50/60 border-t border-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800 truncate">{s.name}</td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs">{s.bin_no || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{s.duration > 0 ? `${s.duration} mins` : '—'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {s.appointment_names.length > 0
+                            ? s.appointment_names.map(a => (
+                                <span key={a} className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border font-medium ${CAT_COLORS[cat] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                  <Tag className="w-2.5 h-2.5" />{a}
+                                </span>
+                              ))
+                            : <span className="text-gray-300 text-xs">—</span>
+                          }
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-800">
+                        {s.price != null ? `S$${s.price.toFixed(2)}` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => setShowEdit({ ...s })} className="p-1.5 text-gray-400 hover:text-brand-pink rounded-lg transition-colors">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => setShowDelete(s)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {entries.map(s => (
-                      <tr key={s.id} className="hover:bg-gray-50/60">
-                        <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{s.bin_no || '—'}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">
-                          {s.duration > 0 ? `${s.duration} mins` : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {s.appointment_names.length > 0
-                              ? s.appointment_names.map(a => (
-                                  <span key={a} className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border font-medium ${CAT_COLORS[cat] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                                    <Tag className="w-2.5 h-2.5" />{a}
-                                  </span>
-                                ))
-                              : <span className="text-gray-300 text-xs">—</span>
-                            }
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                          {s.price != null ? `S$${s.price.toFixed(2)}` : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <button onClick={() => setShowEdit({ ...s })} className="p-1.5 text-gray-400 hover:text-brand-pink rounded-lg transition-colors">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={() => setShowDelete(s)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
+                  ))}
+                </>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
