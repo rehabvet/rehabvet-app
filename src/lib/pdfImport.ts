@@ -146,7 +146,7 @@ export function parsePDF(text: string): ParsedPDF | null {
     // Line items: lines matching "{INITIALS}{qty}{name}${price}" (no spaces between fields)
     // e.g. "XC0.5Rehab 5 (<15kg) Visit$0.00" or "SL63Gabapentin 50mg$40.68"
     const lineItems: ParsedLineItem[] = [];
-    const liPattern = /^([A-Z]+)([\d.]+)(.+?)\$([\d,]+(?:\.\d+)?)$/gm;
+    const liPattern = /^([A-Z]+)\s*([\d.]+)\s*(.+?)\s*\$([\d,]+(?:\.\d+)?)$/gm;
     let lm;
     while ((lm = liPattern.exec(block)) !== null) {
       // Skip direction headers and the column header line
