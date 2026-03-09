@@ -13,6 +13,7 @@ const STAFF_MAP: Record<string, string> = {
   JH:  '1d4fed53-82ee-4fa2-8036-ac807263977a', // Joyce
   SJT: '711b00d1-2870-4920-bd3a-b036ecaeb1a7', // Sean
   NL:  '994103e5-100e-4e7c-a3de-a722c49ae6e5', // Noelle
+  AS:  '0864ab3c-6676-4e68-8650-560b8e8c0408', // Angeline Soon (former staff)
 };
 
 function normalizePhone(p: string) {
