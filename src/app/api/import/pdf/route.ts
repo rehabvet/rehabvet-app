@@ -23,6 +23,7 @@ function normalizePhone(p: string) {
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const token = req.cookies.get('token')?.value;
   const user = token ? verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -207,4 +208,8 @@ export async function POST(req: NextRequest) {
     skipped,
     warnings,
   });
+  } catch (e: any) {
+    console.error('PDF import error:', e);
+    return NextResponse.json({ success: false, error: e?.message || 'Import failed unexpectedly' }, { status: 500 });
+  }
 }
