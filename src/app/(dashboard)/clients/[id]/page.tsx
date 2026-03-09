@@ -14,13 +14,36 @@ type Tab = 'visits' | 'billing' | 'appointments'
 function splitAddress(full?: string) {
   const out = { block: '', street: '', unit: '', building: '', postalCode: '' }
   if (!full) return out
-  const parts = full.split(',').map(p => p.trim()).filter(Boolean)
-  const postal = parts.find(p => /(?:Singapore\s+)?\d{6}$/i.test(p))
-  if (postal) { const m = postal.match(/(\d{6})$/); if (m) out.postalCode = m[1] }
-  const unit = parts.find(p => /^#/.test(p))
-  if (unit) out.unit = unit.replace(/^#/, '')
-  const normal = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
-  out.block = normal[0] || ''; out.street = normal[1] || ''; out.building = normal[2] || ''
+
+  // Extract postal code from anywhere in the string
+  const postalMatch = full.match(/(\d{6})\s*$/i)
+  if (postalMatch) out.postalCode = postalMatch[1]
+
+  if (full.includes(',')) {
+    // Comma-separated structured format: "Block, Street, Building, Singapore XXXXXX"
+    const parts = full.split(',').map(p => p.trim()).filter(Boolean)
+    const unit = parts.find(p => /^#/.test(p))
+    if (unit) out.unit = unit.replace(/^#/, '')
+    const normal = parts.filter(p => !/^#/.test(p) && !/(?:Singapore\s+)?\d{6}$/i.test(p))
+    out.block = normal[0] || ''
+    out.street = normal[1] || ''
+    out.building = normal[2] || ''
+  } else {
+    // Raw OneMap format: "BLK STREET BUILDING SINGAPORE XXXXXX"
+    // Strip "SINGAPORE XXXXXX" suffix and parse what's left
+    let remainder = full.replace(/\s*SINGAPORE\s+\d{6}\s*$/i, '').trim()
+    // Unit number (#XX-XX)
+    const unitMatch = remainder.match(/(#[\d\w-]+)/)
+    if (unitMatch) { out.unit = unitMatch[1].replace('#', ''); remainder = remainder.replace(unitMatch[0], '').trim() }
+    // First token(s) are the block number (e.g. "857", "274D", "NO.")
+    const blockMatch = remainder.match(/^([A-Z0-9]+[A-Z]?)\s+(.+)$/i)
+    if (blockMatch) {
+      out.block = blockMatch[1]
+      out.street = blockMatch[2]
+    } else {
+      out.block = remainder
+    }
+  }
   return out
 }
 
