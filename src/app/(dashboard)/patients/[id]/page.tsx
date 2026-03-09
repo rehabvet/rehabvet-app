@@ -65,7 +65,7 @@ export default function PatientDetailPage() {
             <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
               {patient.date_of_birth && <span>DOB: {patient.date_of_birth}</span>}
               {patient.weight && <span>Weight: {patient.weight}kg</span>}
-              {patient.sex && <span>Sex: {patient.sex.replace('_', ' ')}</span>}
+              {patient.gender && <span>Gender: {patient.gender.replace('_', ' ')}</span>}
               {patient.microchip && <span>Microchip: {patient.microchip}</span>}
             </div>
           </div>

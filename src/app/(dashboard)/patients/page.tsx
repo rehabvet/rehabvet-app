@@ -36,7 +36,7 @@ export default function PatientsPage() {
   const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
+  const [form, setForm] = useState({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', gender: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { setPage(1) }, [search])
@@ -63,7 +63,7 @@ export default function PatientsPage() {
       body: JSON.stringify({ ...form, weight: form.weight ? parseFloat(form.weight) : null })
     })
     setShowAdd(false)
-    setForm({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', sex: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
+    setForm({ client_id: '', name: '', species: 'Dog', breed: '', date_of_birth: '', weight: '', gender: '', microchip: '', medical_history: '', allergies: '', is_reactive: false })
     fetchPatients(page)
   }
 

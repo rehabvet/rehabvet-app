@@ -34,7 +34,7 @@ export const SCHEMA_SQL = `
     breed TEXT,
     date_of_birth TEXT,
     weight REAL,
-    sex TEXT CHECK(sex IN ('male','female','neutered_male','spayed_female')),
+    gender TEXT CHECK(gender IN ('male','female','neutered_male','spayed_female')),
     microchip TEXT,
     medical_history TEXT,
     allergies TEXT,
