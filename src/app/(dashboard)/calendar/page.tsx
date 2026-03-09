@@ -1121,7 +1121,7 @@ export default function CalendarPage() {
                 <option value="">Select appointment type...</option>
                 {Object.entries(treatmentGrouped).map(([cat, items]) => (
                   <optgroup key={cat} label={cat}>
-                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({Math.floor(t.duration/60) > 0 ? `${Math.floor(t.duration/60)}h` : ''}{t.duration%60 > 0 ? `${t.duration%60}min` : ''})</option>)}
+                    {(items as any[]).map(t => { const h=Math.floor(t.duration/60),m=t.duration%60; const d=t.duration>0?(h>0?`${h}h`:'')+(m>0?`${m}min`:''):''; return <option key={t.name} value={t.name}>{t.name}{d?` (${d})`:''}</option>})}
                   </optgroup>
                 ))}
               </select>
@@ -1292,7 +1292,7 @@ export default function CalendarPage() {
                 <option value="">Select appointment type...</option>
                 {Object.entries(treatmentGrouped).map(([cat, items]) => (
                   <optgroup key={cat} label={cat}>
-                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({Math.floor(t.duration/60) > 0 ? `${Math.floor(t.duration/60)}h` : ''}{t.duration%60 > 0 ? `${t.duration%60}min` : ''})</option>)}
+                    {(items as any[]).map(t => { const h=Math.floor(t.duration/60),m=t.duration%60; const d=t.duration>0?(h>0?`${h}h`:'')+(m>0?`${m}min`:''):''; return <option key={t.name} value={t.name}>{t.name}{d?` (${d})`:''}</option>})}
                   </optgroup>
                 ))}
               </select>

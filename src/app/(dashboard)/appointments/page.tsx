@@ -623,7 +623,7 @@ export default function AppointmentsPage() {
               <option value="">Select appointment type...</option>
               {Object.entries(treatmentGrouped).map(([cat, items]) => (
                 <optgroup key={cat} label={cat}>
-                  {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>)}
+                  {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name}{t.duration > 0 ? ` (${formatDuration(t.duration)})` : ''}</option>)}
                 </optgroup>
               ))}
             </select>
@@ -755,7 +755,7 @@ export default function AppointmentsPage() {
                 <option value="">Select appointment type...</option>
                 {Object.entries(treatmentGrouped).map(([cat, items]) => (
                   <optgroup key={cat} label={cat}>
-                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>)}
+                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name}{t.duration > 0 ? ` (${formatDuration(t.duration)})` : ''}</option>)}
                   </optgroup>
                 ))}
               </select>
