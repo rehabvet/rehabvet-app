@@ -83,7 +83,7 @@ export default function VisitPage() {
     staff_id: '', visit_date: '', weight_kg: '', temperature_c: '',
     heart_rate_bpm: '', respiratory_rate_bpm: '', body_condition_score: '',
     history: '', clinical_examination: '', diagnosis: '',
-    treatment: [] as ListItem[], hep: [] as ListItem[],
+    treatment: '' as string, hep: [] as ListItem[],
     internal_notes: '', client_notes: '', plan: '',
   })
 
@@ -103,7 +103,7 @@ export default function VisitPage() {
         history:             v.history || '',
         clinical_examination:v.clinical_examination || '',
         diagnosis:           v.diagnosis || '',
-        treatment:           (v.treatment || []).map((t: any) => typeof t === 'string' ? { id: uid(), text: t } : { id: uid(), text: t.description || t.text || '' }),
+        treatment:           Array.isArray(v.treatment) ? v.treatment.map((t: any) => typeof t === 'string' ? t : (t.description || t.text || '')).join('\n') : (v.treatment || ''),
         hep:                 (v.hep || []).map((h: any) => typeof h === 'string' ? { id: uid(), text: h } : { id: uid(), text: h.instruction || h.text || '' }),
         internal_notes:      v.internal_notes || '',
         client_notes:        v.client_notes || '',
@@ -171,7 +171,7 @@ export default function VisitPage() {
     setSaving(true)
     const payload = {
       ...form,
-      treatment: form.treatment.map((t: ListItem, i: number) => ({ step: i + 1, description: t.text })).filter((t: any) => t.description),
+      treatment: form.treatment ? form.treatment.split('\n').filter((s: string) => s.trim()).map((s: string, i: number) => ({ step: i + 1, description: s.trim() })) : [],
       hep:       form.hep.map((h: ListItem) => ({ instruction: h.text })).filter((h: any) => h.instruction),
       weight_kg:              form.weight_kg              ? parseFloat(form.weight_kg)              : null,
       temperature_c:          form.temperature_c          ? parseFloat(form.temperature_c)          : null,
@@ -279,7 +279,7 @@ export default function VisitPage() {
 
       {/* Treatment */}
       <Section title="💊 Treatment Performed">
-        <OrderedList items={form.treatment} onChange={v => f('treatment', v)} placeholder="Treatment step" />
+        <textarea className="input mt-3 w-full" rows={6} placeholder="Describe all treatments performed…" value={form.treatment} onChange={e => f('treatment', e.target.value)} />
       </Section>
 
       {/* HEP */}
