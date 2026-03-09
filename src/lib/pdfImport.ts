@@ -84,7 +84,7 @@ export function parsePDF(text: string): ParsedPDF | null {
   const detailLine = lines[forLineIdx + 1] || '';
   const detailParts = detailLine.split(',').map(p => p.trim()).filter(Boolean);
   const patientSpecies = detailParts[0] || 'Dog';
-  const patientGender  = detailParts[1] || '';
+  const patientGender  = (detailParts[1] || '').toLowerCase().trim();
   const patientBreed   = detailParts[2] || '';
 
   // --- Extract owner ---

@@ -128,7 +128,7 @@ model patients {
   breed           String?
   date_of_birth   String?
   weight          Float?
-  sex             PatientSex?
+  gender          String?
   microchip       String?
   medical_history String?
   allergies       String?
