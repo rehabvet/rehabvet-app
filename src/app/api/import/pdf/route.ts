@@ -79,13 +79,25 @@ export async function POST(req: NextRequest) {
       `SELECT COALESCE(MAX(client_number::integer), 0) as max_num FROM clients`
     );
     const nextNum = (Number(numRow[0]?.max_num) || 0) + 1;
+    // Look up full address from postcode via OneMap
+    let clientAddress: string | null = null;
+    if (parsed.ownerPostcode) {
+      try {
+        const omRes = await fetch(`https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${parsed.ownerPostcode}&returnGeom=N&getAddrDetails=Y`);
+        const omData = await omRes.json();
+        if (omData.results?.length > 0) {
+          const r = omData.results[0];
+          clientAddress = `${r.BLK_NO ? r.BLK_NO + ' ' : ''}${r.ROAD_NAME || ''}, Singapore ${parsed.ownerPostcode}`.trim();
+        }
+      } catch { /* ignore OneMap errors */ }
+    }
     await prisma.$queryRawUnsafe(
-      `INSERT INTO clients (id, client_number, name, first_name, last_name, phone, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-      newClientId, nextNum, fullName, firstName, lastName, parsed.ownerPhone || null
+      `INSERT INTO clients (id, client_number, name, first_name, last_name, phone, address, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+      newClientId, nextNum, fullName, firstName, lastName, parsed.ownerPhone || null, clientAddress
     );
     clientId = newClientId;
-    warnings.push(`New client created: ${fullName} (${parsed.ownerPhone || 'no phone'})`);
+    warnings.push(`New client created: ${fullName} (${parsed.ownerPhone || 'no phone'})${clientAddress ? ' @ ' + clientAddress : ''}`);
   }
 
   // --- Match or auto-create patient ---

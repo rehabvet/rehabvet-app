@@ -33,6 +33,7 @@ export interface ParsedPDF {
   ownerName: string;
   ownerOldId: string;
   ownerPhone: string;        // normalized 8-digit SG mobile
+  ownerPostcode: string;     // 6-digit Singapore postcode
   visits: ParsedVisit[];
 }
 
@@ -109,16 +110,23 @@ export function parsePDF(text: string): ParsedPDF | null {
   const ownerName = ownerMatch[1].trim();
   const ownerOldId = ownerMatch[2].trim();
 
-  // Phone is on the line after the owner line (or same area)
+  // Phone and postcode are in lines after the owner line
   const ownerIdx = lines.indexOf(ownerLine);
-  // Look in next few lines for phone digits
   let ownerPhone = '';
-  for (let i = ownerIdx + 1; i < Math.min(ownerIdx + 5, lines.length); i++) {
+  let ownerPostcode = '';
+  for (let i = ownerIdx + 1; i < Math.min(ownerIdx + 8, lines.length); i++) {
     const candidate = lines[i];
-    // Skip lines that are clearly not phone lines
     if (candidate.startsWith('Sales') || candidate.startsWith('Client') || candidate.startsWith('Bill')) break;
-    const phone = normalizePhone(candidate);
-    if (phone) { ownerPhone = phone; break; }
+    // Extract phone
+    if (!ownerPhone) {
+      const phone = normalizePhone(candidate);
+      if (phone) ownerPhone = phone;
+    }
+    // Extract Singapore postcode (6 digits, optionally after "Singapore ")
+    if (!ownerPostcode) {
+      const pcMatch = candidate.match(/(?:Singapore\s+)?(\d{6})(?:\s|$)/i);
+      if (pcMatch) ownerPostcode = pcMatch[1];
+    }
   }
 
   // --- Split into visit blocks by "Bill#:" ---
@@ -186,5 +194,5 @@ export function parsePDF(text: string): ParsedPDF | null {
     });
   }
 
-  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, patientDOB, ownerName, ownerOldId, ownerPhone, visits };
+  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, patientDOB, ownerName, ownerOldId, ownerPhone, ownerPostcode, visits };
 }
