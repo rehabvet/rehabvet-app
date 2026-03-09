@@ -6,14 +6,890 @@ datasource db {
   provider = "postgresql"
 }
 
+model users {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  email                 String                  @unique
+  password_hash         String
+  name                  String
+  role                  UserRole
+  phone                 String?
+  specializations       String?
+  active                Boolean                 @default(true)
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  photo_url             String?
+  failed_login_attempts Int                     @default(0)
+  locked_until          DateTime?
+  schedule              String?
+  email_verified        Boolean?
+  mfa_enabled           Boolean?
+  mfa_secret            String?                 @db.VarChar(255)
+  appointments          appointments[]          @relation("appointments_therapist")
+  documents             documents[]             @relation("documents_uploaded_by")
+  invoice_line_items    invoice_line_items[]
+  password_reset_tokens password_reset_tokens[]
+  payments              payments[]
+  sessions              sessions[]              @relation("sessions_therapist")
+  approved_plans        treatment_plans[]       @relation("plans_approved_by")
+  created_plans         treatment_plans[]       @relation("plans_created_by")
+  visit_records         visit_records[]
+
+  @@map("users")
+}
+
+model clients {
+  id              String            @id @default(uuid()) @db.Uuid
+  name            String
+  email           String?
+  phone           String?
+  address         String?
+  notes           String?
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  client_number   String?           @unique
+  first_name      String?
+  last_name       String?
+  appointments    appointments[]
+  client_packages client_packages[]
+  invoices        invoices[]
+  patients        patients[]
+  payments        payments[]
+  visit_records   visit_records[]
+
+  @@index([name])
+  @@index([phone])
+  @@map("clients")
+}
+
+model patients {
+  id                       String                     @id @default(uuid()) @db.Uuid
+  client_id                String                     @db.Uuid
+  name                     String
+  species                  String
+  breed                    String?
+  date_of_birth            String?
+  weight                   Float?
+  gender                   String?
+  microchip                String?
+  medical_history          String?
+  allergies                String?
+  notes                    String?
+  photo_url                String?
+  active                   Boolean                    @default(true)
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime                   @updatedAt
+  current_medications      Json?                      @default("[]")
+  medical_conditions       String?
+  is_reactive              Boolean                    @default(false)
+  appointments             appointments[]
+  client_packages          client_packages[]
+  documents                documents[]
+  invoices                 invoices[]
+  patient_external_records patient_external_records[]
+  client                   clients                    @relation(fields: [client_id], references: [id])
+  sessions                 sessions[]
+  treatment_plans          treatment_plans[]
+  visit_measurements       visit_measurements[]
+  visit_records            visit_records[]
+
+  @@index([client_id])
+  @@index([name])
+  @@map("patients")
+}
+
+model treatment_plans {
+  id                 String              @id @default(uuid()) @db.Uuid
+  patient_id         String              @db.Uuid
+  created_by         String?             @db.Uuid
+  approved_by        String?             @db.Uuid
+  title              String
+  diagnosis          String?
+  goals              String?
+  modalities         String?
+  frequency          String?
+  total_sessions     Int?
+  completed_sessions Int                 @default(0)
+  status             TreatmentPlanStatus @default(draft)
+  start_date         String?
+  end_date           String?
+  notes              String?
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+  appointments       appointments[]
+  sessions           sessions[]
+  approved_by_user   users?              @relation("plans_approved_by", fields: [approved_by], references: [id])
+  created_by_user    users?              @relation("plans_created_by", fields: [created_by], references: [id])
+  patient            patients            @relation(fields: [patient_id], references: [id])
+
+  @@index([patient_id])
+  @@index([status])
+  @@map("treatment_plans")
+}
+
+model appointments {
+  id                String            @id @default(uuid()) @db.Uuid
+  patient_id        String?           @db.Uuid
+  client_id         String?           @db.Uuid
+  therapist_id      String?           @db.Uuid
+  treatment_plan_id String?           @db.Uuid
+  date              String
+  start_time        String
+  end_time          String
+  modality          String
+  status            AppointmentStatus @default(scheduled)
+  notes             String?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  client            clients?          @relation(fields: [client_id], references: [id], onDelete: Restrict)
+  patient           patients?         @relation(fields: [patient_id], references: [id], onDelete: Restrict)
+  therapist         users?            @relation("appointments_therapist", fields: [therapist_id], references: [id])
+  treatment_plan    treatment_plans?  @relation(fields: [treatment_plan_id], references: [id])
+  sessions          sessions[]
+  visit_records     visit_records[]
+
+  @@index([date])
+  @@index([therapist_id])
+  @@index([patient_id])
+  @@index([client_id])
+  @@map("appointments")
+}
+
+model sessions {
+  id                   String           @id @default(uuid()) @db.Uuid
+  appointment_id       String?          @db.Uuid
+  patient_id           String           @db.Uuid
+  therapist_id         String           @db.Uuid
+  treatment_plan_id    String?          @db.Uuid
+  date                 String
+  modality             String
+  duration_minutes     Int?
+  subjective           String?
+  objective            String?
+  assessment           String?
+  plan                 String?
+  pain_score           Int?
+  mobility_score       Int?
+  progress_notes       String?
+  measurements         String?
+  exercises            String?
+  home_exercises       String?
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
+  bloods               Boolean?
+  body_score           Float?
+  clinical_examination String?
+  comments             String?
+  dental_score         Int?
+  diagnosis            String?
+  flea_treatment       Boolean?
+  heart_rate           Float?
+  history              String?
+  resp_rate            Float?
+  temperature          Float?
+  treatment_notes      String?
+  weight_session       Float?
+  wormed               Boolean?
+  invoice_items        invoice_items[]
+  appointment          appointments?    @relation(fields: [appointment_id], references: [id])
+  patient              patients         @relation(fields: [patient_id], references: [id])
+  therapist            users            @relation("sessions_therapist", fields: [therapist_id], references: [id])
+  treatment_plan       treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
+
+  @@index([patient_id])
+  @@index([date])
+  @@index([therapist_id])
+  @@map("sessions")
+}
+
+model invoices {
+  id                String          @id @default(uuid()) @db.Uuid
+  invoice_number    String
+  client_id         String          @db.Uuid
+  patient_id        String?         @db.Uuid
+  date              String
+  due_date          String
+  subtotal          Decimal         @default(0) @db.Decimal(18, 2)
+  tax               Float           @default(0)
+  total             Float           @default(0)
+  amount_paid       Float           @default(0)
+  status            InvoiceStatus   @default(draft)
+  notes             String?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @default(now()) @updatedAt
+  auto_off_ramp     Boolean         @default(false)
+  currency          String          @default("SGD") @db.VarChar(10)
+  due_at            DateTime?       @db.Timestamptz(6)
+  issued_at         DateTime?       @db.Timestamptz(6)
+  org_id            String          @default("00000000-0000-0000-0000-000000000000") @db.VarChar(36)
+  paid_amount       Decimal?        @db.Decimal(18, 2)
+  paid_at           DateTime?       @db.Timestamptz(6)
+  paid_chain        String?         @db.VarChar(20)
+  paid_token        String?         @db.VarChar(20)
+  paid_tx_hash      String?         @db.VarChar(200)
+  payment_token     String          @default("") @db.VarChar(20)
+  recipient_address String?         @db.VarChar(400)
+  recipient_email   String          @default("") @db.VarChar(200)
+  recipient_name    String          @default("") @db.VarChar(200)
+  tax_amount        Decimal         @default(0) @db.Decimal(18, 2)
+  tax_rate          Decimal         @default(0) @db.Decimal(8, 4)
+  total_amount      Decimal         @default(0) @db.Decimal(18, 2)
+  visit_id          String?         @db.Uuid
+  bill_number       String?
+  items             invoice_items[]
+  client            clients         @relation(fields: [client_id], references: [id])
+  patient           patients?       @relation(fields: [patient_id], references: [id])
+  visit_records     visit_records?  @relation(fields: [visit_id], references: [id], onUpdate: NoAction)
+  payments          payments[]
+
+  @@index([client_id])
+  @@index([date])
+  @@index([status])
+  @@map("invoices")
+}
+
+model invoice_items {
+  id          String    @id @default(uuid()) @db.Uuid
+  invoice_id  String    @db.Uuid
+  description String
+  modality    String?
+  session_id  String?   @db.Uuid
+  quantity    Int       @default(1)
+  unit_price  Float
+  total       Float
+  created_at  DateTime  @default(now())
+  invoice     invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  session     sessions? @relation(fields: [session_id], references: [id])
+
+  @@index([invoice_id])
+  @@index([session_id])
+  @@map("invoice_items")
+}
+
+model payments {
+  id          String         @id @default(uuid()) @db.Uuid
+  invoice_id  String         @db.Uuid
+  amount      Float
+  method      PaymentMethod?
+  reference   String?
+  date        String
+  notes       String?
+  created_at  DateTime       @default(now())
+  client_id   String?        @db.Uuid
+  paid_at     DateTime?      @default(now()) @db.Timestamp(6)
+  recorded_by String?        @db.Uuid
+  clients     clients?       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  invoice     invoices       @relation(fields: [invoice_id], references: [id])
+  users       users?         @relation(fields: [recorded_by], references: [id], onUpdate: NoAction)
+
+  @@index([invoice_id])
+  @@index([date])
+  @@index([invoice_id], map: "idx_payments_invoice")
+  @@map("payments")
+}
+
+model documents {
+  id          String            @id @default(uuid()) @db.Uuid
+  patient_id  String            @db.Uuid
+  uploaded_by String?           @db.Uuid
+  filename    String
+  file_type   String?
+  file_size   Int?
+  file_path   String
+  category    DocumentCategory?
+  description String?
+  created_at  DateTime          @default(now())
+  patient     patients          @relation(fields: [patient_id], references: [id])
+  uploader    users?            @relation("documents_uploaded_by", fields: [uploaded_by], references: [id])
+
+  @@index([patient_id])
+  @@map("documents")
+}
+
+model leads {
+  id                       String   @id @default(uuid()) @db.Uuid
+  owner_name               String
+  owner_email              String
+  owner_phone              String
+  how_heard                String?
+  pet_name                 String
+  species                  String
+  breed                    String?
+  age                      String?
+  weight                   String?
+  service                  String?
+  condition                String?
+  preferred_date           String?
+  first_visit              Boolean  @default(true)
+  notes                    String?
+  status                   String   @default("new")
+  staff_notes              String?
+  converted_client_id      String?  @db.Uuid
+  converted_patient_id     String?  @db.Uuid
+  converted_appointment_id String?  @db.Uuid
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+  attending_vet            String?
+  clinic_name              String?
+  has_pain                 Boolean?
+  pet_gender               String?
+  post_code                String?
+  reactive_to_pets         Boolean?
+  vet_friendly             Boolean?
+}
+
+model inventory_items {
+  id            String            @id @default(uuid()) @db.Uuid
+  sku           String?
+  name          String
+  category      String            @default("General")
+  brand         String?
+  cost_price    Float?
+  sell_price    Float?
+  markup_pct    Float?
+  stock_on_hand Int               @default(0)
+  stock_min     Int               @default(1)
+  stock_max     Int               @default(10)
+  unit          String            @default("each")
+  expiry_date   String?
+  is_active     Boolean           @default(true)
+  notes         String?
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+  movements     stock_movements[]
+
+  @@map("inventory_items")
+}
+
+model stock_movements {
+  id         String          @id @default(uuid()) @db.Uuid
+  item_id    String          @db.Uuid
+  type       String
+  quantity   Int
+  reference  String?
+  notes      String?
+  created_by String?
+  created_at DateTime        @default(now())
+  item       inventory_items @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@map("stock_movements")
+}
+
+model clinic_settings {
+  id         String   @id @default("default")
+  data       String
+  updated_at DateTime @updatedAt
+
+  @@map("clinic_settings")
+}
+
+model treatment_types {
+  id                    String            @id @default(uuid()) @db.Uuid
+  name                  String            @unique
+  category              String
+  duration              Int               @default(60)
+  color                 String?           @default("bg-gray-400")
+  active                Boolean           @default(true)
+  sort_order            Int               @default(0)
+  created_at            DateTime          @default(now())
+  description           String?
+  price                 Float?
+  sessions_in_package   Int?
+  bin_no                Int?
+  appointment_names     String[]
+  appointment_durations Json?             @default("{}")
+  client_packages       client_packages[]
+  service_pricing       service_pricing[]
+
+  @@index([category])
+  @@map("treatment_types")
+}
+
+model service_pricing {
+  id         String          @id @default(uuid()) @db.Uuid
+  service_id String          @db.Uuid
+  label      String
+  sessions   Int             @default(1)
+  price      Float
+  created_at DateTime        @default(now())
+  service    treatment_types @relation(fields: [service_id], references: [id])
+
+  @@index([service_id])
+  @@map("service_pricing")
+}
+
+model client_packages {
+  id                String               @id @default(uuid()) @db.Uuid
+  client_id         String               @db.Uuid
+  patient_id        String?              @db.Uuid
+  treatment_type_id String               @db.Uuid
+  sessions_total    Int
+  sessions_used     Int                  @default(0)
+  purchase_date     String
+  expiry_date       String?
+  price_paid        Float?
+  notes             String?
+  status            String               @default("active")
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @updatedAt
+  client            clients              @relation(fields: [client_id], references: [id])
+  patient           patients?            @relation(fields: [patient_id], references: [id])
+  treatment_type    treatment_types      @relation(fields: [treatment_type_id], references: [id])
+  usage_logs        package_usage_logs[]
+
+  @@index([client_id])
+  @@index([status])
+  @@map("client_packages")
+}
+
+model email_campaigns {
+  id               String                      @id @default(uuid()) @db.Uuid
+  name             String
+  subject          String
+  preheader        String?
+  body_blocks      String
+  body_html        String
+  status           String                      @default("draft")
+  audience         String                      @default("all")
+  total_recipients Int                         @default(0)
+  sent_count       Int                         @default(0)
+  opened_count     Int                         @default(0)
+  clicked_count    Int                         @default(0)
+  sent_at          DateTime?
+  created_at       DateTime                    @default(now())
+  updated_at       DateTime                    @updatedAt
+  recipients       email_campaign_recipients[]
+
+  @@map("email_campaigns")
+}
+
+model email_campaign_recipients {
+  id          String          @id @default(uuid()) @db.Uuid
+  campaign_id String          @db.Uuid
+  client_id   String          @db.Uuid
+  email       String
+  name        String
+  resend_id   String?
+  status      String          @default("pending")
+  error       String?
+  sent_at     DateTime?
+  opened_at   DateTime?
+  clicked_at  DateTime?
+  campaign    email_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@unique([campaign_id, client_id])
+  @@index([campaign_id])
+  @@index([email])
+  @@map("email_campaign_recipients")
+}
+
+model email_unsubscribes {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique
+  reason     String?
+  created_at DateTime @default(now())
+
+  @@map("email_unsubscribes")
+}
+
+model package_usage_logs {
+  id             String          @id @default(uuid()) @db.Uuid
+  package_id     String          @db.Uuid
+  appointment_id String?         @db.Uuid
+  used_date      String
+  notes          String?
+  created_at     DateTime        @default(now())
+  package        client_packages @relation(fields: [package_id], references: [id])
+
+  @@map("package_usage_logs")
+}
+
+model accounts {
+  id         String    @id @db.VarChar(36)
+  created_at DateTime? @db.Timestamptz(6)
+  name       String    @db.VarChar(255)
+  status     String    @db.VarChar(255)
+  org_id     String    @db.VarChar(36)
+}
+
+model api_keys {
+  id           String    @id @db.VarChar(36)
+  created_at   DateTime? @db.Timestamptz(6)
+  deleted_at   DateTime? @db.Timestamptz(6)
+  environment  String    @db.VarChar(255)
+  key_hash     String    @unique(map: "uk_cwrf6urvb9lnvuli1giq8t2k9") @db.VarChar(255)
+  key_prefix   String    @db.VarChar(255)
+  last_used_at DateTime? @db.Timestamptz(6)
+  name         String    @db.VarChar(255)
+  scopes       Json?     @db.Json
+  user_id      String    @db.VarChar(36)
+  org_id       String    @db.VarChar(36)
+}
+
+model booking_funnel_events {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id String
+  event      String
+  referrer   String?
+  device     String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_funnel_created")
+  @@index([event], map: "idx_funnel_event")
+  @@index([session_id], map: "idx_funnel_session")
+}
+
+model card_transactions {
+  id                   String    @id @db.VarChar(36)
+  auth_code            String?   @db.VarChar(20)
+  billing_amount       Decimal   @db.Decimal(18, 2)
+  billing_currency     String    @db.VarChar(10)
+  card_id              String    @db.VarChar(36)
+  created_at           DateTime? @db.Timestamptz(6)
+  decline_reason       String?   @db.VarChar(80)
+  exchange_rate        Decimal?  @db.Decimal(18, 6)
+  mcc_category         String?   @db.VarChar(60)
+  mcc_code             String?   @db.VarChar(4)
+  merchant_city        String?   @db.VarChar(80)
+  merchant_country     String?   @db.VarChar(2)
+  merchant_name        String    @db.VarChar(120)
+  network_ref          String?   @db.VarChar(60)
+  org_id               String    @db.VarChar(36)
+  settled_at           DateTime? @db.Timestamptz(6)
+  status               String    @db.VarChar(20)
+  transaction_amount   Decimal   @db.Decimal(18, 2)
+  transaction_currency String    @db.VarChar(10)
+  transaction_type     String    @db.VarChar(20)
+}
+
+model cards {
+  id                      String    @id @db.VarChar(36)
+  account_id              String    @db.VarChar(36)
+  atm_enabled             Boolean
+  balance_available       Decimal   @db.Decimal(18, 2)
+  balance_currency        String    @db.VarChar(10)
+  cancelled_at            DateTime? @db.Timestamptz(6)
+  card_holder_name        String    @db.VarChar(120)
+  card_type               String    @db.VarChar(20)
+  colour                  String    @db.VarChar(20)
+  contactless_enabled     Boolean
+  country_block_list      Json      @db.Json
+  created_at              DateTime? @db.Timestamptz(6)
+  expiry_month            Int       @db.SmallInt
+  expiry_year             Int       @db.SmallInt
+  frozen_at               DateTime? @db.Timestamptz(6)
+  funded_from_wallet_id   String?   @db.VarChar(36)
+  label                   String?   @db.VarChar(80)
+  last4                   String    @db.VarChar(4)
+  limit_currency          String    @db.VarChar(10)
+  limit_daily             Decimal?  @db.Decimal(18, 2)
+  limit_monthly           Decimal?  @db.Decimal(18, 2)
+  limit_per_transaction   Decimal?  @db.Decimal(18, 2)
+  masked_number           String?   @db.VarChar(24)
+  mcc_block_list          Json      @db.Json
+  network                 String    @db.VarChar(20)
+  online_payments_enabled Boolean
+  org_id                  String    @db.VarChar(36)
+  status                  String    @db.VarChar(20)
+  updated_at              DateTime? @db.Timestamptz(6)
+  user_id                 String?   @db.VarChar(36)
+}
+
+model deposit_addresses {
+  id         String    @id @db.VarChar(36)
+  address    String    @db.VarChar(255)
+  asset      String    @db.VarChar(255)
+  created_at DateTime? @db.Timestamptz(6)
+  expires_at DateTime? @db.Timestamptz(6)
+  memo       String?   @db.VarChar(255)
+  network    String    @db.VarChar(255)
+  wallet_id  String    @db.VarChar(36)
+}
+
+model flyway_schema_history {
+  installed_rank Int      @id(map: "flyway_schema_history_pk")
+  version        String?  @db.VarChar(50)
+  description    String   @db.VarChar(200)
+  type           String   @db.VarChar(20)
+  script         String   @db.VarChar(1000)
+  checksum       Int?
+  installed_by   String   @db.VarChar(100)
+  installed_on   DateTime @default(now()) @db.Timestamp(6)
+  execution_time Int
+  success        Boolean
+
+  @@index([success], map: "flyway_schema_history_s_idx")
+}
+
+model invoice_line_items {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.VarChar(36)
+  amount                  Decimal   @db.Decimal(18, 2)
+  description             String    @db.VarChar(400)
+  quantity                Decimal   @db.Decimal(18, 4)
+  sort_order              Int       @default(0)
+  unit_price              Decimal   @db.Decimal(18, 4)
+  invoice_id              String    @db.VarChar(36)
+  staff_id                String?   @db.Uuid
+  item_type               String?   @default("service")
+  qty                     Decimal?  @default(1) @db.Decimal
+  total                   Decimal?  @default(0) @db.Decimal
+  is_package_redemption   Boolean?  @default(false)
+  dispensing_instructions String?
+  created_at              DateTime? @default(now()) @db.Timestamp(6)
+  users                   users?    @relation(fields: [staff_id], references: [id], onUpdate: NoAction)
+
+  @@index([invoice_id], map: "idx_invoice_line_items_inv")
+}
+
+model invoice_payment_addresses {
+  id         String @id @db.VarChar(36)
+  address    String @db.VarChar(200)
+  chain      String @db.VarChar(20)
+  token      String @db.VarChar(20)
+  invoice_id String @db.VarChar(36)
+}
+
+model kyb_cases {
+  id               String    @id @db.VarChar(36)
+  country          String?   @db.VarChar(255)
+  created_at       DateTime? @db.Timestamptz(6)
+  description      String?   @db.VarChar(255)
+  entity_type      String?   @db.VarChar(255)
+  expected_volume  String?   @db.VarChar(255)
+  industry         String?   @db.VarChar(255)
+  legal_name       String?   @db.VarChar(255)
+  op_address       String?   @db.VarChar(255)
+  reg_address      String?   @db.VarChar(255)
+  reg_number       String?   @db.VarChar(255)
+  reviewed_at      DateTime? @db.Timestamptz(6)
+  reviewer_notes   String?   @db.VarChar(255)
+  source_of_funds  String?   @db.VarChar(255)
+  source_of_wealth String?   @db.VarChar(255)
+  status           String    @db.VarChar(255)
+  submitted_at     DateTime? @db.Timestamptz(6)
+  tax_country      String?   @db.VarChar(255)
+  tin              String?   @db.VarChar(255)
+  trading_name     String?   @db.VarChar(255)
+  updated_at       DateTime? @db.Timestamptz(6)
+  website          String?   @db.VarChar(255)
+  org_id           String    @db.VarChar(36)
+}
+
+model kyb_documents {
+  id          String    @id @db.VarChar(36)
+  doc_type    String    @db.VarChar(255)
+  file_name   String    @db.VarChar(255)
+  file_size   BigInt?
+  file_url    String    @db.VarChar(255)
+  mime_type   String?   @db.VarChar(255)
+  status      String    @db.VarChar(255)
+  uploaded_at DateTime? @db.Timestamptz(6)
+  kyb_case_id String    @db.VarChar(36)
+}
+
+model kyb_ubos {
+  id            String    @id @db.VarChar(36)
+  created_at    DateTime? @db.Timestamptz(6)
+  date_of_birth DateTime? @db.Date
+  full_name     String    @db.VarChar(255)
+  is_director   Boolean?
+  nationality   String?   @db.VarChar(255)
+  ownership_pct Decimal?  @db.Decimal(5, 2)
+  kyb_case_id   String    @db.VarChar(36)
+}
+
+model org_members {
+  id         String    @id @db.VarChar(36)
+  invited_at DateTime? @db.Timestamptz(6)
+  joined_at  DateTime? @db.Timestamptz(6)
+  role       String    @db.VarChar(255)
+  status     String    @db.VarChar(255)
+  org_id     String    @db.VarChar(36)
+  user_id    String    @db.VarChar(36)
+}
+
+model organisations {
+  id           String    @id @db.VarChar(36)
+  country      String?   @db.VarChar(255)
+  created_at   DateTime? @db.Timestamptz(6)
+  entity_type  String?   @db.VarChar(255)
+  industry     String?   @db.VarChar(255)
+  legal_name   String    @db.VarChar(255)
+  reg_number   String?   @db.VarChar(255)
+  status       String    @db.VarChar(255)
+  trading_name String?   @db.VarChar(255)
+  updated_at   DateTime? @db.Timestamptz(6)
+  website      String?   @db.VarChar(255)
+}
+
+model password_reset_tokens {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token      String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model patient_external_records {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patient_id    String         @db.Uuid
+  visit_id      String?        @db.Uuid
+  record_type   String         @default("lab")
+  source        String?
+  record_date   DateTime?      @db.Date
+  findings      String?
+  file_url      String?
+  created_at    DateTime?      @default(now()) @db.Timestamp(6)
+  patients      patients       @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  visit_records visit_records? @relation(fields: [visit_id], references: [id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model recurring_invoices {
+  id                         String    @id @db.VarChar(36)
+  auto_off_ramp              Boolean
+  created_at                 DateTime? @db.Timestamptz(6)
+  day_of_month               Int?
+  day_of_week                Int?
+  end_date                   DateTime? @db.Date
+  frequency                  String    @db.VarChar(20)
+  last_run_at                DateTime? @db.Date
+  max_occurrences            Int?
+  next_run_at                DateTime? @db.Date
+  occurrence_count           Int
+  org_id                     String    @db.VarChar(36)
+  start_date                 DateTime  @db.Date
+  status                     String    @db.VarChar(20)
+  template_currency          String    @db.VarChar(10)
+  template_due_days          Int
+  template_notes             String?
+  template_recipient_address String?   @db.VarChar(400)
+  template_recipient_email   String    @db.VarChar(200)
+  template_recipient_name    String    @db.VarChar(200)
+  template_tax_rate          Decimal   @db.Decimal(8, 4)
+  updated_at                 DateTime? @db.Timestamptz(6)
+}
+
+model recurring_line_items {
+  id                   String  @id @db.VarChar(36)
+  amount               Decimal @db.Decimal(18, 2)
+  description          String  @db.VarChar(400)
+  quantity             Decimal @db.Decimal(18, 4)
+  sort_order           Int
+  unit_price           Decimal @db.Decimal(18, 4)
+  recurring_invoice_id String  @db.VarChar(36)
+}
+
+model transactions {
+  id                     String    @id @db.VarChar(36)
+  amount                 Decimal   @db.Decimal(28, 8)
+  asset                  String    @db.VarChar(255)
+  chain                  String?   @db.VarChar(255)
+  completed_at           DateTime? @db.Timestamptz(6)
+  confirmations          Int?
+  counterparty           String?   @db.VarChar(255)
+  created_at             DateTime? @db.Timestamptz(6)
+  description            String?   @db.VarChar(255)
+  direction              String    @db.VarChar(255)
+  fee                    Decimal?  @db.Decimal(28, 8)
+  fiat_amount            Decimal?  @db.Decimal(28, 2)
+  fiat_currency          String?   @db.VarChar(10)
+  from_address           String?   @db.VarChar(255)
+  fx_rate                Decimal?  @db.Decimal(28, 8)
+  metadata               Json?
+  reference              String?   @db.VarChar(255)
+  required_confirmations Int?
+  status                 String    @db.VarChar(255)
+  to_address             String?   @db.VarChar(255)
+  tx_hash                String?   @db.VarChar(255)
+  type                   String    @db.VarChar(255)
+  updated_at             DateTime? @db.Timestamptz(6)
+  account_id             String    @db.VarChar(36)
+  wallet_id              String?   @db.VarChar(36)
+}
+
+model virtual_accounts {
+  id               String    @id @db.VarChar(36)
+  account_number   String?   @db.VarChar(255)
+  bank_name        String?   @db.VarChar(255)
+  beneficiary_name String?   @db.VarChar(255)
+  created_at       DateTime? @db.Timestamptz(6)
+  currency         String    @db.VarChar(255)
+  iban             String?   @db.VarChar(255)
+  reference_rules  String?   @db.VarChar(255)
+  routing_number   String?   @db.VarChar(255)
+  sort_code        String?   @db.VarChar(255)
+  status           String    @db.VarChar(255)
+  swift_bic        String?   @db.VarChar(255)
+  account_id       String    @db.VarChar(36)
+}
+
+model visit_measurements {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visit_id      String        @db.Uuid
+  patient_id    String        @db.Uuid
+  metric        String
+  value         Decimal       @db.Decimal(8, 2)
+  unit          String?
+  recorded_at   DateTime?     @default(now()) @db.Timestamp(6)
+  patients      patients      @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  visit_records visit_records @relation(fields: [visit_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model visit_records {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointment_id           String?                    @db.Uuid
+  client_id                String?                    @db.Uuid
+  patient_id               String?                    @db.Uuid
+  staff_id                 String?                    @db.Uuid
+  visit_date               DateTime                   @db.Date
+  weight_kg                Decimal?                   @db.Decimal(5, 2)
+  temperature_c            Decimal?                   @db.Decimal(4, 1)
+  heart_rate_bpm           Int?
+  body_condition_score     Int?
+  history                  String?
+  clinical_examination     String?
+  diagnosis                String?
+  treatment                Json?                      @default("[]")
+  hep                      Json?                      @default("[]")
+  internal_notes           String?
+  client_notes             String?
+  plan                     String?
+  created_at               DateTime?                  @default(now()) @db.Timestamp(6)
+  updated_at               DateTime?                  @default(now()) @db.Timestamp(6)
+  visit_number             String?                    @unique
+  respiratory_rate_bpm     Int?
+  invoices                 invoices[]
+  patient_external_records patient_external_records[]
+  visit_measurements       visit_measurements[]
+  appointments             appointments?              @relation(fields: [appointment_id], references: [id], onUpdate: NoAction)
+  clients                  clients?                   @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  patients                 patients?                  @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                    users?                     @relation(fields: [staff_id], references: [id], onUpdate: NoAction)
+
+  @@index([appointment_id], map: "idx_visit_records_appt")
+  @@index([client_id], map: "idx_visit_records_client")
+  @@index([visit_date(sort: Desc)], map: "idx_visit_records_date")
+  @@index([patient_id], map: "idx_visit_records_patient")
+}
+
+model wallets {
+  id                String    @id @db.VarChar(36)
+  asset_type        String    @db.VarChar(255)
+  balance_available Decimal   @db.Decimal(28, 8)
+  balance_pending   Decimal   @db.Decimal(28, 8)
+  balance_reserved  Decimal   @db.Decimal(28, 8)
+  created_at        DateTime? @db.Timestamptz(6)
+  updated_at        DateTime? @db.Timestamptz(6)
+  account_id        String    @db.VarChar(36)
+}
+
 enum UserRole {
-  // legacy
   admin
   vet
   therapist
   receptionist
-
-  // current role set
   veterinarian
   senior_therapist
   assistant_therapist
@@ -40,12 +916,12 @@ enum TreatmentPlanStatus {
 
 enum AppointmentStatus {
   scheduled
-  pending
   confirmed
   in_progress
   completed
   cancelled
   no_show
+  pending
 }
 
 enum InvoiceStatus {
@@ -72,475 +948,4 @@ enum DocumentCategory {
   document
   video
   other
-}
-
-model users {
-  id               String    @id @default(uuid()) @db.Uuid
-  email            String    @unique
-  password_hash    String
-  name             String
-  role             UserRole
-  phone            String?
-  photo_url        String?
-  specializations  String?   // JSON string
-  schedule         String?   // JSON string: WeekSchedule
-  active                Boolean   @default(true)
-  failed_login_attempts Int       @default(0)
-  locked_until          DateTime?
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
-
-  // Relations
-  created_plans    treatment_plans[] @relation("plans_created_by")
-  approved_plans   treatment_plans[] @relation("plans_approved_by")
-  appointments     appointments[]    @relation("appointments_therapist")
-  sessions         sessions[]        @relation("sessions_therapist")
-  documents        documents[]       @relation("documents_uploaded_by")
-
-  @@map("users")
-}
-
-model clients {
-  id            String   @id @default(uuid()) @db.Uuid
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  notes      String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  patients         patients[]
-  invoices         invoices[]
-  appointments     appointments[]
-  client_packages  client_packages[]
-
-  @@index([name])
-  @@index([phone])
-  @@map("clients")
-}
-
-model patients {
-  id              String      @id @default(uuid()) @db.Uuid
-  client_id       String      @db.Uuid
-  name            String
-  species         String
-  breed           String?
-  date_of_birth   String?
-  weight          Float?
-  gender          String?
-  microchip       String?
-  medical_history String?
-  allergies       String?
-  notes           String?
-  photo_url       String?
-  active          Boolean     @default(true)
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
-
-  // Relations
-  client           clients     @relation(fields: [client_id], references: [id])
-  treatment_plans  treatment_plans[]
-  appointments     appointments[]
-  sessions         sessions[]
-  invoices         invoices[]
-  documents        documents[]
-  client_packages  client_packages[]
-
-  @@index([client_id])
-  @@index([name])
-  @@map("patients")
-}
-
-model treatment_plans {
-  id                 String             @id @default(uuid()) @db.Uuid
-  patient_id          String             @db.Uuid
-  created_by          String?            @db.Uuid
-  approved_by         String?            @db.Uuid
-  title               String
-  diagnosis            String?
-  goals               String?
-  modalities          String?            // JSON string
-  frequency           String?
-  total_sessions      Int?
-  completed_sessions  Int                @default(0)
-  status              TreatmentPlanStatus @default(draft)
-  start_date          String?
-  end_date            String?
-  notes               String?
-  created_at          DateTime           @default(now())
-  updated_at          DateTime           @updatedAt
-
-  patient             patients          @relation(fields: [patient_id], references: [id])
-  created_by_user     users?            @relation("plans_created_by", fields: [created_by], references: [id])
-  approved_by_user    users?            @relation("plans_approved_by", fields: [approved_by], references: [id])
-  appointments        appointments[]
-  sessions            sessions[]
-
-  @@index([patient_id])
-  @@index([status])
-  @@map("treatment_plans")
-}
-
-model appointments {
-  id                String            @id @default(uuid()) @db.Uuid
-  patient_id         String?           @db.Uuid
-  client_id          String?           @db.Uuid
-  therapist_id       String?           @db.Uuid
-  treatment_plan_id  String?           @db.Uuid
-  date              String
-  start_time        String
-  end_time          String
-  modality          String
-  status            AppointmentStatus @default(scheduled)
-  notes             String?
-  created_at        DateTime          @default(now())
-  updated_at        DateTime          @updatedAt
-
-  patient            patients?        @relation(fields: [patient_id], references: [id])
-  client             clients?         @relation(fields: [client_id], references: [id])
-  therapist          users?           @relation("appointments_therapist", fields: [therapist_id], references: [id])
-  treatment_plan     treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
-  sessions           sessions[]
-
-  @@index([date])
-  @@index([therapist_id])
-  @@index([patient_id])
-  @@index([client_id])
-  @@map("appointments")
-}
-
-model sessions {
-  id                String   @id @default(uuid()) @db.Uuid
-  appointment_id    String?  @db.Uuid
-  patient_id        String   @db.Uuid
-  therapist_id      String   @db.Uuid
-  treatment_plan_id String?  @db.Uuid
-  date              String
-  modality          String
-  duration_minutes  Int?
-  // SOAP
-  subjective        String?
-  objective         String?
-  assessment        String?
-  plan              String?
-  pain_score        Int?
-  mobility_score    Int?
-  progress_notes    String?
-  measurements      String?  // JSON string
-  exercises         String?  // JSON string
-  home_exercises    String?  // JSON string
-  // Clinical consultation fields (Annual Health Exam)
-  heart_rate        Float?
-  resp_rate         Float?
-  temperature       Float?
-  weight_session    Float?
-  dental_score      Int?     // 0-4
-  body_score        Float?   // 0-9
-  flea_treatment    Boolean?
-  wormed            Boolean?
-  bloods            Boolean?
-  history           String?
-  clinical_examination String?
-  diagnosis         String?
-  treatment_notes   String?
-  comments          String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
-
-  appointment        appointments?   @relation(fields: [appointment_id], references: [id])
-  patient            patients        @relation(fields: [patient_id], references: [id])
-  therapist          users           @relation("sessions_therapist", fields: [therapist_id], references: [id])
-  treatment_plan     treatment_plans? @relation(fields: [treatment_plan_id], references: [id])
-  invoice_items      invoice_items[]
-
-  @@index([patient_id])
-  @@index([date])
-  @@index([therapist_id])
-  @@map("sessions")
-}
-
-model invoices {
-  id             String        @id @default(uuid()) @db.Uuid
-  invoice_number String        @unique
-  client_id      String        @db.Uuid
-  patient_id     String?       @db.Uuid
-  date           String
-  due_date       String
-  subtotal       Float         @default(0)
-  tax            Float         @default(0)
-  total          Float         @default(0)
-  amount_paid    Float         @default(0)
-  status         InvoiceStatus @default(draft)
-  notes          String?
-  created_at     DateTime      @default(now())
-  updated_at     DateTime      @updatedAt
-
-  client         clients       @relation(fields: [client_id], references: [id])
-  patient        patients?     @relation(fields: [patient_id], references: [id])
-  items          invoice_items[]
-  payments       payments[]
-
-  @@index([client_id])
-  @@index([date])
-  @@index([status])
-  @@map("invoices")
-}
-
-model invoice_items {
-  id           String   @id @default(uuid()) @db.Uuid
-  invoice_id   String   @db.Uuid
-  description  String
-  modality     String?
-  session_id   String?  @db.Uuid
-  quantity     Int      @default(1)
-  unit_price   Float
-  total        Float
-  created_at   DateTime @default(now())
-
-  invoice      invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
-  session      sessions? @relation(fields: [session_id], references: [id])
-
-  @@index([invoice_id])
-  @@index([session_id])
-  @@map("invoice_items")
-}
-
-model payments {
-  id          String        @id @default(uuid()) @db.Uuid
-  invoice_id  String        @db.Uuid
-  amount      Float
-  method      PaymentMethod?
-  reference   String?
-  date        String
-  notes       String?
-  created_at  DateTime      @default(now())
-
-  invoice     invoices      @relation(fields: [invoice_id], references: [id])
-
-  @@index([invoice_id])
-  @@index([date])
-  @@map("payments")
-}
-
-model documents {
-  id           String           @id @default(uuid()) @db.Uuid
-  patient_id   String           @db.Uuid
-  uploaded_by  String?          @db.Uuid
-  filename     String
-  file_type    String?
-  file_size    Int?
-  file_path    String
-  category     DocumentCategory?
-  description  String?
-  created_at   DateTime         @default(now())
-
-  patient      patients         @relation(fields: [patient_id], references: [id])
-  uploader     users?           @relation("documents_uploaded_by", fields: [uploaded_by], references: [id])
-
-  @@index([patient_id])
-  @@map("documents")
-}
-
-model leads {
-  id              String    @id @default(uuid()) @db.Uuid
-  // Owner info
-  owner_name      String
-  owner_email     String
-  owner_phone     String
-  post_code       String?
-  how_heard       String?
-  // Pet info
-  pet_name        String
-  species         String
-  breed           String?
-  age             String?
-  weight          String?
-  pet_gender      String?
-  vet_friendly    Boolean?
-  reactive_to_pets Boolean?
-  // Visit info
-  service         String?
-  condition       String?
-  has_pain        Boolean?
-  clinic_name     String?
-  attending_vet   String?
-  preferred_date  String?
-  first_visit     Boolean   @default(true)
-  notes           String?
-  // Pipeline
-  status          String    @default("new")
-  staff_notes     String?
-  // Conversion
-  converted_client_id      String?   @db.Uuid
-  converted_patient_id     String?   @db.Uuid
-  converted_appointment_id String?   @db.Uuid
-  // Timestamps
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-}
-
-model inventory_items {
-  id            String   @id @default(uuid()) @db.Uuid
-  sku           String?
-  name          String
-  category      String   @default("General")
-  brand         String?
-  cost_price    Float?
-  sell_price    Float?
-  markup_pct    Float?
-  stock_on_hand Int      @default(0)
-  stock_min     Int      @default(1)
-  stock_max     Int      @default(10)
-  unit          String   @default("each")
-  expiry_date   String?
-  is_active     Boolean  @default(true)
-  notes         String?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  movements     stock_movements[]
-  @@map("inventory_items")
-}
-
-model stock_movements {
-  id          String   @id @default(uuid()) @db.Uuid
-  item_id     String   @db.Uuid
-  type        String   // in, out, adjustment, sale, return
-  quantity    Int
-  reference   String?
-  notes       String?
-  created_by  String?
-  created_at  DateTime @default(now())
-  item        inventory_items @relation(fields: [item_id], references: [id], onDelete: Cascade)
-  @@map("stock_movements")
-}
-
-model clinic_settings {
-  id         String   @id @default("default")
-  data       String   // JSON string of all settings
-  updated_at DateTime @updatedAt
-
-  @@map("clinic_settings")
-}
-
-model treatment_types {
-  id                  String   @id @default(uuid()) @db.Uuid
-  name                String   @unique
-  category            String
-  description         String?
-  duration            Int      @default(60)
-  price               Float?
-  sessions_in_package Int?
-  color               String?  @default("bg-gray-400")
-  active              Boolean  @default(true)
-  sort_order          Int      @default(0)
-  bin_no              Int?
-  appointment_names     String[]
-  appointment_durations Json?    @default("{}")
-  created_at          DateTime @default(now())
-
-  client_packages  client_packages[]
-  service_pricing  service_pricing[]
-
-  @@index([category])
-  @@map("treatment_types")
-}
-
-model service_pricing {
-  id         String          @id @default(uuid()) @db.Uuid
-  service_id String          @db.Uuid
-  label      String
-  sessions   Int             @default(1)
-  price      Float
-  created_at DateTime        @default(now())
-
-  service    treatment_types @relation(fields: [service_id], references: [id])
-
-  @@index([service_id])
-  @@map("service_pricing")
-}
-
-model client_packages {
-  id                String   @id @default(uuid()) @db.Uuid
-  client_id         String   @db.Uuid
-  patient_id        String?  @db.Uuid
-  treatment_type_id String   @db.Uuid
-  sessions_total    Int
-  sessions_used     Int      @default(0)
-  purchase_date     String
-  expiry_date       String?
-  price_paid        Float?
-  notes             String?
-  status            String   @default("active")
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
-
-  client         clients         @relation(fields: [client_id], references: [id])
-  patient        patients?       @relation(fields: [patient_id], references: [id])
-  treatment_type treatment_types @relation(fields: [treatment_type_id], references: [id])
-  usage_logs     package_usage_logs[]
-
-  @@index([client_id])
-  @@index([status])
-  @@map("client_packages")
-}
-
-model email_campaigns {
-  id               String    @id @default(uuid()) @db.Uuid
-  name             String
-  subject          String
-  preheader        String?
-  body_blocks      String    @db.Text
-  body_html        String    @db.Text
-  status           String    @default("draft")
-  audience         String    @default("all")
-  total_recipients Int       @default(0)
-  sent_count       Int       @default(0)
-  opened_count     Int       @default(0)
-  clicked_count    Int       @default(0)
-  sent_at          DateTime?
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @updatedAt
-  recipients       email_campaign_recipients[]
-  @@map("email_campaigns")
-}
-
-model email_campaign_recipients {
-  id           String   @id @default(uuid()) @db.Uuid
-  campaign_id  String   @db.Uuid
-  client_id    String   @db.Uuid
-  email        String
-  name         String
-  resend_id    String?
-  status       String   @default("pending")
-  error        String?
-  sent_at      DateTime?
-  opened_at    DateTime?
-  clicked_at   DateTime?
-  campaign     email_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
-  @@unique([campaign_id, client_id])
-  @@index([campaign_id])
-  @@index([email])
-  @@map("email_campaign_recipients")
-}
-
-model email_unsubscribes {
-  id         String   @id @default(uuid()) @db.Uuid
-  email      String   @unique
-  reason     String?
-  created_at DateTime @default(now())
-  @@map("email_unsubscribes")
-}
-
-model package_usage_logs {
-  id             String   @id @default(uuid()) @db.Uuid
-  package_id     String   @db.Uuid
-  appointment_id String?  @db.Uuid
-  used_date      String
-  notes          String?
-  created_at     DateTime @default(now())
-
-  package client_packages @relation(fields: [package_id], references: [id])
-
-  @@map("package_usage_logs")
 }
