@@ -88,9 +88,9 @@ export function parsePDF(text: string): ParsedPDF | null {
   const patientSpecies = detailParts[0] || 'Dog';
   const patientGender  = (detailParts[1] || '').toLowerCase().trim();
   const patientBreed   = detailParts[2] || '';
-  // Extract age e.g. "Age: 4 yr 6 mth" → approximate DOB
-  const ageStr = detailParts.slice(3).join(',');
-  const ageMatch = ageStr.match(/Age:\s*(\d+)\s*yr(?:\s*(\d+)\s*mth)?/i);
+  // Extract age — may be on the detail line or the next line e.g. "Age: 4 yr 6 mth , Desexed: Y"
+  const ageSearchStr = [detailLine, lines[forLineIdx + 2] || ''].join(' ');
+  const ageMatch = ageSearchStr.match(/Age:\s*(\d+)\s*yr(?:\s*(\d+)\s*mth)?/i);
   let patientDOB: string | null = null;
   if (ageMatch) {
     const years = parseInt(ageMatch[1]) || 0;
