@@ -137,19 +137,7 @@ export async function POST(req: NextRequest) {
     if (partial.length > 0) patientId = partial[0].id;
   }
 
-  // 3. Single patient fallback
-  if (!patientId) {
-    const all = await prisma.$queryRawUnsafe<{ id: string; name: string }[]>(
-      `SELECT id, name FROM patients WHERE client_id = $1`,
-      clientId
-    );
-    if (all.length === 1) {
-      patientId = all[0].id;
-      warnings.push(`Patient name "${parsed.patientName}" not matched — used only pet "${all[0].name}" on file`);
-    }
-  }
-
-  // 4. Auto-create patient
+  // 3. Auto-create patient (removed single-patient fallback — a client can have multiple pets)
   if (!patientId) {
     const newPatientId = randomUUID();
     await prisma.$queryRawUnsafe(
