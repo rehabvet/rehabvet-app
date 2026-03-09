@@ -3,16 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Phone, Mail, MapPin } from 'lucide-react'
+import { Plus, Search, Phone, Mail, MapPin, Download } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 
-const ADMIN_EMAILS = ['admin@rehabvet.com', 'sara@rehabvet.com']
+const ADMIN_ROLES = ['admin', 'administrator', 'office_manager']
 
 export default function ClientsPage() {
-  function downloadCSV(url: string, _filename: string) {
-    window.location.href = url
-  }
-
   const router = useRouter()
   const [clients, setClients] = useState<any[]>([])
   const [total, setTotal] = useState(0)
@@ -20,7 +16,14 @@ export default function ClientsPage() {
   const PAGE_SIZE = 20
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data?.role && ADMIN_ROLES.includes(data.role)) setIsAdmin(true)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => { setPage(1) }, [search])
   useEffect(() => { fetchClients(page) }, [search, page])
@@ -38,22 +41,49 @@ export default function ClientsPage() {
     setLoading(false)
   }
 
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await fetch('/api/export/clients')
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Export failed. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          {isAdmin && (
-            <button onClick={() => downloadCSV('/api/export/clients', 'clients-' + new Date().toISOString().slice(0,10) + '.csv')} className="btn-secondary flex items-center gap-1.5 text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Export CSV
-            </button>
-          )}
           <p className="text-gray-500 text-sm">{total > 0 ? `${total} clients total` : 'Manage pet owner profiles'}</p>
         </div>
-        <Link href="/clients/new" className="btn-primary">
-          <Plus className="w-4 h-4 mr-2" /> Add Client
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="btn-secondary flex items-center gap-1.5 text-sm disabled:opacity-50"
+            >
+              {exporting
+                ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500" /> Exporting...</>
+                : <><Download className="w-4 h-4" /> Export CSV</>
+              }
+            </button>
+          )}
+          <Link href="/clients/new" className="btn-primary">
+            <Plus className="w-4 h-4 mr-2" /> Add Client
+          </Link>
+        </div>
       </div>
 
       <div className="relative">
