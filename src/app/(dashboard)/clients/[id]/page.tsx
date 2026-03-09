@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X, ClipboardList, Receipt } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X, ClipboardList, Receipt, Plus } from 'lucide-react'
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
 
@@ -35,6 +35,11 @@ export default function ClientDetailPage() {
   const [visitPage, setVisitPage] = useState(1)
   const [billingPage, setBillingPage] = useState(1)
   const [apptPage, setApptPage] = useState(1)
+  // New visit modal
+  const [showVisitModal, setShowVisitModal] = useState(false)
+  const [newVisit, setNewVisit] = useState({ patient_id: '', staff_id: '', visit_date: new Date().toISOString().split('T')[0] })
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [creatingVisit, setCreatingVisit] = useState(false)
 
   useEffect(() => {
     fetch(`/api/clients/${id}`).then(r => r.json()).then(d => {
@@ -44,6 +49,26 @@ export default function ClientDetailPage() {
       setVisits(d.visits || [])
     }).catch(() => {})
   }, [id])
+
+  function openVisitModal() {
+    setNewVisit({ patient_id: '', staff_id: '', visit_date: new Date().toISOString().split('T')[0] })
+    setShowVisitModal(true)
+    fetch('/api/staff').then(r => r.json()).then(d => setStaffList(d.staff || []))
+  }
+
+  async function createVisit() {
+    if (!newVisit.patient_id || !newVisit.visit_date) return
+    setCreatingVisit(true)
+    const res = await fetch('/api/visits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: id, patient_id: newVisit.patient_id, staff_id: newVisit.staff_id || null, visit_date: newVisit.visit_date }),
+    })
+    const d = await res.json()
+    setCreatingVisit(false)
+    setShowVisitModal(false)
+    if (d.visit?.id) router.push(`/visits/${d.visit.id}`)
+  }
 
   async function handleSave() {
     await fetch(`/api/clients/${id}`, {
@@ -61,6 +86,7 @@ export default function ClientDetailPage() {
   const addr = splitAddress(client.address)
 
   return (
+    <>
     <div className="space-y-6">
       <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
         <ArrowLeft className="w-4 h-4" /> Back
@@ -182,8 +208,12 @@ export default function ClientDetailPage() {
         <div className="p-5">
           {/* Visit Records tab */}
           {tab === 'visits' && (
-            visits.length === 0 ? (
-              <p className="text-gray-400 text-sm py-2">No visit records</p>
+            <>
+            <div className="flex justify-end mb-3">
+              <button onClick={openVisitModal} className="btn-primary flex items-center gap-1.5 text-sm"><Plus className="w-3.5 h-3.5" />New Visit</button>
+            </div>
+            {visits.length === 0 ? (
+              <p className="text-gray-400 text-sm py-2">No visit records yet</p>
             ) : (
               <>
               <div className="overflow-x-auto">
@@ -210,7 +240,8 @@ export default function ClientDetailPage() {
               </div>
               <Pager page={visitPage} total={visits.length} onChange={setVisitPage} />
               </>
-            )
+            )}
+            </>
           )}
 
           {/* Billing tab */}
@@ -283,6 +314,42 @@ export default function ClientDetailPage() {
         </div>
       </div>
     </div>
+
+    {showVisitModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">New Visit Record</h2>
+            <button onClick={() => setShowVisitModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Patient *</label>
+            <select className="input w-full mt-1.5" value={newVisit.patient_id} onChange={e => setNewVisit({ ...newVisit, patient_id: e.target.value })}>
+              <option value="">— Select patient —</option>
+              {(data?.patients || []).map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.species}{p.breed ? ` · ${p.breed}` : ''})</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Visit Date *</label>
+            <input type="date" className="input w-full mt-1.5" value={newVisit.visit_date} onChange={e => setNewVisit({ ...newVisit, visit_date: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Staff</label>
+            <select className="input w-full mt-1.5" value={newVisit.staff_id} onChange={e => setNewVisit({ ...newVisit, staff_id: e.target.value })}>
+              <option value="">— Select staff —</option>
+              {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.name || s.email}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setShowVisitModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={createVisit} disabled={creatingVisit || !newVisit.patient_id || !newVisit.visit_date} className="btn-primary flex-1">
+              {creatingVisit ? 'Creating…' : 'Create Visit'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
