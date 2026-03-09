@@ -16,8 +16,35 @@ const STAFF_MAP: Record<string, string> = {
   AS:  '0864ab3c-6676-4e68-8650-560b8e8c0408', // Angeline Soon (former staff)
   YEN: '1e0832ed-d6fe-4bfd-ab18-e35cbea66a98', // Chee Yen (former staff)
   SA:  'bb878995-7ba8-4f68-bb04-8357dc9e01ac', // Dr Sara (alias)
-  OWN: '413c8865-4399-452a-9df8-07e308297e45', // Owner-entered notes → mapped to admin
+  OWN: '413c8865-4399-452a-9df8-07e308297e45', // Owner-entered notes
+  HT:  'd9dc535f-d341-4bed-ba3c-efdc6335d432', // HT (former staff)
+  NPC: 'cd5ca7b0-46ec-457d-818c-07fda2965788', // NPC (former staff)
+  TR:  '52abd984-6e22-4cd2-b003-2c05acb040d7', // TR (former staff)
+  MK:  'c5e89a29-86d8-4ba7-9196-e6daa4ead327', // MK (former staff)
+  SW:  '7c3ec9cb-6bde-4130-8ef3-7b3137a1f54b', // SW (former staff)
+  PK:  'c6feeb9e-50f4-429f-8337-c5fe751542b6', // PK (former staff)
 };
+
+// Auto-create unknown staff initials as inactive users (cached per import request)
+const _autoStaffCache: Record<string, string> = {};
+async function resolveStaffId(initials: string): Promise<string | null> {
+  if (!initials) return null;
+  if (STAFF_MAP[initials]) return STAFF_MAP[initials];
+  if (_autoStaffCache[initials]) return _autoStaffCache[initials];
+  // Check if already exists in DB
+  const existing = await prisma.$queryRawUnsafe<{ id: string }[]>(
+    `SELECT id FROM users WHERE name = $1 LIMIT 1`, initials
+  );
+  if (existing.length > 0) { _autoStaffCache[initials] = existing[0].id; return existing[0].id; }
+  // Create as inactive staff
+  const newId = randomUUID();
+  await prisma.$queryRawUnsafe(
+    `INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) VALUES ($1, $2, 'inactive', $3, 'therapist', false, NOW(), NOW())`,
+    newId, `${initials.toLowerCase()}.former@rehabvet.com`, initials
+  );
+  _autoStaffCache[initials] = newId;
+  return newId;
+}
 
 function normalizePhone(p: string) {
   const d = p.replace(/\D/g, '');
@@ -186,8 +213,7 @@ export async function POST(req: NextRequest) {
 
     if (!visit.date) { warnings.push(`Bill# ${visit.billNumber}: invalid date`); continue; }
 
-    const staffId = STAFF_MAP[visit.staffInitials] || null;
-    if (!staffId) warnings.push(`Bill# ${visit.billNumber}: unknown staff [${visit.staffInitials}]`);
+    const staffId = await resolveStaffId(visit.staffInitials);
 
     const visitId = randomUUID();
     const visitNumber = `VR-${visit.date.slice(0, 4)}-${String(visitCounter++).padStart(6, '0')}`;
