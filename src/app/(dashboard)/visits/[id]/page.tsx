@@ -1,10 +1,28 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt } from 'lucide-react'
 
 type ListItem = { id: string; text: string }
+
+function AutoTextarea({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = ref.current.scrollHeight + 'px' }
+  }, [value])
+  return (
+    <textarea
+      ref={ref}
+      className={className}
+      placeholder={placeholder}
+      value={value}
+      rows={1}
+      style={{ overflow: 'hidden', resize: 'none' }}
+      onChange={e => { onChange(e.target.value); if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = ref.current.scrollHeight + 'px' } }}
+    />
+  )
+}
 
 function uid() { return Math.random().toString(36).slice(2) }
 
@@ -264,22 +282,22 @@ export default function VisitPage() {
 
       {/* History */}
       <Section title="📋 History (Owner's Report)">
-        <textarea className="input mt-3 w-full" rows={4} placeholder="Owner's observations and complaints since last visit…" value={form.history} onChange={e => f('history', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="Owner's observations and complaints since last visit…" value={form.history} onChange={v => f('history', v)} />
       </Section>
 
       {/* Clinical Examination */}
       <Section title="🔍 Clinical Examination">
-        <textarea className="input mt-3 w-full" rows={6} placeholder="Gait, palpation, ROM, CP, muscle assessment, special tests…" value={form.clinical_examination} onChange={e => f('clinical_examination', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="Gait, palpation, ROM, CP, muscle assessment, special tests…" value={form.clinical_examination} onChange={v => f('clinical_examination', v)} />
       </Section>
 
       {/* Diagnosis */}
       <Section title="📌 Diagnosis" defaultOpen={false}>
-        <textarea className="input mt-3 w-full" rows={3} placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={e => f('diagnosis', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
       </Section>
 
       {/* Treatment */}
       <Section title="💊 Treatment Performed">
-        <textarea className="input mt-3 w-full" rows={6} placeholder="Describe all treatments performed…" value={form.treatment} onChange={e => f('treatment', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="Describe all treatments performed…" value={form.treatment} onChange={v => f('treatment', v)} />
       </Section>
 
       {/* HEP */}
@@ -289,18 +307,18 @@ export default function VisitPage() {
 
       {/* Plan */}
       <Section title="📅 Plan (Next Session)" defaultOpen={false}>
-        <textarea className="input mt-3 w-full" rows={2} placeholder="What to do at next session…" value={form.plan} onChange={e => f('plan', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="What to do at next session…" value={form.plan} onChange={v => f('plan', v)} />
       </Section>
 
       {/* Client Notes */}
       <Section title="💬 Client-Facing Notes (visible to owner)" defaultOpen={false}>
         <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">⚠️ These notes are visible to the client on their portal/app.</p>
-        <textarea className="input mt-2 w-full" rows={3} placeholder="Notes to share with the owner — home care advice, observations…" value={form.client_notes} onChange={e => f('client_notes', e.target.value)} />
+        <AutoTextarea className="input mt-2 w-full" placeholder="Notes to share with the owner — home care advice, observations…" value={form.client_notes} onChange={v => f('client_notes', v)} />
       </Section>
 
       {/* Internal Notes */}
       <Section title="🔒 Internal Notes (staff only)" defaultOpen={false}>
-        <textarea className="input mt-3 w-full" rows={3} placeholder="Internal staff notes — not visible to the client…" value={form.internal_notes} onChange={e => f('internal_notes', e.target.value)} />
+        <AutoTextarea className="input mt-3 w-full" placeholder="Internal staff notes — not visible to the client…" value={form.internal_notes} onChange={v => f('internal_notes', v)} />
       </Section>
 
       {/* ── BILLING ───────────────────────────────────────────────────────── */}
