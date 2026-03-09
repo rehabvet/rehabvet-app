@@ -21,7 +21,8 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(data => {
-      if (data?.role && ADMIN_ROLES.includes(data.role)) setIsAdmin(true)
+      const role = data?.user?.role || data?.role
+      if (role && ADMIN_ROLES.includes(role)) setIsAdmin(true)
     }).catch(() => {})
   }, [])
 
