@@ -1107,23 +1107,22 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {/* 4. Treatment Type */}
+            {/* 4. Appointment Type */}
             <div>
               <label className="label">Appointment Type *</label>
               <select className="input" value={newApptForm.modality}
                 onChange={e => {
-                  const opt = appointmentTypeOptions.find(x => x.label === e.target.value)
-                  if (opt) {
-                    const [sh, sm] = newApptForm.start_time.split(':').map(Number)
-                    const endTotal = sh * 60 + sm + (opt.duration || 60)
-                    setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`})
-                  } else {
-                    setNewApptForm({...newApptForm, modality: e.target.value})
-                  }
+                  const found = Object.values(treatmentGrouped).flat().find((t: any) => t.name === e.target.value) as any
+                  const dur = found?.duration || 60
+                  const [sh, sm] = newApptForm.start_time.split(':').map(Number)
+                  const endTotal = sh * 60 + sm + dur
+                  setNewApptForm({...newApptForm, modality: e.target.value, end_time: `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`})
                 }} required>
                 <option value="">Select appointment type...</option>
-                {appointmentTypeOptions.map(opt => (
-                  <option key={opt.label} value={opt.label}>{opt.label}</option>
+                {Object.entries(treatmentGrouped).map(([cat, items]) => (
+                  <optgroup key={cat} label={cat}>
+                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({Math.floor(t.duration/60) > 0 ? `${Math.floor(t.duration/60)}h` : ''}{t.duration%60 > 0 ? `${t.duration%60}min` : ''})</option>)}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -1282,7 +1281,7 @@ export default function CalendarPage() {
               />
             </div>
 
-            {/* Treatment Type */}
+            {/* Appointment Type */}
             <div>
               <label className="label">Appointment Type</label>
               <select
@@ -1291,8 +1290,10 @@ export default function CalendarPage() {
                 onChange={e => setEditForm({...editForm, modality: e.target.value})}
               >
                 <option value="">Select appointment type...</option>
-                {appointmentTypeOptions.map(opt => (
-                  <option key={opt.label} value={opt.label}>{opt.label}</option>
+                {Object.entries(treatmentGrouped).map(([cat, items]) => (
+                  <optgroup key={cat} label={cat}>
+                    {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({Math.floor(t.duration/60) > 0 ? `${Math.floor(t.duration/60)}h` : ''}{t.duration%60 > 0 ? `${t.duration%60}min` : ''})</option>)}
+                  </optgroup>
                 ))}
               </select>
             </div>

@@ -610,7 +610,7 @@ export default function AppointmentsPage() {
 
           {/* Treatment type */}
           <div>
-            <label className="label">Treatment Type *</label>
+            <label className="label">Appointment Type *</label>
             <select className="input" value={form.modality}
               onChange={e => {
                 const [sh, sm] = form.start_time.split(':').map(Number)
@@ -620,7 +620,7 @@ export default function AppointmentsPage() {
                 setForm({...form, modality: e.target.value,
                   end_time: `${String(Math.floor(endTotal/60)).padStart(2,'0')}:${String(endTotal%60).padStart(2,'0')}`})
               }} required>
-              <option value="">Select treatment...</option>
+              <option value="">Select appointment type...</option>
               {Object.entries(treatmentGrouped).map(([cat, items]) => (
                 <optgroup key={cat} label={cat}>
                   {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>)}
@@ -750,9 +750,9 @@ export default function AppointmentsPage() {
             </div>
 
             <div>
-              <label className="label">Treatment Type *</label>
+              <label className="label">Appointment Type *</label>
               <select className="input" value={editing.modality} onChange={e => setEditing({...editing, modality: e.target.value})} required>
-                <option value="">Select treatment...</option>
+                <option value="">Select appointment type...</option>
                 {Object.entries(treatmentGrouped).map(([cat, items]) => (
                   <optgroup key={cat} label={cat}>
                     {(items as any[]).map(t => <option key={t.name} value={t.name}>{t.name} ({formatDuration(t.duration)})</option>)}
