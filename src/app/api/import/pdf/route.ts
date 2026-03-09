@@ -60,7 +60,24 @@ export async function POST(req: NextRequest) {
   let patientId: string | null = null;
   const warnings: string[] = [];
 
-  if (normPhone) {
+  // 1. Match by client number (last 4 digits from EzyVet format like "1/2918")
+  if (parsed.ownerOldId) {
+    // Extract last 4 digits from the client number
+    const digits = parsed.ownerOldId.replace(/\D/g, '');
+    const last4 = digits.slice(-4);
+    if (last4.length === 4) {
+      const byNumber = await prisma.$queryRawUnsafe<{ id: string; client_number: string }[]>(
+        `SELECT id, client_number FROM clients WHERE RIGHT(CAST(client_number AS TEXT), 4) = $1 LIMIT 1`,
+        last4
+      );
+      if (byNumber.length > 0) {
+        clientId = byNumber[0].id;
+      }
+    }
+  }
+
+  // 2. Fallback: match by phone number
+  if (!clientId && normPhone) {
     const clients = await prisma.$queryRawUnsafe<{ id: string; phone: string }[]>(
       `SELECT id, phone FROM clients WHERE regexp_replace(phone, '[^0-9]', '', 'g') LIKE $1 LIMIT 1`,
       `%${normPhone}`
