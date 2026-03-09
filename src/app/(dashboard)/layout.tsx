@@ -19,7 +19,7 @@ const nav = [
   { href: '/appointments', label: 'Appointments', icon: ClipboardList, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/clients', label: 'Clients', icon: Users, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/patients', label: 'Patients', icon: PawPrint, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
-  { href: '/treatment-plans', label: 'Treatment Plans', icon: Stethoscope, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
+
 
   { href: '/visits', label: 'Visit Records', icon: Clipboard, roles: ['admin', 'vet', 'therapist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist'] },
   { href: '/billing', label: 'Billing', icon: DollarSign, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
