@@ -184,7 +184,7 @@ export default function PatientsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Sex</label>
-              <select className="input" value={form.sex} onChange={e => setForm({...form, sex: e.target.value})}>
+              <select className="input" value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}>
                 <option value="">Select...</option>
                 {SEX_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>

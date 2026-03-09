@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.breed !== undefined) data.breed = body.breed ?? null
   if (body.date_of_birth !== undefined) data.date_of_birth = body.date_of_birth ?? null
   if (body.weight !== undefined) data.weight = body.weight ?? null
-  if (body.sex !== undefined) data.sex = body.sex || null
+  if (body.gender !== undefined) data.gender = body.gender || null
   if (body.microchip !== undefined) data.microchip = body.microchip ?? null
   if (body.medical_history !== undefined) data.medical_history = body.medical_history ?? null
   if (body.allergies !== undefined) data.allergies = body.allergies ?? null
