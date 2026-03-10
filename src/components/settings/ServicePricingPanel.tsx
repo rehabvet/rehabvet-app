@@ -190,13 +190,13 @@ export default function ServicePricingPanel() {
         <div className="border border-gray-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col className="w-auto" />
-              <col className="w-16" />
-              <col className="w-20" />
-              <col className="w-24" />
-              <col className="w-64" />
-              <col className="w-28" />
-              <col className="w-20" />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '38%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '6%' }} />
             </colgroup>
             <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
