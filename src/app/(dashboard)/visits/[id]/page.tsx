@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt, AlertTriangle } from 'lucide-react'
+import DiagnosisLog from '@/components/DiagnosisLog'
 
 type ListItem = { id: string; text: string }
 
@@ -409,9 +410,16 @@ export default function VisitPage() {
         </div>
       </Section>
 
-      {/* Diagnosis */}
-      <Section title="📌 Diagnosis">
-        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
+      {/* Persistent Diagnosis History (patient-level) */}
+      {visit?.patient_id && (
+        <div className="card p-5">
+          <DiagnosisLog patientId={visit.patient_id} />
+        </div>
+      )}
+
+      {/* Per-visit Diagnosis note */}
+      <Section title="📌 Diagnosis Note (this visit)">
+        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression for this visit…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
       </Section>
 
       {/* History */}

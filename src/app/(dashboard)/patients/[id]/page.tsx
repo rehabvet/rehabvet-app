@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit2, Save, X, Activity, Stethoscope, Calendar, FileText, TrendingUp, ClipboardList } from 'lucide-react'
+import DiagnosisLog from '@/components/DiagnosisLog'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
@@ -171,6 +172,9 @@ export default function PatientDetailPage() {
       {/* Tab Content */}
       {tab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card lg:col-span-2">
+            <DiagnosisLog patientId={patient.id} />
+          </div>
           <div className="card">
             <h3 className="font-semibold mb-3">Medical History</h3>
             <p className="text-sm text-gray-600 whitespace-pre-wrap">{patient.medical_history || 'No medical history recorded'}</p>

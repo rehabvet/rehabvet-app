@@ -8,6 +8,7 @@ import BillingModal from '@/components/BillingModal'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
+import DiagnosisLog from '@/components/DiagnosisLog'
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
 import BreedSearch from '@/components/BreedSearch'
@@ -1466,6 +1467,13 @@ export default function CalendarPage() {
                 {apptPatientInfo.allergies && (
                   <p className="text-xs text-orange-700">⚠️ Allergies: {apptPatientInfo.allergies}</p>
                 )}
+              </div>
+            )}
+
+            {/* Persistent Diagnosis History */}
+            {selectedAppt?.patient_id && (
+              <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                <DiagnosisLog patientId={selectedAppt.patient_id} compact />
               </div>
             )}
 
