@@ -81,6 +81,8 @@ model patients {
   current_medications      Json?                      @default("[]")
   medical_conditions       String?
   is_reactive              Boolean                    @default(false)
+  neutered                 Boolean?
+  vet_friendly             Boolean?
   appointments             appointments[]
   client_packages          client_packages[]
   documents                documents[]
