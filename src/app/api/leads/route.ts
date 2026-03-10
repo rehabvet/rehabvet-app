@@ -106,6 +106,19 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ leads, total, page, limit, statusCounts })
 }
 
+async function resolvePostcode(post_code?: string): Promise<string | null> {
+  if (!post_code || post_code.length < 5) return null
+  try {
+    const res = await fetch(`https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${post_code}&returnGeom=N&getAddrDetails=Y&pageNum=1`)
+    const data = await res.json()
+    if (data.results?.length > 0) {
+      const r = data.results[0]
+      return `${r.BLK_NO ? r.BLK_NO + ' ' : ''}${r.ROAD_NAME}${r.BUILDING && r.BUILDING !== 'NIL' ? ' ' + r.BUILDING : ''} SINGAPORE ${r.POSTAL}`
+    }
+  } catch {}
+  return null
+}
+
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -121,6 +134,9 @@ export async function POST(req: NextRequest) {
   if (!owner_name || !pet_name) {
     return NextResponse.json({ error: 'owner_name and pet_name are required' }, { status: 400 })
   }
+
+  // Resolve address from postcode once and store it
+  const owner_address = await resolvePostcode(post_code)
 
   // Check if this lead matches an existing client (by email or phone)
   let status = 'new'
@@ -142,7 +158,7 @@ export async function POST(req: NextRequest) {
 
   const lead = await prisma.leads.create({
     data: {
-      owner_name, owner_email, owner_phone, post_code,
+      owner_name, owner_email, owner_phone, post_code, owner_address,
       pet_name, species, breed, age, pet_gender,
       vet_friendly, reactive_to_pets, clinic_name, attending_vet,
       has_pain, condition, how_heard, notes, service, preferred_date,

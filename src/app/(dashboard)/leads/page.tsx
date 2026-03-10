@@ -20,21 +20,6 @@ interface Lead {
   matched_client?: { id: string; name: string; email: string; appt_count: number; pet_names: string } | null
 }
 
-// OneMap postcode → address lookup (Singapore)
-async function lookupPostcode(postcode: string): Promise<string | null> {
-  if (!postcode || postcode.length < 5) return null
-  try {
-    const res = await fetch(
-      `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${postcode}&returnGeom=N&getAddrDetails=Y&pageNum=1`
-    )
-    const data = await res.json()
-    if (data.results && data.results.length > 0) {
-      const r = data.results[0]
-      return r.ADDRESS || null
-    }
-  } catch {}
-  return null
-}
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   new:        { label: 'New',       color: 'text-blue-700',   bg: 'bg-blue-100' },
@@ -61,12 +46,9 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
   const [loading, setLoading] = useState(true)
-  const [rowAddresses, setRowAddresses] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [viewLead, setViewLead] = useState<Lead | null>(null)
-  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null)
-  const [addressLoading, setAddressLoading] = useState(false)
   const [convertLead, setConvertLead] = useState<Lead | null>(null)
   const [convertDate, setConvertDate] = useState('')
   const [converting, setConverting] = useState(false)
@@ -102,32 +84,7 @@ export default function LeadsPage() {
   // Reset to page 1 when search or filter changes
   useEffect(() => { setPage(1) }, [search, filterStatus])
 
-  // Batch-resolve postcodes for all rows on current page
-  useEffect(() => {
-    const codes = [...new Set(leads.map(l => l.post_code).filter(Boolean) as string[])]
-    if (codes.length === 0) return
-    setRowAddresses({})
-    Promise.all(
-      codes.map(async code => {
-        const addr = await lookupPostcode(code)
-        return [code, addr] as [string, string | null]
-      })
-    ).then(results => {
-      const map: Record<string, string> = {}
-      for (const [code, addr] of results) if (addr) map[code] = addr
-      setRowAddresses(map)
-    })
-  }, [leads])
 
-  // Resolve postcode → address whenever a lead is opened
-  useEffect(() => {
-    if (!viewLead?.post_code) { setResolvedAddress(null); return }
-    setAddressLoading(true)
-    lookupPostcode(viewLead.post_code).then(addr => {
-      setResolvedAddress(addr)
-      setAddressLoading(false)
-    })
-  }, [viewLead?.post_code])
 
   async function updateStatus(id: string, status: string) {
     await fetch(`/api/leads/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
@@ -268,12 +225,12 @@ export default function LeadsPage() {
                         </a>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
-                        {lead.post_code ? (
+                        {lead.owner_address || lead.post_code ? (
                           <span className="text-sm text-gray-700 flex items-start gap-1">
                             <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
                             <span className="leading-tight">
-                              {rowAddresses[lead.post_code]
-                                ? rowAddresses[lead.post_code]
+                              {lead.owner_address
+                                ? lead.owner_address
                                 : <span className="text-gray-400 italic text-xs">S({lead.post_code})</span>
                               }
                             </span>
@@ -355,13 +312,14 @@ export default function LeadsPage() {
                 </div>
               )}
               {/* Postcode + resolved address */}
-              {viewLead.post_code && (
+              {(viewLead.owner_address || viewLead.post_code) && (
                 <p className="text-sm text-gray-600 flex items-start gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
                   <span>
-                    <span className="font-mono text-gray-700">{viewLead.post_code}</span>
-                    {addressLoading && <span className="text-gray-400 ml-2 text-xs">Looking up…</span>}
-                    {resolvedAddress && <span className="text-gray-500 ml-2 text-xs">{resolvedAddress}</span>}
+                    {viewLead.owner_address
+                      ? viewLead.owner_address
+                      : <span className="font-mono text-gray-500 italic text-xs">S({viewLead.post_code})</span>
+                    }
                   </span>
                 </p>
               )}

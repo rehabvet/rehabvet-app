@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
+async function resolvePostcode(post_code?: string): Promise<string | null> {
+  if (!post_code || post_code.length < 5) return null
+  try {
+    const res = await fetch(`https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${post_code}&returnGeom=N&getAddrDetails=Y&pageNum=1`)
+    const data = await res.json()
+    if (data.results?.length > 0) {
+      const r = data.results[0]
+      return `${r.BLK_NO ? r.BLK_NO + ' ' : ''}${r.ROAD_NAME}${r.BUILDING && r.BUILDING !== 'NIL' ? ' ' + r.BUILDING : ''} SINGAPORE ${r.POSTAL}`
+    }
+  } catch {}
+  return null
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,6 +29,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     condition, service, preferred_date, first_visit, notes,
   } = body
 
+  // Resolve address if post_code is being updated
+  let owner_address: string | null | undefined = undefined
+  if (post_code !== undefined) {
+    owner_address = await resolvePostcode(post_code)
+  }
+
   const lead = await prisma.leads.update({
     where: { id: params.id },
     data: {
@@ -25,6 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(owner_email !== undefined && { owner_email }),
       ...(owner_phone !== undefined && { owner_phone }),
       ...(post_code !== undefined && { post_code }),
+      ...(owner_address !== undefined && { owner_address }),
       ...(how_heard !== undefined && { how_heard }),
       ...(pet_name !== undefined && { pet_name }),
       ...(species !== undefined && { species }),

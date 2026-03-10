@@ -333,6 +333,7 @@ model leads {
   has_pain                 Boolean?
   pet_gender               String?
   post_code                String?
+  owner_address            String?
   reactive_to_pets         Boolean?
   vet_friendly             Boolean?
 }
