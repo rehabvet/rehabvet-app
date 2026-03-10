@@ -41,6 +41,7 @@ export default function CalendarPage() {
   const [apptVisit, setApptVisit] = useState<any>(null)
   const [apptInvoice, setApptInvoice] = useState<any>(null)
   const [apptLineItems, setApptLineItems] = useState<any[]>([])
+  const [apptPatientInfo, setApptPatientInfo] = useState<any>(null)
   const [showBillingModal, setShowBillingModal] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting,        setDeleting]        = useState(false)
@@ -393,6 +394,7 @@ export default function CalendarPage() {
     setApptVisit(null)
     setApptInvoice(null)
     setApptLineItems([])
+    setApptPatientInfo(null)
     setEditForm({
       date: appt.date,
       start_time: appt.start_time,
@@ -402,6 +404,13 @@ export default function CalendarPage() {
       status: appt.status,
       notes: appt.notes || ''
     })
+    // Load patient diagnosis/conditions
+    if (appt.patient_id) {
+      fetch(`/api/patients/${appt.patient_id}`)
+        .then(r => r.json())
+        .then(d => setApptPatientInfo(d.patient || d))
+        .catch(() => {})
+    }
     // Load visit & invoice for this appointment
     fetch(`/api/visits?appointment_id=${appt.id}&limit=1`)
       .then(r => r.json())
@@ -1443,6 +1452,22 @@ export default function CalendarPage() {
                 <p className="text-sm text-gray-400 italic">No client linked</p>
               )}
             </div>
+
+            {/* Diagnosis card */}
+            {apptPatientInfo && (apptPatientInfo.medical_conditions || apptPatientInfo.medical_history || apptPatientInfo.allergies) && (
+              <div className="rounded-xl border border-pink-100 bg-pink-50/60 px-4 py-3 space-y-1.5">
+                <p className="text-xs font-semibold text-brand-pink uppercase tracking-wide">🩺 Diagnosis / Conditions</p>
+                {apptPatientInfo.medical_conditions && (
+                  <p className="text-sm text-gray-800 leading-snug">{apptPatientInfo.medical_conditions}</p>
+                )}
+                {apptPatientInfo.medical_history && !apptPatientInfo.medical_conditions && (
+                  <p className="text-sm text-gray-800 leading-snug">{apptPatientInfo.medical_history}</p>
+                )}
+                {apptPatientInfo.allergies && (
+                  <p className="text-xs text-orange-700">⚠️ Allergies: {apptPatientInfo.allergies}</p>
+                )}
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="flex border-b border-gray-200 -mx-1">
