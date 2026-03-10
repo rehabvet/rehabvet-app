@@ -532,7 +532,7 @@ export default function StaffPage() {
                                   </div>
                                 )}
                                 <div className="min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate leading-tight">{s.name.split(' ')[0]}</p>
+                                  <p className="text-sm font-medium text-gray-800 truncate leading-tight">{s.name}</p>
                                   {isSaving && <p className="text-[10px] text-brand-pink animate-pulse">Saving…</p>}
                                 </div>
                               </div>
