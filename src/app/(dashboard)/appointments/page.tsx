@@ -183,9 +183,14 @@ export default function AppointmentsPage() {
       fetch(`/api/appointments?search=${encodeURIComponent(val)}&per_page=8`)
         .then(r => r.json())
         .then(d => {
-          // Deduplicate by patient+client pair
+          const q = val.toLowerCase()
+          // Only show suggestions where patient or client name matches (not therapist)
           const seen = new Set<string>()
           const unique = (d.appointments || []).filter((a: any) => {
+            if (!a.patient_name && !a.client_name) return false
+            const patientMatch = a.patient_name?.toLowerCase().includes(q)
+            const clientMatch = a.client_name?.toLowerCase().includes(q)
+            if (!patientMatch && !clientMatch) return false
             const key = `${a.patient_name}|${a.client_name}`
             if (seen.has(key)) return false
             seen.add(key)
@@ -366,10 +371,10 @@ export default function AppointmentsPage() {
                     setSuggestions([]); setShowSuggestions(false)
                   }}>
                   <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-brand-pink text-xs font-bold">{(a.patient_name || '?')[0]}</span>
+                    <span className="text-brand-pink text-xs font-bold">{(a.patient_name || a.client_name || '?')[0].toUpperCase()}</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{a.patient_name || '—'}</p>
+                    {a.patient_name && <p className="font-semibold text-gray-900 text-sm truncate">{a.patient_name}</p>}
                     <p className="text-xs text-gray-400 truncate">{a.client_name}{a.client_phone ? ` · ${a.client_phone}` : ''}</p>
                   </div>
                 </button>
