@@ -213,17 +213,8 @@ export async function POST(req: NextRequest) {
   let imported = 0;
   let skipped = 0;
 
-  // Generate next visit number — extract trailing numeric part so old VR-YYYY-NNNNNN and new VR-NNNNNNNN coexist
-  const visitMaxRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
-    `SELECT MAX(CAST(SUBSTRING(visit_number FROM '-([0-9]+)$') AS BIGINT)) as max_num FROM visit_records WHERE visit_number ~ '^VR-'`
-  );
-  let visitCounter = (parseInt(visitMaxRow[0]?.max_num || '0') || 0) + 1;
-
-  // Generate next invoice number — extract trailing numeric part
-  const invCountRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
-    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM '-([0-9]+)$') AS BIGINT)) as max_num FROM invoices WHERE invoice_number ~ '^RV-'`
-  );
-  let invCounter = (parseInt(invCountRow[0]?.max_num || '0') || 0) + 1;
+  // Numbers are generated atomically via DB sequences (vr_number_seq, inv_number_seq)
+  // No app-side counters — eliminates race conditions between concurrent imports
 
   for (const visit of parsed.visits) {
     // Skip if bill already imported (only check when bill_number is non-empty)
@@ -240,7 +231,11 @@ export async function POST(req: NextRequest) {
     const staffId = await resolveStaffId(visit.staffInitials);
 
     const visitId = randomUUID();
-    const visitNumber = `VR-${String(visitCounter++).padStart(8, '0')}`;
+    // Generate visit number atomically from DB sequence — no race conditions
+    const vnRow = await prisma.$queryRawUnsafe<{ vn: string }[]>(
+      `SELECT 'VR-' || LPAD(NEXTVAL('vr_number_seq')::TEXT, 8, '0') AS vn`
+    );
+    const visitNumber = vnRow[0].vn;
 
     try {
     await prisma.$transaction(async (tx) => {
@@ -274,7 +269,10 @@ export async function POST(req: NextRequest) {
       // Create invoice
       const invoiceId = randomUUID();
       const year = visit.date.slice(0, 4);
-      const invoiceNumber = `RV-${String(invCounter++).padStart(8, '0')}`;
+      const inRow = await tx.$queryRawUnsafe<{ inv: string }[]>(
+        `SELECT 'RV-' || LPAD(NEXTVAL('inv_number_seq')::TEXT, 8, '0') AS inv`
+      );
+      const invoiceNumber = inRow[0].inv;
       const subtotal = visit.lineItems.reduce((s: number, li: any) => s + li.price * li.qty, 0);
 
       await tx.$queryRawUnsafe(
