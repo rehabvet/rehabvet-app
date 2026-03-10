@@ -66,6 +66,13 @@ export default function StaffPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true, schedule: DEFAULT_SCHEDULE as WeekSchedule })
   const [pageTab, setPageTab] = useState<'profile'|'schedule'>('profile')
+  // ── Monthly Roster ─────────────────────────────────────────────────────────
+  const [rosterMonth, setRosterMonth] = useState(() => {
+    const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
+  })
+  const [rosterData, setRosterData] = useState<Set<string>>(new Set()) // "staff_id|date"
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const [savingRoster, setSavingRoster] = useState<string | null>(null) // staff_id being saved
   const [showScheduleEdit, setShowScheduleEdit] = useState<any>(null)
   const [savingSchedule, setSavingSchedule] = useState(false)
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
@@ -293,6 +300,55 @@ export default function StaffPage() {
     administrator: 'badge-red',
   }
 
+  // ── Monthly Roster helpers ──────────────────────────────────────────────────
+  async function loadRoster(month: string) {
+    setRosterLoading(true)
+    const res = await fetch(`/api/staff/roster?month=${month}`)
+    const data = await res.json()
+    const set = new Set<string>((data.roster || []).map((r: any) => `${r.staff_id}|${r.date}`))
+    setRosterData(set)
+    setRosterLoading(false)
+  }
+
+  useEffect(() => { if (pageTab === 'schedule') loadRoster(rosterMonth) }, [pageTab, rosterMonth])
+
+  function rosterKey(staffId: string, date: string) { return `${staffId}|${date}` }
+
+  async function toggleRosterDay(staffId: string, date: string) {
+    const key = rosterKey(staffId, date)
+    const isOn = rosterData.has(key)
+    // Optimistic update
+    setRosterData(prev => {
+      const next = new Set(prev)
+      isOn ? next.delete(key) : next.add(key)
+      return next
+    })
+    // Build new dates list for this staff+month and save
+    setSavingRoster(staffId)
+    const newSet = new Set(rosterData)
+    isOn ? newSet.delete(key) : newSet.add(key)
+    const dates = [...newSet].filter(k => k.startsWith(`${staffId}|`)).map(k => k.split('|')[1])
+    await fetch('/api/staff/roster', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: rosterMonth, staff_id: staffId, dates }),
+    })
+    setSavingRoster(null)
+  }
+
+  function getRosterDaysInMonth(month: string) {
+    const [y, m] = month.split('-').map(Number)
+    const days: { date: string; label: number; weekday: string }[] = []
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = `${month}-${String(d).padStart(2,'0')}`
+      const dow = DOW[new Date(y, m-1, d).getDay()]
+      days.push({ date, label: d, weekday: dow })
+    }
+    return days
+  }
+
   // Schedule summary label for a staff member
   function scheduleSummary(s: any): string {
     try {
@@ -389,65 +445,156 @@ export default function StaffPage() {
         </div>
       ))}
 
-      {/* ── Schedule Tab ── */}
-      {pageTab === 'schedule' && (
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-pink" /></div>
-          ) : staff.map(s => {
-            let sched: WeekSchedule = DEFAULT_SCHEDULE
-            try { if (s.schedule) sched = { ...DEFAULT_SCHEDULE, ...JSON.parse(s.schedule) } } catch {}
-            return (
-              <div key={s.id} className="card">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {s.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.photo_url} alt={s.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-sm">
-                        {s.name.split(' ').map((n: string) => n[0]).join('').substring(0,2)}
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{s.name}</p>
-                      <p className="text-xs text-gray-400">{scheduleSummary(s)}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => openScheduleEdit(s)} className="btn-secondary text-xs px-3 py-1.5">
-                    Edit Schedule
-                  </button>
+      {/* ── Schedule Tab — Monthly Roster ── */}
+      {pageTab === 'schedule' && (() => {
+        const days = getRosterDaysInMonth(rosterMonth)
+        const [y, m] = rosterMonth.split('-').map(Number)
+        const monthLabel = new Date(y, m-1, 1).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
+        const today = new Date().toISOString().split('T')[0]
+        const activeStaff = staff.filter(s => s.active !== false)
+
+        return (
+          <div className="space-y-4">
+            {/* Month navigation */}
+            <div className="card p-4 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const d = new Date(y, m-2, 1)
+                  setRosterMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900 text-lg">{monthLabel}</p>
+                <p className="text-xs text-gray-400">{activeStaff.length} staff · click a cell to toggle working day</p>
+              </div>
+              <button
+                onClick={() => {
+                  const d = new Date(y, m, 1)
+                  setRosterMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+
+            {rosterLoading ? (
+              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
+            ) : (
+              <div className="card p-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        {/* Staff column header */}
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky left-0 bg-gray-50 z-10 min-w-[160px] border-r border-gray-200">
+                          Staff
+                        </th>
+                        {days.map(({ date, label, weekday }) => {
+                          const isToday = date === today
+                          const isWeekend = weekday === 'Sat' || weekday === 'Sun'
+                          return (
+                            <th key={date} className={`text-center px-1 py-2 min-w-[44px] ${isWeekend ? 'bg-gray-100/80' : ''}`}>
+                              <div className={`text-[10px] font-semibold uppercase mb-0.5 ${isWeekend ? 'text-gray-400' : 'text-gray-400'}`}>{weekday}</div>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mx-auto
+                                ${isToday ? 'bg-brand-pink text-white' : isWeekend ? 'text-gray-400' : 'text-gray-700'}`}>
+                                {label}
+                              </div>
+                            </th>
+                          )
+                        })}
+                        <th className="px-3 text-xs text-gray-400 font-normal whitespace-nowrap">Days</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeStaff.map((s, si) => {
+                        const initials = s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
+                        const workedDays = days.filter(({ date }) => rosterData.has(rosterKey(s.id, date))).length
+                        const isSaving = savingRoster === s.id
+                        return (
+                          <tr key={s.id} className={`border-b border-gray-100 last:border-0 ${si % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                            {/* Staff name — sticky left */}
+                            <td className={`px-4 py-2.5 sticky left-0 z-10 border-r border-gray-200 ${si % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                              <div className="flex items-center gap-2.5">
+                                {s.photo_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={s.photo_url} alt={s.name} className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-xs flex-shrink-0">
+                                    {initials}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 truncate leading-tight">{s.name.split(' ')[0]}</p>
+                                  {isSaving && <p className="text-[10px] text-brand-pink animate-pulse">Saving…</p>}
+                                </div>
+                              </div>
+                            </td>
+                            {/* Day cells */}
+                            {days.map(({ date, weekday }) => {
+                              const isOn = rosterData.has(rosterKey(s.id, date))
+                              const isWeekend = weekday === 'Sat' || weekday === 'Sun'
+                              const isToday = date === today
+                              return (
+                                <td key={date} className={`text-center px-1 py-2 ${isWeekend ? 'bg-gray-50' : ''}`}>
+                                  <button
+                                    onClick={() => toggleRosterDay(s.id, date)}
+                                    title={isOn ? `${s.name} working ${date} — click to remove` : `Mark ${s.name} working on ${date}`}
+                                    className={`w-8 h-8 rounded-lg mx-auto flex items-center justify-center transition-all duration-100 hover:scale-105 active:scale-95
+                                      ${isOn
+                                        ? 'bg-brand-pink text-white shadow-sm hover:bg-brand-pink/80'
+                                        : isToday
+                                          ? 'bg-pink-50 border-2 border-dashed border-brand-pink/30 text-gray-300 hover:border-brand-pink/60'
+                                          : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
+                                      }`}
+                                  >
+                                    {isOn ? (
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    ) : (
+                                      <svg className="w-3 h-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                    )}
+                                  </button>
+                                </td>
+                              )
+                            })}
+                            {/* Days count */}
+                            <td className="px-3 text-center">
+                              <span className={`text-xs font-semibold ${workedDays > 0 ? 'text-brand-pink' : 'text-gray-300'}`}>
+                                {workedDays > 0 ? workedDays : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                {/* Week grid */}
-                <div className="grid grid-cols-7 gap-1">
-                  {DAYS.map(day => {
-                    const d = sched[day]
-                    return (
-                      <div key={day} className={`rounded-lg p-1.5 text-center ${d.on ? 'bg-brand-pink/10' : 'bg-gray-100'}`}>
-                        <p className={`text-[10px] font-bold uppercase mb-1 ${d.on ? 'text-brand-pink' : 'text-gray-400'}`}>
-                          {DAY_LABELS[day].slice(0,3)}
-                        </p>
-                        {d.on ? (
-                          <>
-                            <p className="text-[10px] text-gray-700 font-medium leading-tight">{fmtTime(d.start)}</p>
-                            <p className="text-[10px] text-gray-400 leading-tight">-</p>
-                            <p className="text-[10px] text-gray-700 font-medium leading-tight">{fmtTime(d.end)}</p>
-                            {d.breaks.length > 0 && (
-                              <p className="text-[9px] text-orange-400 mt-0.5">{d.breaks.length} break{d.breaks.length > 1 ? 's' : ''}</p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-[10px] text-gray-400 italic">Off</p>
-                        )}
-                      </div>
-                    )
-                  })}
+                {/* Legend */}
+                <div className="flex items-center gap-6 px-4 py-3 border-t border-gray-100 bg-gray-50/60 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-brand-pink flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    Working
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-gray-100" />
+                    Day off
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded bg-gray-50 border-2 border-dashed border-brand-pink/30" />
+                    Today
+                  </div>
+                  <p className="ml-auto text-gray-400">Changes save automatically</p>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        )
+      })()}
 
       {/* Add Staff Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add New Staff Member">

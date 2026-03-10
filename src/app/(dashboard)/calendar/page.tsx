@@ -25,6 +25,7 @@ export default function CalendarPage() {
   const [view, setView] = useState<ViewType>('day')
   const [appointments, setAppointments] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
+  const [rosterByDate, setRosterByDate] = useState<Record<string, string[]>>({}) // date → [staff_id]
   const [treatmentTypes, setTreatmentTypes] = useState<any[]>([])
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
   const [selectedAppt, setSelectedAppt] = useState<any>(null)
@@ -83,6 +84,18 @@ export default function CalendarPage() {
       })
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
+    // Load roster for this month
+    const monthStr = `${year}-${String(month).padStart(2,'0')}`
+    fetch(`/api/staff/roster?month=${monthStr}`)
+      .then(r => r.json()).then(d => {
+        const map: Record<string, string[]> = {}
+        for (const entry of (d.roster || [])) {
+          const date = entry.date.split('T')[0]
+          if (!map[date]) map[date] = []
+          map[date].push(entry.staff_id)
+        }
+        setRosterByDate(map)
+      })
     fetch('/api/appointment-types')
       .then(r => r.json()).then(d => { setTreatmentGrouped(d.grouped || {}) })
     // patients loaded on-demand per client (see selectNewApptClient)
@@ -737,12 +750,31 @@ export default function CalendarPage() {
     const dayAppts = apptsByDate[dateStr] || []
     const hours = Array.from({ length: 15 }, (_, i) => i + 8) // 8:00 – 22:00
 
+    // Build provider columns: prefer roster for this day, fall back to appointment-derived
+    const rosteredIds = rosterByDate[dateStr] // undefined if no roster set for this day
     const providerMap: Record<string, { id: string; name: string; role: string; photo_url?: string }> = {}
-    for (const a of dayAppts) {
-      if (a.therapist_id && a.therapist_name) {
-        providerMap[a.therapist_id] = { id: a.therapist_id, name: a.therapist_name, role: a.therapist_role || '', photo_url: a.therapist_photo }
+
+    if (rosteredIds && rosteredIds.length > 0) {
+      // Use rostered staff as the base columns (in roster order)
+      for (const sid of rosteredIds) {
+        const s = staff.find((x: any) => x.id === sid)
+        if (s) providerMap[sid] = { id: s.id, name: s.name, role: s.role || '', photo_url: s.photo_url }
+      }
+      // Also include any appointment providers not in roster (shouldn't normally happen)
+      for (const a of dayAppts) {
+        if (a.therapist_id && a.therapist_name && !providerMap[a.therapist_id]) {
+          providerMap[a.therapist_id] = { id: a.therapist_id, name: a.therapist_name, role: a.therapist_role || '', photo_url: a.therapist_photo }
+        }
+      }
+    } else {
+      // No roster set — fall back to appointment-derived providers
+      for (const a of dayAppts) {
+        if (a.therapist_id && a.therapist_name) {
+          providerMap[a.therapist_id] = { id: a.therapist_id, name: a.therapist_name, role: a.therapist_role || '', photo_url: a.therapist_photo }
+        }
       }
     }
+
     const providers = Object.values(providerMap)
     const hasUnassigned = dayAppts.some((a: any) => !a.therapist_id)
     if (hasUnassigned) providers.push({ id: '__unassigned__', name: 'Unassigned', role: '' })
