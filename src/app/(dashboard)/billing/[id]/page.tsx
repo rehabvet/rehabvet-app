@@ -80,8 +80,19 @@ export default function InvoiceDetailPage() {
 
   async function deleteInvoice() {
     setDeleting(true)
-    await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
-    router.push('/billing')
+    try {
+      const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || 'Failed to delete invoice')
+        setDeleting(false)
+        return
+      }
+      router.push('/billing')
+    } catch (e) {
+      alert('Network error — please try again')
+      setDeleting(false)
+    }
   }
 
   async function updateStatus(status: string) {
