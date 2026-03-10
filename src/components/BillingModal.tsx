@@ -49,7 +49,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
 
   useEffect(() => {
     if (!open) return
-    fetch('/api/service-pricing').then(r => r.json()).then(d => setServices(d.pricing || []))
+    fetch('/api/service-pricing').then(r => r.json()).then(d => setServices(d.services || d.pricing || []))
     fetch('/api/inventory?limit=500').then(r => r.json()).then(d => setInventory(d.items || []))
     if (clientId) fetch(`/api/clients/${clientId}`).then(r => r.json()).then(d => setClient(d.client || d))
     if (patientId) fetch(`/api/patients/${patientId}`).then(r => r.json()).then(d => setPatient(d.patient || d))
@@ -75,12 +75,12 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   }, [showPicker, pickerType])
 
   const filteredServices = services.filter(s =>
-    `${s.service?.name} ${s.label} ${s.service?.category}`.toLowerCase().includes(search.toLowerCase())
+    `${s.name} ${s.label} ${s.category} ${s.service?.name} ${s.service?.category}`.toLowerCase().includes(search.toLowerCase())
   )
 
   // Group by category
   const groupedServices = filteredServices.reduce((acc: Record<string, any[]>, s) => {
-    const cat = s.service?.category || 'Other Services'
+    const cat = s.category || s.service?.category || 'Other Services'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(s)
     return acc
@@ -94,8 +94,8 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
       id: uid(),
       type: 'service',
       item_id: s.id,
-      name: s.label || s.service?.name || 'Service',
-      category: s.service?.category || 'Service',
+      name: s.name || s.label || s.service?.name || 'Service',
+      category: s.category || s.service?.category || 'Service',
       unit_price: parseFloat(s.price || 0),
       qty: 1,
     }])
@@ -276,8 +276,8 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
                       <button key={s.id} type="button" onClick={() => addService(s)}
                         className="w-full flex justify-between items-center px-4 py-2.5 hover:bg-pink-50 text-sm text-left border-b border-gray-50 last:border-0 gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{s.service?.category || 'Other'}</p>
-                          <p className="font-medium text-gray-800">{s.label || s.service?.name}</p>
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{s.category || s.service?.category || 'Other'}</p>
+                          <p className="font-medium text-gray-800">{s.name || s.label || s.service?.name}</p>
                         </div>
                         <span className="text-brand-pink font-semibold flex-shrink-0">S${parseFloat(s.price||0).toFixed(2)}</span>
                       </button>
