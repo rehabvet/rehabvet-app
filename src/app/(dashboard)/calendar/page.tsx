@@ -1415,7 +1415,7 @@ export default function CalendarPage() {
       </Modal>
 
       {/* Edit Appointment Modal */}
-      <Modal open={!!selectedAppt} onClose={closeModal} title="Edit Appointment">
+      <Modal open={!!selectedAppt} onClose={closeModal} title="Edit Appointment" size="xl">
         {selectedAppt && editForm && (
           <div className="space-y-4">
             {/* Patient info (read-only) */}
