@@ -84,3 +84,29 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ visit: rows[0] })
 }
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Delete related records first (measurements, invoice line items, payments, invoice)
+  await prisma.$queryRawUnsafe(`DELETE FROM visit_measurements WHERE visit_id = $1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`
+    DELETE FROM invoice_line_items WHERE invoice_id IN (
+      SELECT id FROM invoices WHERE visit_id = $1::uuid
+    )
+  `, params.id)
+  await prisma.$queryRawUnsafe(`
+    DELETE FROM payments WHERE invoice_id IN (
+      SELECT id FROM invoices WHERE visit_id = $1::uuid
+    )
+  `, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM invoices WHERE visit_id = $1::uuid`, params.id)
+
+  const deleted = await prisma.$queryRawUnsafe(
+    `DELETE FROM visit_records WHERE id = $1::uuid RETURNING id`, params.id
+  ) as any[]
+
+  if (!deleted.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json({ success: true })
+}

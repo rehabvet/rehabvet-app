@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt } from 'lucide-react'
+import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt, AlertTriangle } from 'lucide-react'
 
 type ListItem = { id: string; text: string }
 
@@ -97,7 +97,9 @@ export default function VisitPage() {
   const [addingItem,setAddingItem]=useState(false)
   const [addingPay, setAddingPay] =useState(false)
   const [showItemForm,setShowItemForm]=useState(false)
-  const [showPayForm, setShowPayForm] =useState(false)
+  const [showPayForm, setShowPayForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Form state
   const [form, setForm] = useState<any>({
@@ -210,6 +212,12 @@ export default function VisitPage() {
     setTimeout(() => setSaved(false), 2000)
   }, [form, id])
 
+  async function handleDelete() {
+    setDeleting(true)
+    await fetch(`/api/visits/${id}`, { method: 'DELETE' })
+    router.back()
+  }
+
   const f = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }))
 
   if (!visit) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
@@ -221,11 +229,53 @@ export default function VisitPage() {
         <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" /> Delete
+          </button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
+          </button>
+        </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Delete Visit Record?</h3>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              This will permanently delete this visit record and any associated invoice. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 btn-secondary text-sm"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Visit info bar */}
       <div className="card py-3 px-5">
