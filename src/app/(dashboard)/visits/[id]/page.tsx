@@ -410,17 +410,12 @@ export default function VisitPage() {
         </div>
       </Section>
 
-      {/* Persistent Diagnosis History (patient-level) */}
+      {/* Diagnosis History — shared across all visits for this patient */}
       {visit?.patient_id && (
         <div className="card p-5">
           <DiagnosisLog patientId={visit.patient_id} />
         </div>
       )}
-
-      {/* Per-visit Diagnosis note */}
-      <Section title="📌 Diagnosis Note (this visit)">
-        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression for this visit…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
-      </Section>
 
       {/* History */}
       <Section title="📋 History (Owner's Report)">
