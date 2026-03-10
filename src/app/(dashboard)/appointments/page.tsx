@@ -156,11 +156,45 @@ export default function AppointmentsPage() {
     )
   }, [])
 
+  // Live suggestions for main search bar
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const suggDebounce = useRef<ReturnType<typeof setTimeout>|null>(null)
+  const searchBoxRef = useRef<HTMLDivElement>(null)
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   // Debounce search input
   function handleSearch(val: string) {
     setQInput(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => { setQ(val); setPage(1) }, 400)
+    // Suggestions
+    if (suggDebounce.current) clearTimeout(suggDebounce.current)
+    if (!val.trim()) { setSuggestions([]); setShowSuggestions(false); return }
+    suggDebounce.current = setTimeout(() => {
+      fetch(`/api/appointments?search=${encodeURIComponent(val)}&per_page=8`)
+        .then(r => r.json())
+        .then(d => {
+          // Deduplicate by patient+client pair
+          const seen = new Set<string>()
+          const unique = (d.appointments || []).filter((a: any) => {
+            const key = `${a.patient_name}|${a.client_name}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+          setSuggestions(unique.slice(0, 6))
+          setShowSuggestions(true)
+        })
+    }, 250)
   }
 
   // ── Client select for Add modal ───────────────────────────────────────────────
@@ -303,20 +337,47 @@ export default function AppointmentsPage() {
       {/* ── Filters ── */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <div className="relative flex-1 max-w-sm" ref={searchBoxRef}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
           <input
             type="text"
             placeholder="Search patient, client, therapist..."
             value={qInput}
             onChange={e => handleSearch(e.target.value)}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             className="input pl-9 pr-8"
+            autoComplete="off"
           />
           {qInput && (
-            <button onClick={() => { setQInput(''); setQ(''); setPage(1) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={() => { setQInput(''); setQ(''); setPage(1); setSuggestions([]); setShowSuggestions(false) }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10">
               <X className="w-3.5 h-3.5" />
             </button>
+          )}
+          {/* Suggestion dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+              {suggestions.map((a, i) => (
+                <button key={i} type="button"
+                  className="w-full text-left px-4 py-2.5 hover:bg-pink-50 border-b border-gray-50 last:border-0 flex items-center gap-3"
+                  onMouseDown={() => {
+                    const val = a.patient_name || a.client_name || ''
+                    setQInput(val); setQ(val); setPage(1)
+                    setSuggestions([]); setShowSuggestions(false)
+                  }}>
+                  <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-brand-pink text-xs font-bold">{(a.patient_name || '?')[0]}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm truncate">{a.patient_name || '—'}</p>
+                    <p className="text-xs text-gray-400 truncate">{a.client_name}{a.client_phone ? ` · ${a.client_phone}` : ''}</p>
+                  </div>
+                </button>
+              ))}
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+                <p className="text-xs text-gray-400">Press Enter to search all results</p>
+              </div>
+            </div>
           )}
         </div>
 
