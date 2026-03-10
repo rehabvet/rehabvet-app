@@ -189,15 +189,15 @@ export async function POST(req: NextRequest) {
   let imported = 0;
   let skipped = 0;
 
-  // Generate next visit number — use MAX (not COUNT) to handle gaps from deleted records
+  // Generate next visit number — extract trailing numeric part so old VR-YYYY-NNNNNN and new VR-NNNNNNNN coexist
   const visitMaxRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
-    `SELECT MAX(CAST(SUBSTRING(visit_number FROM 'VR-\\d{4}-(\\d+)') AS BIGINT)) as max_num FROM visit_records WHERE visit_number ~ '^VR-\\d{4}-\\d+'`
+    `SELECT MAX(CAST(SUBSTRING(visit_number FROM '-([0-9]+)$') AS BIGINT)) as max_num FROM visit_records WHERE visit_number ~ '^VR-'`
   );
   let visitCounter = (parseInt(visitMaxRow[0]?.max_num || '0') || 0) + 1;
 
-  // Generate next invoice number — extract only the last 6-digit sequence from RV-YYYY-NNNNNN
+  // Generate next invoice number — extract trailing numeric part
   const invCountRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
-    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'RV-\\d{4}-(\\d+)') AS BIGINT)) as max_num FROM invoices WHERE invoice_number ~ '^RV-\\d{4}-\\d+'`
+    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM '-([0-9]+)$') AS BIGINT)) as max_num FROM invoices WHERE invoice_number ~ '^RV-'`
   );
   let invCounter = (parseInt(invCountRow[0]?.max_num || '0') || 0) + 1;
 
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
     const staffId = await resolveStaffId(visit.staffInitials);
 
     const visitId = randomUUID();
-    const visitNumber = `VR-${visit.date.slice(0, 4)}-${String(visitCounter++).padStart(6, '0')}`;
+    const visitNumber = `VR-${String(visitCounter++).padStart(8, '0')}`;
 
     try {
     await prisma.$transaction(async (tx) => {
@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
       // Create invoice
       const invoiceId = randomUUID();
       const year = visit.date.slice(0, 4);
-      const invoiceNumber = `RV-${year}-${String(invCounter++).padStart(6, '0')}`;
+      const invoiceNumber = `RV-${String(invCounter++).padStart(8, '0')}`;
       const subtotal = visit.lineItems.reduce((s: number, li: any) => s + li.price * li.qty, 0);
 
       await tx.$queryRawUnsafe(
