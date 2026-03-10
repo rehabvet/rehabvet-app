@@ -18,6 +18,7 @@ export interface ParsedVisit {
   temperature?: number;
   history?: string;
   clinicalExamination?: string;
+  diagnosis?: string;         // extracted from "Diagnosis:" label within clinical examination
   treatment?: string;
   comments?: string;
   lineItems: ParsedLineItem[];
@@ -172,9 +173,22 @@ export function parsePDF(text: string): ParsedPDF | null {
     // Text sections
     const SECTIONS = ['History', 'Clinical Examination', 'Treatment', 'Comments'];
     const history = extractSection(block, 'History', ['Clinical Examination', 'Treatment', 'Comments', 'Staff']);
-    const clinicalExamination = extractSection(block, 'Clinical Examination', ['Treatment', 'Comments', 'Staff']);
+    const rawClinical = extractSection(block, 'Clinical Examination', ['Treatment', 'Comments', 'Staff']);
     const treatment = extractSection(block, 'Treatment', ['Comments', 'Staff']);
     const comments = extractSection(block, 'Comments', ['Staff', 'Bill#']);
+
+    // Split clinical examination on "Diagnosis:" label — anything after it is the diagnosis
+    let clinicalExamination: string | undefined;
+    let diagnosis: string | undefined;
+    if (rawClinical) {
+      const diagMatch = rawClinical.match(/^([\s\S]*?)\bDiagnosis\s*:\s*([\s\S]*)$/im);
+      if (diagMatch) {
+        clinicalExamination = diagMatch[1].trim() || undefined;
+        diagnosis = diagMatch[2].trim() || undefined;
+      } else {
+        clinicalExamination = rawClinical;
+      }
+    }
 
     // Line items: lines matching "{INITIALS}{qty}{name}${price}" (no spaces between fields)
     // e.g. "XC0.5Rehab 5 (<15kg) Visit$0.00" or "SL63Gabapentin 50mg$40.68"
@@ -200,6 +214,7 @@ export function parsePDF(text: string): ParsedPDF | null {
       temperature,
       history: history || undefined,
       clinicalExamination: clinicalExamination || undefined,
+      diagnosis: diagnosis || undefined,
       treatment: treatment || undefined,
       comments: comments || undefined,
       lineItems,

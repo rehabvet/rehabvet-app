@@ -318,6 +318,20 @@ export async function POST(req: NextRequest) {
           li.price * li.qty,
         );
       }
+
+      // Save diagnosis to patient_diagnoses (shared persistent log)
+      if (visit.diagnosis && visit.diagnosis.trim()) {
+        await tx.$queryRawUnsafe(
+          `INSERT INTO patient_diagnoses (id, patient_id, text, diagnosed_by, date, created_at, updated_at)
+           VALUES ($1::uuid, $2::uuid, $3, $4, $5::date, NOW(), NOW())
+           ON CONFLICT DO NOTHING`,
+          randomUUID(),
+          patientId,
+          visit.diagnosis.trim(),
+          staffId || null,
+          visit.date,
+        );
+      }
     });
 
     imported++;
