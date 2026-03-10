@@ -290,8 +290,16 @@ export default function CalendarPage() {
     setNewApptForm({ date, start_time: start, end_time: end, therapist_id: therapistId, patient_id: '', client_id: '', modality: '', notes: '' })
   }
 
+  const UNCATEGORIZED_NAMES = ['Lunch', 'Admin', 'On Leave', 'OFF', 'Half Day Off', 'Do Not Book']
+  function isUncategorizedType(modality: string) {
+    const uncatItems: any[] = treatmentGrouped['Uncategorized'] || []
+    return uncatItems.some((t: any) => t.name === modality) || UNCATEGORIZED_NAMES.includes(modality)
+  }
+
   async function saveNewAppt() {
-    if (!newApptForm || !newApptForm.patient_id || !newApptForm.modality) return
+    const uncategorized = isUncategorizedType(newApptForm?.modality || '')
+    if (!newApptForm || !newApptForm.modality) return
+    if (!uncategorized && !newApptForm.patient_id) return
     setNewApptSaving(true)
     try {
       const res = await fetch('/api/appointments', {
@@ -1028,8 +1036,8 @@ export default function CalendarPage() {
               <TimePicker label="End Time" value={newApptForm.end_time} onChange={t => setNewApptForm({...newApptForm, end_time: t})} minTime={newApptForm.start_time} />
             </div>
 
-            {/* 3. Client search */}
-            <div className="relative">
+            {/* 3. Client + Patient — hidden for Uncategorized types */}
+            {!isUncategorizedType(newApptForm?.modality || '') && <div className="relative">
               <label className="label">Client *</label>
               {selectedClient ? (
                 <div className="input flex items-center justify-between">
@@ -1082,10 +1090,10 @@ export default function CalendarPage() {
                   )}
                 </>
               )}
-            </div>
+            </div>}
 
             {/* 4. Patient — dropdown filtered to selected client, auto-selected if only 1 */}
-            {selectedClient && (
+            {!isUncategorizedType(newApptForm?.modality || '') && selectedClient && (
               <div>
                 <label className="label">Patient *</label>
                 {clientPatients.length === 0 ? (
@@ -1135,7 +1143,7 @@ export default function CalendarPage() {
 
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={resetNewApptModal} className="btn-secondary">Cancel</button>
-              <button onClick={saveNewAppt} disabled={newApptSaving || !newApptForm.patient_id || !newApptForm.modality} className="btn-primary">
+              <button onClick={saveNewAppt} disabled={newApptSaving || !newApptForm.modality || (!isUncategorizedType(newApptForm.modality) && !newApptForm.patient_id)} className="btn-primary">
                 {newApptSaving ? 'Saving...' : 'Create Appointment'}
               </button>
             </div>
