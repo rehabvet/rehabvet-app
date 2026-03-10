@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt, AlertTriangle } from 'lucide-react'
 
@@ -88,6 +88,9 @@ export default function VisitPage() {
   const [visit,    setVisit]    = useState<any>(null)
   const [saving,   setSaving]   = useState(false)
   const [saved,    setSaved]    = useState(false)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle'|'pending'|'saving'|'saved'>('idle')
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const formLoaded = useRef(false)
   const [staff,    setStaff]    = useState<any[]>([])
   const [invoice,  setInvoice]  = useState<any>(null)
   const [lineItems,setLineItems]= useState<any[]>([])
@@ -132,6 +135,8 @@ export default function VisitPage() {
         client_notes:        v.client_notes || '',
         plan:                v.plan || '',
       })
+      // Mark form as loaded so auto-save can trigger on future changes
+      setTimeout(() => { formLoaded.current = true }, 100)
     })
     fetch('/api/staff').then(r => r.json()).then(d => setStaff(d.staff || []))
     loadInvoice()
@@ -190,26 +195,49 @@ export default function VisitPage() {
     await loadInvoice()
   }
 
-  const handleSave = useCallback(async () => {
-    setSaving(true)
-    const payload = {
+  function buildPayload(form: any) {
+    return {
       ...form,
       treatment: form.treatment ? form.treatment.split('\n').filter((s: string) => s.trim()).map((s: string, i: number) => ({ step: i + 1, description: s.trim() })) : [],
       hep:       form.hep.map((h: ListItem) => ({ instruction: h.text })).filter((h: any) => h.instruction),
-      weight_kg:              form.weight_kg              ? parseFloat(form.weight_kg)              : null,
-      temperature_c:          form.temperature_c          ? parseFloat(form.temperature_c)          : null,
-      heart_rate_bpm:         form.heart_rate_bpm         ? parseInt(form.heart_rate_bpm)           : null,
-      respiratory_rate_bpm:   form.respiratory_rate_bpm   ? parseInt(form.respiratory_rate_bpm)     : null,
-      body_condition_score:   form.body_condition_score   ? parseInt(form.body_condition_score)     : null,
+      weight_kg:             form.weight_kg             ? parseFloat(form.weight_kg)             : null,
+      temperature_c:         form.temperature_c         ? parseFloat(form.temperature_c)         : null,
+      heart_rate_bpm:        form.heart_rate_bpm        ? parseInt(form.heart_rate_bpm)          : null,
+      respiratory_rate_bpm:  form.respiratory_rate_bpm  ? parseInt(form.respiratory_rate_bpm)    : null,
+      body_condition_score:  form.body_condition_score  ? parseInt(form.body_condition_score)    : null,
     }
+  }
+
+  // Auto-save: 2s debounce after any form change (skip initial load)
+  useEffect(() => {
+    if (!formLoaded.current) return
+    setAutoSaveStatus('pending')
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      setAutoSaveStatus('saving')
+      await fetch(`/api/visits/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload(form)),
+      })
+      setAutoSaveStatus('saved')
+      setTimeout(() => setAutoSaveStatus('idle'), 2000)
+    }, 2000)
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
+  }, [form])
+
+  const handleSave = useCallback(async () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    setSaving(true)
     await fetch(`/api/visits/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildPayload(form)),
     })
     setSaving(false)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setAutoSaveStatus('saved')
+    setTimeout(() => { setSaved(false); setAutoSaveStatus('idle') }, 2000)
   }, [form, id])
 
   async function handleDelete() {
@@ -236,6 +264,21 @@ export default function VisitPage() {
           >
             <Trash2 className="w-4 h-4" /> Delete
           </button>
+          {autoSaveStatus === 'pending' && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block animate-pulse" /> Unsaved
+            </span>
+          )}
+          {autoSaveStatus === 'saving' && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block animate-pulse" /> Saving…
+            </span>
+          )}
+          {autoSaveStatus === 'saved' && !saving && (
+            <span className="text-xs text-green-500 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> Auto-saved
+            </span>
+          )}
           <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
             <Save className="w-4 h-4" />
             {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
