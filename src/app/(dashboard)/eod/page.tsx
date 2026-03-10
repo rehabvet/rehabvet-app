@@ -412,7 +412,15 @@ export default function EODPage() {
         <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-center gap-2 text-green-700">
             <CheckCircle className="w-5 h-5" />
-            <span className="font-medium">Cash-up submitted successfully</span>
+            <div>
+              <p className="font-medium">Cash-up submitted successfully</p>
+              {existingEod?.submitted_by_name && (
+                <p className="text-xs text-green-600 mt-0.5">
+                  By {existingEod.submitted_by_name}
+                  {existingEod.submitted_at ? ` · ${new Date(existingEod.submitted_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}` : ''}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <a href={`/api/eod/${savedId}/pdf`} target="_blank" rel="noreferrer"
