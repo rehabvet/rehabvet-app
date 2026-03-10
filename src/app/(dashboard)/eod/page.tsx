@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { Calculator, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Printer, Loader2 } from 'lucide-react'
 
 const METHOD_LABELS: Record<string, string> = {
-  cash: 'Cash', card: 'Card (NETS/Visa/MC)', bank_transfer: 'Bank Transfer', paynow: 'PayNow', other: 'Other',
+  cash: 'Cash', nets: 'NETS', visa: 'Visa', mastercard: 'Mastercard', bank_transfer: 'Bank Transfer', paynow: 'PayNow', other: 'Other',
 }
-const METHODS = ['cash', 'card', 'bank_transfer', 'paynow', 'other']
+const METHODS = ['cash', 'nets', 'visa', 'mastercard', 'bank_transfer', 'paynow', 'other']
 
 interface MethodRow { method: string; label: string; expected: number; counted: number; variance: number }
 

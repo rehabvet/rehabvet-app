@@ -475,12 +475,13 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
             onChange={e => setPaymentMethod(e.target.value)}
           >
             <option value="">— Select payment method —</option>
-            <option value="visa">VISA</option>
-            <option value="mastercard">MASTER</option>
-            <option value="paynow">PayNow</option>
-            <option value="bank_transfer">Bank Transfer</option>
             <option value="cash">Cash</option>
             <option value="nets">NETS</option>
+            <option value="visa">Visa</option>
+            <option value="mastercard">Mastercard</option>
+            <option value="paynow">PayNow</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="other">Other</option>
           </select>
           {!paymentMethod && items.length > 0 && (
             <p className="text-xs text-gray-400 mt-1">Required to mark as paid. Leave blank to save as unpaid draft.</p>

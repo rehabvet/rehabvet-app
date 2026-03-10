@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const DEFAULT_FLOAT = 68.00
-const METHODS = ['cash', 'card', 'bank_transfer', 'paynow', 'other']
+const METHODS = ['cash', 'nets', 'visa', 'mastercard', 'bank_transfer', 'paynow', 'other']
 const METHOD_LABELS: Record<string, string> = {
-  cash: 'Cash', card: 'Card (NETS/Visa/MC)', bank_transfer: 'Bank Transfer', paynow: 'PayNow', other: 'Other',
+  cash: 'Cash', nets: 'NETS', visa: 'Visa', mastercard: 'Mastercard', bank_transfer: 'Bank Transfer', paynow: 'PayNow', other: 'Other',
 }
 
 export async function GET(req: NextRequest) {
