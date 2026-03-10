@@ -68,7 +68,7 @@ export default function ClientDetailPage() {
     fetch(`/api/clients/${id}`).then(r => r.json()).then(d => {
       setData(d); setForm(d.client)
     })
-    fetch(`/api/visits?client_id=${id}`).then(r => r.json()).then(d => {
+    fetch(`/api/visits?client_id=${id}&limit=1000`).then(r => r.json()).then(d => {
       setVisits(d.visits || [])
     }).catch(() => {})
   }, [id])
