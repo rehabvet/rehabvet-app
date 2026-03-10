@@ -357,13 +357,15 @@ export default function VisitPage() {
           <p className="text-xs text-gray-400 font-mono mb-2">{visit.visit_number}</p>
         )}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          <span className="flex items-center gap-1.5 font-semibold text-gray-900">
+          <a href={`/patients/${visit.patient_id}`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 font-semibold text-gray-900 hover:text-brand-pink transition-colors">
             <PawPrint className="w-4 h-4 text-brand-pink" />{visit.patient_name}
             <span className="text-gray-400 font-normal">({visit.patient_species})</span>
-          </span>
-          <span className="flex items-center gap-1.5 text-gray-600">
+          </a>
+          <a href={`/clients/${visit.client_id}`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-gray-600 hover:text-brand-pink transition-colors">
             <User className="w-4 h-4 text-gray-400" />{visit.client_name}
-          </span>
+          </a>
           <span className="flex items-center gap-1.5 text-gray-500">
             <Calendar className="w-4 h-4 text-gray-400" />
             <input type="date" className="input py-0.5 px-2 text-sm" value={form.visit_date} onChange={e => f('visit_date', e.target.value)} />
