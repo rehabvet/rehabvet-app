@@ -75,31 +75,44 @@ export async function POST(req: NextRequest) {
   // Back up PDF to Google Drive (fire and forget — never blocks import)
   backupPDFToDrive(buffer, file.name).catch(() => {});
 
-  // Extract text from PDF using pdf-parse (with lenient fallback for corrupted XRef tables)
+  // Extract text from PDF — three-tier approach for maximum compatibility
   let pdfText = '';
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-    // First attempt: standard parse
+
+    // Tier 1: standard parse
+    let parsed1 = false;
     try {
       const data = await pdfParse(buffer);
       pdfText = data.text;
-    } catch (firstErr: any) {
-      const msg = String(firstErr?.message || firstErr);
-      // Retry with lenient options for corrupted XRef / bad cross-reference PDFs
-      if (msg.includes('XRef') || msg.includes('xref') || msg.includes('Invalid') || msg.includes('bad')) {
-        try {
-          const data = await pdfParse(buffer, {
-            // Disable strict mode — tolerate structural errors
-            max: 0,
-            version: 'v1.10.100',
-          });
-          pdfText = data.text;
-        } catch (secondErr: any) {
-          return NextResponse.json({ error: `PDF parse error: ${secondErr?.message || secondErr}` }, { status: 400 });
-        }
-      } else {
-        throw firstErr;
+      parsed1 = true;
+    } catch { /* fall through */ }
+
+    // Tier 2: lenient options (for bad XRef / corrupted structure)
+    if (!parsed1) {
+      try {
+        const data = await pdfParse(buffer, { max: 0, version: 'v1.10.100' });
+        pdfText = data.text;
+        parsed1 = true;
+      } catch { /* fall through */ }
+    }
+
+    // Tier 3: raw byte text extraction — scrapes readable ASCII strings from the PDF binary
+    // Works on heavily corrupted files; extracts enough text for the PMS format parser
+    if (!parsed1 || !pdfText.trim()) {
+      const raw = buffer.toString('latin1');
+      // Extract parenthesised PDF text objects: (some text)
+      const chunks: string[] = [];
+      const parenRe = /\(([^)]{2,200})\)/g;
+      let m;
+      while ((m = parenRe.exec(raw)) !== null) {
+        const s = m[1].replace(/\\n/g, '\n').replace(/\\r/g, '\n').replace(/\\t/g, ' ').replace(/\\(.)/g, '$1');
+        if (/[A-Za-z]{2}/.test(s)) chunks.push(s);  // only keep strings with actual words
+      }
+      pdfText = chunks.join('\n');
+      if (!pdfText.trim()) {
+        return NextResponse.json({ error: 'PDF parse error: file appears to be empty or severely corrupted (0.8 KB). Try re-exporting from the PMS.' }, { status: 400 });
       }
     }
   } catch (e: any) {
