@@ -1403,7 +1403,15 @@ export default function CalendarPage() {
                 )}
               </div>
               {(selectedAppt.client_name || selectedAppt.client_phone) ? (
-                <p className="text-sm text-gray-500">{selectedAppt.client_name}{selectedAppt.client_phone ? ` • ${selectedAppt.client_phone}` : ''}</p>
+                selectedAppt.client_id ? (
+                  <a href={`/clients/${selectedAppt.client_id}`} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-gray-500 hover:text-brand-pink hover:underline transition-colors inline-flex items-center gap-1 group">
+                    {selectedAppt.client_name}{selectedAppt.client_phone ? ` • ${selectedAppt.client_phone}` : ''}
+                    <svg className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                ) : (
+                  <p className="text-sm text-gray-500">{selectedAppt.client_name}{selectedAppt.client_phone ? ` • ${selectedAppt.client_phone}` : ''}</p>
+                )
               ) : selectedAppt.notes?.startsWith('Client:') ? (
                 <p className="text-sm text-amber-600">⚠️ Unmatched: {selectedAppt.notes.replace(/^Client:\s*/, '')}</p>
               ) : (
