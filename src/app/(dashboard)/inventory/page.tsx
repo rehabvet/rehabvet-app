@@ -44,18 +44,32 @@ const CATEGORIES = [
   'Other',
 ]
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'TCM / Chinese Medicine': 'bg-purple-100 text-purple-700',
-  'Ruffwear Gear': 'bg-orange-100 text-orange-700',
-  'Orthotics & Braces': 'bg-blue-100 text-blue-700',
-  'Mobility Aids': 'bg-teal-100 text-teal-700',
-  'Pet Food': 'bg-green-100 text-green-700',
-  'Supplies & Equipment': 'bg-gray-100 text-gray-700',
-  'Grooming & Skin Care': 'bg-pink-100 text-pink-700',
-  'Supplements': 'bg-indigo-100 text-indigo-700',
-  'Pet Accessories': 'bg-yellow-100 text-yellow-700',
-  'Medications': 'bg-red-100 text-red-700',
-  'Other': 'bg-gray-100 text-gray-600',
+const CATEGORY_COLOR_PALETTE = [
+  'bg-pink-100 text-pink-700',
+  'bg-purple-100 text-purple-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-blue-100 text-blue-700',
+  'bg-cyan-100 text-cyan-700',
+  'bg-teal-100 text-teal-700',
+  'bg-green-100 text-green-700',
+  'bg-lime-100 text-lime-700',
+  'bg-yellow-100 text-yellow-700',
+  'bg-amber-100 text-amber-700',
+  'bg-orange-100 text-orange-700',
+  'bg-red-100 text-red-700',
+  'bg-rose-100 text-rose-700',
+  'bg-fuchsia-100 text-fuchsia-700',
+  'bg-violet-100 text-violet-700',
+  'bg-sky-100 text-sky-700',
+]
+
+function categoryColor(category: string): string {
+  if (!category || category === 'Other') return 'bg-gray-100 text-gray-600'
+  let hash = 0
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) & 0xffffffff
+  }
+  return CATEGORY_COLOR_PALETTE[Math.abs(hash) % CATEGORY_COLOR_PALETTE.length]
 }
 
 const ADJUST_TYPES = [
@@ -349,7 +363,7 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[item.category] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColor(item.category)}`}>
                         {item.category}
                       </span>
                     </td>
