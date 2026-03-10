@@ -12,6 +12,8 @@ interface ImportResult {
   ownerPhone: string;
   clientFound: boolean;
   patientFound: boolean;
+  clientId?: string;
+  patientId?: string;
   totalVisits: number;
   imported: number;
   skipped: number;
