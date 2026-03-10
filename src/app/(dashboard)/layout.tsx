@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, Users, PawPrint, ClipboardList,
   FileText, DollarSign, BarChart3, Settings, LogOut, Menu, X, Package, Megaphone, TrendingUp,
-  Stethoscope, UserCog, Layers, Mail, Clipboard, Upload, Calculator
+  Stethoscope, UserCog, Layers, Mail, Clipboard, Upload, Calculator, Calculator
 } from 'lucide-react'
 
 interface User {
@@ -29,6 +29,7 @@ const nav = [
   { href: '/funnel', label: 'Booking Funnel', icon: TrendingUp, roles: ['admin', 'administrator'] },
   { href: '/campaigns', label: 'Campaigns', icon: Mail, roles: ['admin', 'administrator', 'office_manager', 'marketing'] },
 
+  { href: '/eod', label: 'End of Day', icon: Calculator, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/eod', label: 'End of Day', icon: Calculator, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/import', label: 'Import', icon: Upload, roles: ['admin', 'vet', 'therapist', 'receptionist', 'administrator', 'office_manager', 'veterinarian', 'senior_therapist', 'assistant_therapist', 'hydrotherapist', 'marketing'] },
   { href: '/staff', label: 'Staff', icon: UserCog, roles: ['admin', 'administrator', 'office_manager'] },
