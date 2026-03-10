@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Calculator, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Printer, Loader2 } from 'lucide-react'
+import { Calculator, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Printer, Loader2, History, TrendingUp } from 'lucide-react'
 
 const METHOD_LABELS: Record<string, string> = {
   cash: 'Cash', nets: 'NETS', visa: 'Visa', mastercard: 'Mastercard', bank_transfer: 'Bank Transfer', paynow: 'PayNow', other: 'Other',
@@ -12,6 +12,7 @@ interface MethodRow { method: string; label: string; expected: number; counted: 
 
 export default function EODPage() {
   const today = new Date().toISOString().split('T')[0]
+  const [tab, setTab] = useState<'cashup'|'history'>('cashup')
   const [date, setDate] = useState(today)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -27,6 +28,11 @@ export default function EODPage() {
   const [totalExpected, setTotalExpected] = useState(0)
   const [notes, setNotes] = useState('')
   const [showInvoices, setShowInvoices] = useState(false)
+
+  // History state
+  const [history, setHistory] = useState<any[]>([])
+  const [historyPeriod, setHistoryPeriod] = useState<'week'|'month'|'all'>('month')
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const load = useCallback(async (d: string) => {
     setLoading(true)
@@ -65,6 +71,14 @@ export default function EODPage() {
   }, [])
 
   useEffect(() => { load(date) }, [date, load])
+
+  useEffect(() => {
+    if (tab !== 'history') return
+    setHistoryLoading(true)
+    fetch(`/api/eod?history=1&period=${historyPeriod}`)
+      .then(r => r.json())
+      .then(d => { setHistory(d.closings || []); setHistoryLoading(false) })
+  }, [tab, historyPeriod])
 
   function setCashCounted(val: number) {
     setBreakdown(prev => prev.map(m => {
@@ -112,13 +126,110 @@ export default function EODPage() {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Calculator className="w-6 h-6 text-brand-pink" /> End of Day Cash-Up</h1>
           <p className="text-sm text-gray-500 mt-1">Reconcile daily payments and close the books</p>
         </div>
-        {savedId && (
+        {savedId && tab === 'cashup' && (
           <a href={`/api/eod/${savedId}/pdf`} target="_blank" rel="noreferrer"
             className="flex items-center gap-2 px-4 py-2 border border-brand-pink text-brand-pink rounded-lg hover:bg-pink-50 text-sm font-medium">
             <Printer className="w-4 h-4" /> Print Report
           </a>
         )}
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+        <button onClick={() => setTab('cashup')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'cashup' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+          <Calculator className="w-4 h-4" /> Cash-Up
+        </button>
+        <button onClick={() => setTab('history')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'history' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+          <History className="w-4 h-4" /> History
+        </button>
+      </div>
+
+      {/* History Tab */}
+      {tab === 'history' && (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            {(['week','month','all'] as const).map(p => (
+              <button key={p} onClick={() => setHistoryPeriod(p)}
+                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${historyPeriod === p ? 'bg-brand-pink text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {p === 'week' ? 'Last 7 days' : p === 'month' ? 'Last 30 days' : 'All time'}
+              </button>
+            ))}
+          </div>
+
+          {historyLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-brand-pink" /></div>
+          ) : history.length === 0 ? (
+            <div className="card text-center py-12 text-gray-400">
+              <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p>No cash-ups found for this period</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total Sales', value: `S$${history.reduce((s,r) => s + parseFloat(r.total_expected||0), 0).toFixed(2)}`, color: 'text-gray-900' },
+                  { label: 'Total Banking', value: `S$${history.reduce((s,r) => s + parseFloat(r.banking||0), 0).toFixed(2)}`, color: 'text-brand-pink' },
+                  { label: 'Days Closed', value: history.length.toString(), color: 'text-gray-900' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="card p-4 text-center">
+                    <p className="text-xs text-gray-500 mb-1">{label}</p>
+                    <p className={`text-xl font-bold ${color}`}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* History table */}
+              <div className="card p-0 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Date</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Sales</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Variance</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Banking</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Submitted by</th>
+                      <th className="px-4 py-2.5" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {history.map(r => {
+                      const variance = parseFloat(r.total_variance || 0)
+                      return (
+                        <tr key={r.id} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-3 font-medium text-gray-800">
+                            {new Date(r.date).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-700">S${parseFloat(r.total_expected||0).toFixed(2)}</td>
+                          <td className={`px-4 py-3 text-right font-medium ${Math.abs(variance) > 5 ? 'text-red-600' : Math.abs(variance) > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                            {variance >= 0 ? '+' : ''}S${variance.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-brand-pink">S${parseFloat(r.banking||0).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-gray-500 text-xs">{r.submitted_by_name || '—'}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center gap-2 justify-end">
+                              <button onClick={() => { setTab('cashup'); setDate(r.date) }}
+                                className="text-xs text-brand-pink hover:underline">View</button>
+                              <a href={`/api/eod/${r.id}/pdf`} target="_blank" rel="noreferrer"
+                                className="text-gray-400 hover:text-gray-600">
+                                <Printer className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'cashup' && (<>
 
       {/* Date selector */}
       <div className="card p-4 flex items-center gap-4">
@@ -308,13 +419,14 @@ export default function EODPage() {
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-green-600 text-green-700 rounded-lg hover:bg-green-100">
               <Printer className="w-3.5 h-3.5" /> Print Report
             </a>
-            <button onClick={() => { setSubmitted(false); setDate(today); load(today) }}
+            <button onClick={() => { setTab('history') }}
               className="text-sm px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
-              New Day
+              View History
             </button>
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }

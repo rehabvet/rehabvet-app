@@ -12,6 +12,25 @@ export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // History mode: return list of past closings
+  if (req.nextUrl.searchParams.get('history') === '1') {
+    const period = req.nextUrl.searchParams.get('period') || 'month' // week | month | all
+    let since = ''
+    if (period === 'week')  since = `AND e.date >= CURRENT_DATE - INTERVAL '7 days'`
+    if (period === 'month') since = `AND e.date >= CURRENT_DATE - INTERVAL '30 days'`
+    const rows = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT e.id, e.date, e.status, e.total_expected, e.total_counted, e.total_variance,
+             e.float_in, e.float_out, e.banking, e.invoice_count, e.submitted_at,
+             u.name as submitted_by_name
+      FROM eod_closings e
+      LEFT JOIN users u ON u.id = e.created_by
+      WHERE 1=1 ${since}
+      ORDER BY e.date DESC
+      LIMIT 90
+    `)
+    return NextResponse.json({ closings: rows })
+  }
+
   const date = req.nextUrl.searchParams.get('date') || new Date().toISOString().split('T')[0]
 
   // Check if already submitted
