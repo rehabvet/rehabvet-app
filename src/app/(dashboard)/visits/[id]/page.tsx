@@ -409,6 +409,11 @@ export default function VisitPage() {
         </div>
       </Section>
 
+      {/* Diagnosis */}
+      <Section title="📌 Diagnosis">
+        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
+      </Section>
+
       {/* History */}
       <Section title="📋 History (Owner's Report)">
         <AutoTextarea className="input mt-3 w-full" placeholder="Owner's observations and complaints since last visit…" value={form.history} onChange={v => f('history', v)} />
@@ -417,11 +422,6 @@ export default function VisitPage() {
       {/* Clinical Examination */}
       <Section title="🔍 Clinical Examination">
         <AutoTextarea className="input mt-3 w-full" placeholder="Gait, palpation, ROM, CP, muscle assessment, special tests…" value={form.clinical_examination} onChange={v => f('clinical_examination', v)} />
-      </Section>
-
-      {/* Diagnosis */}
-      <Section title="📌 Diagnosis">
-        <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
       </Section>
 
       {/* Treatment */}
