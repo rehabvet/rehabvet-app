@@ -984,17 +984,15 @@ export default function CalendarPage() {
             {showDateJumper && (
               <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-3 min-w-[220px]">
                 <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Jump to date</p>
-                <input
-                  type="date"
-                  className="input text-sm w-full"
-                  defaultValue={toSGTDateStr(currentDate)}
-                  onChange={e => {
-                    if (!e.target.value) return
-                    const [y, m, d] = e.target.value.split('-').map(Number)
+                <DatePicker
+                  label=""
+                  value={toSGTDateStr(currentDate)}
+                  onChange={v => {
+                    if (!v) return
+                    const [y, m, d] = v.split('-').map(Number)
                     setCurrentDate(new Date(y, m - 1, d))
                     setShowDateJumper(false)
                   }}
-                  autoFocus
                 />
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {[

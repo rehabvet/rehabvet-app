@@ -9,6 +9,7 @@ interface Lead {
   id: string
   owner_name: string; owner_email: string; owner_phone: string; how_heard: string | null
   post_code: string | null
+  owner_address?: string | null
   pet_name: string; species: string; breed: string | null; age: string | null
   pet_gender: string | null; weight: string | null
   vet_friendly: boolean | null; reactive_to_pets: boolean | null
