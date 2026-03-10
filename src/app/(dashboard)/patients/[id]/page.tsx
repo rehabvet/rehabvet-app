@@ -20,7 +20,7 @@ export default function PatientDetailPage() {
     fetch(`/api/patients/${id}`).then(r => r.json()).then(d => {
       setData(d)
       const p = d?.patient
-      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '' })
+      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '', neutered: p.neutered ?? null })
     })
     fetch(`/api/patients/${id}/visits`).then(r => r.json()).then(d => setVisits(d.visits || []))
   }, [id])
@@ -38,7 +38,7 @@ export default function PatientDetailPage() {
       const d = await fetch(`/api/patients/${id}`).then(r => r.json())
       setData(d)
       const p = d?.patient
-      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '' })
+      if (p) setEditForm({ name: p.name || '', species: p.species || 'Dog', breed: p.breed || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '', weight: p.weight || '', microchip: p.microchip || '', notes: p.notes || '', neutered: p.neutered ?? null })
       setEditing(false)
     } catch (e) {
       alert(`Save failed: ${e}`)
@@ -94,10 +94,26 @@ export default function PatientDetailPage() {
                   <div><label className="text-xs text-gray-500">Name</label><input className="input w-full mt-1" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
                   <div><label className="text-xs text-gray-500">Species</label><input className="input w-full mt-1" value={editForm.species} onChange={e => setEditForm({...editForm, species: e.target.value})} /></div>
                   <div><label className="text-xs text-gray-500">Breed</label><input className="input w-full mt-1" value={editForm.breed} onChange={e => setEditForm({...editForm, breed: e.target.value})} /></div>
-                  <div><label className="text-xs text-gray-500">Gender</label><input className="input w-full mt-1" value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})} /></div>
+                  <div>
+                    <label className="text-xs text-gray-500">Gender</label>
+                    <select className="input w-full mt-1" value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})}>
+                      <option value="">— Select —</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Neutered / Spayed</label>
+                    <select className="input w-full mt-1" value={editForm.neutered === null || editForm.neutered === undefined ? '' : editForm.neutered ? 'yes' : 'no'}
+                      onChange={e => setEditForm({...editForm, neutered: e.target.value === '' ? null : e.target.value === 'yes'})}>
+                      <option value="">— Unknown —</option>
+                      <option value="yes">Yes — Neutered / Spayed</option>
+                      <option value="no">No — Intact</option>
+                    </select>
+                  </div>
                   <div><label className="text-xs text-gray-500">Date of Birth</label><input type="date" className="input w-full mt-1" value={editForm.date_of_birth} onChange={e => setEditForm({...editForm, date_of_birth: e.target.value})} /></div>
-                  <div><label className="text-xs text-gray-500">Weight (kg)</label><input className="input w-full mt-1" value={editForm.weight} onChange={e => setEditForm({...editForm, weight: e.target.value})} /></div>
-                  <div><label className="text-xs text-gray-500">Microchip</label><input className="input w-full mt-1" value={editForm.microchip} onChange={e => setEditForm({...editForm, microchip: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Weight (kg)</label><input type="number" step="0.1" min="0" className="input w-full mt-1" value={editForm.weight} onChange={e => setEditForm({...editForm, weight: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500">Microchip No.</label><input className="input w-full mt-1 font-mono text-sm" value={editForm.microchip} onChange={e => setEditForm({...editForm, microchip: e.target.value})} /></div>
                 </div>
                 <div><label className="text-xs text-gray-500">Notes</label><textarea className="input w-full mt-1" rows={2} value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} /></div>
                 <div className="flex gap-2">
@@ -114,12 +130,28 @@ export default function PatientDetailPage() {
                   </div>
                   <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-1 text-sm"><Edit2 className="w-3.5 h-3.5" />Edit</button>
                 </div>
-                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
-                  {patient.date_of_birth && <span>DOB: {patient.date_of_birth}</span>}
-                  {patient.weight && <span>Weight: {patient.weight}kg</span>}
-                  {patient.gender && <span>Gender: {patient.gender.replace('_', ' ')}</span>}
-                  {patient.microchip && <span>Microchip: {patient.microchip}</span>}
+                {/* Critical info cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                  <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Weight</p>
+                    <p className="font-semibold text-gray-900 mt-0.5">{patient.weight ? `${patient.weight} kg` : <span className="text-gray-300">—</span>}</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Gender</p>
+                    <p className="font-semibold text-gray-900 mt-0.5 capitalize">{patient.gender ? patient.gender.replace(/_/g, ' ') : <span className="text-gray-300">—</span>}</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Neutered</p>
+                    <p className={`font-semibold mt-0.5 ${patient.neutered === true ? 'text-green-600' : patient.neutered === false ? 'text-amber-600' : 'text-gray-300'}`}>
+                      {patient.neutered === true ? 'Neutered' : patient.neutered === false ? 'Intact' : '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Microchip</p>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs font-mono">{patient.microchip || <span className="text-gray-300 font-sans font-normal">—</span>}</p>
+                  </div>
                 </div>
+                {patient.date_of_birth && <p className="text-sm text-gray-500 mt-2">DOB: {patient.date_of_birth}</p>}
               </>
             )}
           </div>

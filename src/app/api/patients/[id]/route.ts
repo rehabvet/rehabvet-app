@@ -91,6 +91,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.weight !== undefined) data.weight = body.weight ? parseFloat(body.weight) : null
   if (body.gender !== undefined) data.gender = body.gender || null
   if (body.microchip !== undefined) data.microchip = body.microchip ?? null
+  if (body.neutered !== undefined) data.neutered = body.neutered === null ? null : Boolean(body.neutered)
   if (body.medical_history !== undefined) data.medical_history = body.medical_history ?? null
   if (body.allergies !== undefined) data.allergies = body.allergies ?? null
   if (body.notes !== undefined) data.notes = body.notes ?? null
