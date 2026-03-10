@@ -21,7 +21,13 @@ function toSGTDateStr(d: Date) {
 
 export default function CalendarPage() {
   const router = useRouter()
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('calendar_current_date')
+      if (saved) { const d = new Date(saved); if (!isNaN(d.getTime())) return d }
+    }
+    return new Date()
+  })
   const [view, setView] = useState<ViewType>('day')
   const [appointments, setAppointments] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
@@ -71,6 +77,11 @@ export default function CalendarPage() {
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
+
+  // Persist current date across refreshes
+  useEffect(() => {
+    localStorage.setItem('calendar_current_date', currentDate.toISOString())
+  }, [currentDate])
 
   useEffect(() => {
     const startDate = toSGTDateStr(new Date(year, month - 1, 1))
