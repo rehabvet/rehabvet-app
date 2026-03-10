@@ -88,5 +88,68 @@ export async function GET(req: NextRequest) {
     return { ...l, matched_client }
   })
 
+  // Auto-convert: any lead with a matched client that isn't already converted
+  const toConvert = leads.filter(l => l.matched_client && l.status !== 'converted')
+  if (toConvert.length > 0) {
+    // Fire-and-forget — don't block the response
+    prisma.$queryRawUnsafe(`
+      UPDATE leads
+      SET status = 'converted',
+          converted_client_id = mc.client_id,
+          updated_at = NOW()
+      FROM (VALUES ${toConvert.map((l, i) => `($${i * 2 + 1}::uuid, $${i * 2 + 2}::uuid)`).join(', ')}) AS mc(lead_id, client_id)
+      WHERE leads.id = mc.lead_id
+        AND leads.status != 'converted'
+    `, ...toConvert.flatMap(l => [l.id, l.matched_client!.id])).catch(() => {})
+  }
+
   return NextResponse.json({ leads, total, page, limit, statusCounts })
+}
+
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await req.json()
+  const {
+    owner_name, owner_email = '', owner_phone = '', post_code,
+    pet_name, species = 'Dog', breed, age, pet_gender,
+    vet_friendly, reactive_to_pets, clinic_name, attending_vet,
+    has_pain, condition, how_heard, notes, service, preferred_date,
+  } = body
+
+  if (!owner_name || !pet_name) {
+    return NextResponse.json({ error: 'owner_name and pet_name are required' }, { status: 400 })
+  }
+
+  // Check if this lead matches an existing client (by email or phone)
+  let status = 'new'
+  let converted_client_id: string | null = null
+
+  if (owner_email || owner_phone) {
+    const digits = owner_phone.replace(/\D/g, '').slice(-8)
+    const match = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT id FROM clients
+      WHERE ($1 != '' AND LOWER(email) = LOWER($1))
+         OR ($2 != '' AND right(regexp_replace(phone, '[^0-9]', '', 'g'), 8) = $2)
+      LIMIT 1
+    `, owner_email, digits)
+    if (match.length > 0) {
+      status = 'converted'
+      converted_client_id = match[0].id
+    }
+  }
+
+  const lead = await prisma.leads.create({
+    data: {
+      owner_name, owner_email, owner_phone, post_code,
+      pet_name, species, breed, age, pet_gender,
+      vet_friendly, reactive_to_pets, clinic_name, attending_vet,
+      has_pain, condition, how_heard, notes, service, preferred_date,
+      status,
+      converted_client_id,
+    },
+  })
+
+  return NextResponse.json(lead, { status: 201 })
 }
