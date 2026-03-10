@@ -8,6 +8,9 @@ import BillingModal from '@/components/BillingModal'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
+import PhoneInput from '@/components/PhoneInput'
+import AddressInput from '@/components/AddressInput'
+import BreedSearch from '@/components/BreedSearch'
 
 type ViewType = 'day' | 'week' | 'month'
 
@@ -52,8 +55,12 @@ export default function CalendarPage() {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [clientPatients, setClientPatients] = useState<any[]>([])
   const [showNewClientForm, setShowNewClientForm] = useState(false)
-  const [newClientForm, setNewClientForm] = useState({ first_name: '', last_name: '', phone: '', email: '' })
+  const [newClientForm, setNewClientForm] = useState({
+    first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '',
+    pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
+  })
   const [savingNewClient, setSavingNewClient] = useState(false)
+  const SPECIES_OPTIONS = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Hamster', 'Guinea Pig', 'Reptile', 'Other']
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
   // Drag-and-drop state
@@ -274,20 +281,23 @@ export default function CalendarPage() {
   }
 
   async function createNewClientInline() {
-    const { first_name, last_name, phone } = newClientForm
+    const { first_name, last_name, phone, email, address, notes, pets } = newClientForm
     if (!first_name.trim() && !last_name.trim()) return
     setSavingNewClient(true)
     const name = `${first_name.trim()} ${last_name.trim()}`.trim()
+    const filteredPets = pets.filter(p => p.name.trim()).map(p => ({
+      name: p.name.trim(), species: p.species, breed: p.breed.trim(), medical_history: p.medical_history.trim(),
+    }))
     const res = await fetch('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, first_name: first_name.trim(), last_name: last_name.trim(), phone: phone.trim(), email: newClientForm.email.trim() }),
+      body: JSON.stringify({ name, first_name: first_name.trim(), last_name: last_name.trim(), phone: phone.trim(), email: email.trim(), address: address.trim(), notes: notes.trim(), pets: filteredPets }),
     })
     const data = await res.json()
     const client = data.client || data
     setSavingNewClient(false)
     setShowNewClientForm(false)
-    setNewClientForm({ first_name: '', last_name: '', phone: '', email: '' })
+    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }] })
     await selectNewApptClient(client)
   }
 
@@ -298,7 +308,7 @@ export default function CalendarPage() {
     setClientPatients([])
     setPatientSearchResults([])
     setShowNewClientForm(false)
-    setNewClientForm({ first_name: '', last_name: '', phone: '', email: '' })
+    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }] })
   }
 
   function openNewApptModal(date: string, time: string, therapistId = '') {
@@ -1119,22 +1129,87 @@ export default function CalendarPage() {
                       <span className="text-base leading-none">+</span> Create New Client
                     </button>
                   ) : (
-                    <div className="mt-2 border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+                    <div className="mt-2 border border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Client</p>
+
+                      {/* Owner details */}
                       <div className="grid grid-cols-2 gap-2">
-                        <input className="input text-sm py-1.5" placeholder="First name *"
+                        <input className="input text-sm" placeholder="First name *"
                           value={newClientForm.first_name}
                           onChange={e => setNewClientForm(f => ({ ...f, first_name: e.target.value }))} />
-                        <input className="input text-sm py-1.5" placeholder="Last name"
+                        <input className="input text-sm" placeholder="Last name"
                           value={newClientForm.last_name}
                           onChange={e => setNewClientForm(f => ({ ...f, last_name: e.target.value }))} />
                       </div>
-                      <input className="input text-sm py-1.5" placeholder="Phone"
-                        value={newClientForm.phone}
-                        onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} />
-                      <input className="input text-sm py-1.5" placeholder="Email"
-                        value={newClientForm.email}
-                        onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="label text-xs">Phone *</label>
+                          <PhoneInput value={newClientForm.phone} onChange={v => setNewClientForm(f => ({ ...f, phone: v }))} />
+                        </div>
+                        <div>
+                          <label className="label text-xs">Email</label>
+                          <input type="email" className="input text-sm" placeholder="email@example.com"
+                            value={newClientForm.email}
+                            onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label text-xs">Address</label>
+                        <AddressInput value={newClientForm.address} onChange={v => setNewClientForm(f => ({ ...f, address: v }))} />
+                      </div>
+
+                      {/* Pet details */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pet Details</p>
+                          <button type="button" className="text-xs text-brand-pink hover:underline"
+                            onClick={() => setNewClientForm(f => ({ ...f, pets: [...f.pets, { name: '', species: 'Dog', breed: '', medical_history: '' }] }))}>
+                            + Add Pet
+                          </button>
+                        </div>
+                        {newClientForm.pets.map((pet, idx) => (
+                          <div key={idx} className="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-semibold text-gray-600">Pet #{idx + 1}</p>
+                              {newClientForm.pets.length > 1 && (
+                                <button type="button" className="text-xs text-red-400 hover:text-red-600"
+                                  onClick={() => setNewClientForm(f => ({ ...f, pets: f.pets.filter((_, i) => i !== idx) }))}>
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input className="input text-sm" placeholder="Pet name *"
+                                value={pet.name}
+                                onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], name: e.target.value }; return { ...f, pets: p } })} />
+                              <select className="input text-sm" value={pet.species}
+                                onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], species: e.target.value, breed: '' }; return { ...f, pets: p } })}>
+                                {SPECIES_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="label text-xs">Breed</label>
+                              <BreedSearch species={pet.species} value={pet.breed}
+                                onChange={v => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], breed: v }; return { ...f, pets: p } })} />
+                            </div>
+                            <div>
+                              <label className="label text-xs">Medical History</label>
+                              <textarea className="input text-sm" rows={2} placeholder="Pre-existing conditions, surgeries, medications..."
+                                value={pet.medical_history}
+                                onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], medical_history: e.target.value }; return { ...f, pets: p } })} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <label className="label text-xs">Notes</label>
+                        <textarea className="input text-sm" rows={2} placeholder="Additional notes about the client"
+                          value={newClientForm.notes}
+                          onChange={e => setNewClientForm(f => ({ ...f, notes: e.target.value }))} />
+                      </div>
+
                       <div className="flex gap-2 pt-1">
                         <button type="button" onClick={() => setShowNewClientForm(false)}
                           className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 bg-white">
