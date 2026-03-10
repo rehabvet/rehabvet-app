@@ -51,6 +51,9 @@ export default function CalendarPage() {
   const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [clientPatients, setClientPatients] = useState<any[]>([])
+  const [showNewClientForm, setShowNewClientForm] = useState(false)
+  const [newClientForm, setNewClientForm] = useState({ first_name: '', last_name: '', phone: '', email: '' })
+  const [savingNewClient, setSavingNewClient] = useState(false)
   // Simple in-memory cache: key = `${year}-${month}` → appointments[]
   const apptCache = useRef<Map<string, any[]>>(new Map())
   // Drag-and-drop state
@@ -270,12 +273,32 @@ export default function CalendarPage() {
     setNewApptForm((f: any) => ({ ...f, client_id: client.id, patient_id: patient.id }))
   }
 
+  async function createNewClientInline() {
+    const { first_name, last_name, phone } = newClientForm
+    if (!first_name.trim() && !last_name.trim()) return
+    setSavingNewClient(true)
+    const name = `${first_name.trim()} ${last_name.trim()}`.trim()
+    const res = await fetch('/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, first_name: first_name.trim(), last_name: last_name.trim(), phone: phone.trim(), email: newClientForm.email.trim() }),
+    })
+    const data = await res.json()
+    const client = data.client || data
+    setSavingNewClient(false)
+    setShowNewClientForm(false)
+    setNewClientForm({ first_name: '', last_name: '', phone: '', email: '' })
+    await selectNewApptClient(client)
+  }
+
   function resetNewApptModal() {
     setNewApptForm(null)
     setClientSearch('')
     setSelectedClient(null)
     setClientPatients([])
     setPatientSearchResults([])
+    setShowNewClientForm(false)
+    setNewClientForm({ first_name: '', last_name: '', phone: '', email: '' })
   }
 
   function openNewApptModal(date: string, time: string, therapistId = '') {
@@ -1082,8 +1105,45 @@ export default function CalendarPage() {
                             ))}
                           </>
                         )}
-                        {clientSearchResults.length === 0 && patientSearchResults.length === 0 && (
+                        {clientSearchResults.length === 0 && patientSearchResults.length === 0 && !showNewClientForm && (
                           <p className="px-4 py-3 text-sm text-gray-400">No clients or pets found</p>
+                        )}
+                        {/* Create new client option — always shown at bottom */}
+                        {!showNewClientForm ? (
+                          <button type="button"
+                            className="w-full text-left px-4 py-2.5 text-sm text-brand-pink font-semibold hover:bg-pink-50 border-t border-gray-100 flex items-center gap-2"
+                            onClick={() => setShowNewClientForm(true)}>
+                            <span className="text-lg leading-none">+</span> Create New Client
+                          </button>
+                        ) : (
+                          <div className="px-4 py-3 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">New Client</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input className="input text-sm py-1.5" placeholder="First name *"
+                                value={newClientForm.first_name}
+                                onChange={e => setNewClientForm(f => ({ ...f, first_name: e.target.value }))} />
+                              <input className="input text-sm py-1.5" placeholder="Last name"
+                                value={newClientForm.last_name}
+                                onChange={e => setNewClientForm(f => ({ ...f, last_name: e.target.value }))} />
+                            </div>
+                            <input className="input text-sm py-1.5" placeholder="Phone"
+                              value={newClientForm.phone}
+                              onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} />
+                            <input className="input text-sm py-1.5" placeholder="Email"
+                              value={newClientForm.email}
+                              onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} />
+                            <div className="flex gap-2 pt-1">
+                              <button type="button" onClick={() => setShowNewClientForm(false)}
+                                className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+                                Cancel
+                              </button>
+                              <button type="button" onClick={createNewClientInline}
+                                disabled={savingNewClient || (!newClientForm.first_name.trim() && !newClientForm.last_name.trim())}
+                                className="flex-1 text-sm px-3 py-1.5 bg-brand-pink text-white rounded-lg hover:bg-pink-600 disabled:opacity-50">
+                                {savingNewClient ? 'Creating…' : 'Create & Select'}
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </>)}
                     </div>
