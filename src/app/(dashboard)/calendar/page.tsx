@@ -55,9 +55,10 @@ export default function CalendarPage() {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [clientPatients, setClientPatients] = useState<any[]>([])
   const [showNewClientForm, setShowNewClientForm] = useState(false)
+  const blankPet = () => ({ name: '', species: 'Dog', breed: '', gender: '', desexed: '', microchip: '', weight: '', is_reactive: '', vet_friendly: '', medical_history: '' })
   const [newClientForm, setNewClientForm] = useState({
     first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '',
-    pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
+    pets: [blankPet()],
   })
   const [savingNewClient, setSavingNewClient] = useState(false)
   const SPECIES_OPTIONS = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Hamster', 'Guinea Pig', 'Reptile', 'Other']
@@ -285,8 +286,15 @@ export default function CalendarPage() {
     if (!first_name.trim() && !last_name.trim()) return
     setSavingNewClient(true)
     const name = `${first_name.trim()} ${last_name.trim()}`.trim()
-    const filteredPets = pets.filter(p => p.name.trim()).map(p => ({
-      name: p.name.trim(), species: p.species, breed: p.breed.trim(), medical_history: p.medical_history.trim(),
+    const filteredPets = pets.filter(p => p.name.trim()).map((p: any) => ({
+      name: p.name.trim(), species: p.species, breed: p.breed.trim(),
+      gender: p.gender || null,
+      desexed: p.desexed === 'yes' ? true : p.desexed === 'no' ? false : null,
+      microchip: p.microchip?.trim() || null,
+      weight: p.weight ? parseFloat(p.weight) : null,
+      is_reactive: p.is_reactive === 'yes' ? true : p.is_reactive === 'no' ? false : null,
+      vet_friendly: p.vet_friendly === 'yes' ? true : p.vet_friendly === 'no' ? false : null,
+      medical_history: p.medical_history.trim(),
     }))
     const res = await fetch('/api/clients', {
       method: 'POST',
@@ -297,7 +305,7 @@ export default function CalendarPage() {
     const client = data.client || data
     setSavingNewClient(false)
     setShowNewClientForm(false)
-    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }] })
+    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [blankPet()] })
     await selectNewApptClient(client)
   }
 
@@ -308,7 +316,7 @@ export default function CalendarPage() {
     setClientPatients([])
     setPatientSearchResults([])
     setShowNewClientForm(false)
-    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }] })
+    setNewClientForm({ first_name: '', last_name: '', phone: '+65 ', email: '', address: '', notes: '', pets: [blankPet()] })
   }
 
   function openNewApptModal(date: string, time: string, therapistId = '') {
@@ -1163,7 +1171,7 @@ export default function CalendarPage() {
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pet Details</p>
                           <button type="button" className="text-xs text-brand-pink hover:underline"
-                            onClick={() => setNewClientForm(f => ({ ...f, pets: [...f.pets, { name: '', species: 'Dog', breed: '', medical_history: '' }] }))}>
+                            onClick={() => setNewClientForm(f => ({ ...f, pets: [...f.pets, blankPet()] }))}>
                             + Add Pet
                           </button>
                         </div>
@@ -1191,6 +1199,58 @@ export default function CalendarPage() {
                               <label className="label text-xs">Breed</label>
                               <BreedSearch species={pet.species} value={pet.breed}
                                 onChange={v => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], breed: v }; return { ...f, pets: p } })} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="label text-xs">Gender</label>
+                                <select className="input text-sm" value={(pet as any).gender}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], gender: e.target.value }; return { ...f, pets: p } })}>
+                                  <option value="">—</option>
+                                  <option value="Male">Male</option>
+                                  <option value="Female">Female</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="label text-xs">Desexed</label>
+                                <select className="input text-sm" value={(pet as any).desexed}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], desexed: e.target.value }; return { ...f, pets: p } })}>
+                                  <option value="">—</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="label text-xs">Weight (kg)</label>
+                                <input type="number" step="0.1" min="0" className="input text-sm" placeholder="e.g. 12.5"
+                                  value={(pet as any).weight}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], weight: e.target.value }; return { ...f, pets: p } })} />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="label text-xs">Microchip #</label>
+                                <input className="input text-sm" placeholder="Microchip number"
+                                  value={(pet as any).microchip}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], microchip: e.target.value }; return { ...f, pets: p } })} />
+                              </div>
+                              <div>
+                                <label className="label text-xs">Reactive to Dogs</label>
+                                <select className="input text-sm" value={(pet as any).is_reactive}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], is_reactive: e.target.value }; return { ...f, pets: p } })}>
+                                  <option value="">—</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="label text-xs">Vet Friendly</label>
+                                <select className="input text-sm" value={(pet as any).vet_friendly}
+                                  onChange={e => setNewClientForm(f => { const p = [...f.pets]; p[idx] = { ...p[idx], vet_friendly: e.target.value }; return { ...f, pets: p } })}>
+                                  <option value="">—</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                              </div>
                             </div>
                             <div>
                               <label className="label text-xs">Medical History</label>

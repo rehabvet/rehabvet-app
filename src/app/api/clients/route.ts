@@ -81,6 +81,12 @@ export async function POST(req: NextRequest) {
       species: p.species || 'Dog',
       breed: p.breed || null,
       medical_history: p.medical_history || null,
+      gender: p.gender || null,
+      neutered: p.desexed != null ? p.desexed : (p.neutered != null ? p.neutered : null),
+      microchip: p.microchip || null,
+      weight: p.weight ? parseFloat(p.weight) : null,
+      is_reactive: p.is_reactive != null ? p.is_reactive : null,
+      vet_friendly: p.vet_friendly != null ? p.vet_friendly : null,
     }))
 
   const client = await prisma.clients.create({

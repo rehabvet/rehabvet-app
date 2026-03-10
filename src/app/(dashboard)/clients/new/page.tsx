@@ -20,7 +20,7 @@ export default function NewClientPage() {
     phone: '+65 ',
     address: '',
     notes: '',
-    pets: [{ name: '', species: 'Dog', breed: '', medical_history: '' }],
+    pets: [{ name: '', species: 'Dog', breed: '', gender: '', desexed: '', microchip: '', weight: '', is_reactive: '', vet_friendly: '', medical_history: '' }],
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -32,6 +32,12 @@ export default function NewClientPage() {
         name: (p.name || '').trim(),
         species: p.species || 'Dog',
         breed: (p.breed || '').trim(),
+        gender: p.gender || null,
+        desexed: p.desexed === 'yes' ? true : p.desexed === 'no' ? false : null,
+        microchip: (p.microchip || '').trim() || null,
+        weight: p.weight ? parseFloat(p.weight) : null,
+        is_reactive: p.is_reactive === 'yes' ? true : p.is_reactive === 'no' ? false : null,
+        vet_friendly: p.vet_friendly === 'yes' ? true : p.vet_friendly === 'no' ? false : null,
         medical_history: (p.medical_history || '').trim(),
       }))
       .filter(p => p.name)
@@ -139,7 +145,7 @@ export default function NewClientPage() {
               onClick={() =>
                 setForm({
                   ...form,
-                  pets: [...form.pets, { name: '', species: 'Dog', breed: '', medical_history: '' }],
+                  pets: [...form.pets, { name: '', species: 'Dog', breed: '', gender: '', desexed: '', microchip: '', weight: '', is_reactive: '', vet_friendly: '', medical_history: '' }],
                 })
               }
             >
@@ -224,6 +230,60 @@ export default function NewClientPage() {
                         setForm({ ...form, pets })
                       }}
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="label">Gender</label>
+                    <select className="input" value={pet.gender}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], gender: e.target.value }; setForm({ ...form, pets }) }}>
+                      <option value="">— Select —</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Desexed</label>
+                    <select className="input" value={pet.desexed}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], desexed: e.target.value }; setForm({ ...form, pets }) }}>
+                      <option value="">— Select —</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Weight (kg)</label>
+                    <input type="number" step="0.1" min="0" className="input" placeholder="e.g. 12.5"
+                      value={pet.weight}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], weight: e.target.value }; setForm({ ...form, pets }) }} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="label">Microchip #</label>
+                    <input className="input" placeholder="Microchip number"
+                      value={pet.microchip}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], microchip: e.target.value }; setForm({ ...form, pets }) }} />
+                  </div>
+                  <div>
+                    <label className="label">Reactive to Dogs</label>
+                    <select className="input" value={pet.is_reactive}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], is_reactive: e.target.value }; setForm({ ...form, pets }) }}>
+                      <option value="">— Select —</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Vet Friendly</label>
+                    <select className="input" value={pet.vet_friendly}
+                      onChange={e => { const pets = [...form.pets]; pets[idx] = { ...pets[idx], vet_friendly: e.target.value }; setForm({ ...form, pets }) }}>
+                      <option value="">— Select —</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
                   </div>
                 </div>
               </div>
