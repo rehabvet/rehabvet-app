@@ -276,7 +276,7 @@ export default function EODPage() {
                 <td className="px-5 py-3 text-right">
                   {m.method === 'cash' && !submitted ? (
                     <input type="number" step="0.01" min="0"
-                      className="input text-right w-32 py-1 text-sm"
+                      className="input text-right py-1 text-sm w-full max-w-[7rem] ml-auto block"
                       value={m.counted}
                       onChange={e => setCashCounted(parseFloat(e.target.value) || 0)} />
                   ) : (
