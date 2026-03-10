@@ -65,7 +65,7 @@ export default function StaffPage() {
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '+65 ', role: 'assistant_therapist', password: '', photo_url: '', specializations: [] as string[] })
   const [editForm, setEditForm] = useState({ id: '', name: '', email: '', phone: '+65 ', role: 'assistant_therapist', photo_url: '', specializations: [] as string[], active: true, schedule: DEFAULT_SCHEDULE as WeekSchedule })
-  const [pageTab, setPageTab] = useState<'profile'|'schedule'>('profile')
+  const [pageTab, setPageTab] = useState<'profile'|'schedule'>('schedule')
   // ── Monthly Roster ─────────────────────────────────────────────────────────
   const [rosterMonth, setRosterMonth] = useState(() => {
     const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
@@ -372,14 +372,18 @@ export default function StaffPage() {
         )}
       </div>
 
-      {/* Page tabs */}
+      {/* Page tabs — Profile only visible to admins */}
       <div className="flex border-b border-gray-200">
-        {(['profile','schedule'] as const).map(tab => (
-          <button key={tab} onClick={() => setPageTab(tab)}
+        {isAdmin && (
+          <button onClick={() => setPageTab('profile')}
             className={`px-6 py-2.5 text-sm font-semibold capitalize transition-colors border-b-2 -mb-px ${
-              pageTab === tab ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}>{tab}</button>
-        ))}
+              pageTab === 'profile' ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}>Staff</button>
+        )}
+        <button onClick={() => setPageTab('schedule')}
+          className={`px-6 py-2.5 text-sm font-semibold capitalize transition-colors border-b-2 -mb-px ${
+            pageTab === 'schedule' ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>Schedule</button>
       </div>
 
       {/* ── Profile Tab ── */}
