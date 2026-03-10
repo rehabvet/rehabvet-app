@@ -36,7 +36,23 @@ interface SavedResult {
 function loadSavedResults(): SavedResult[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Sanitize each entry — old cached results may be missing fields
+    return parsed.map((entry: any) => ({
+      ...entry,
+      fileName: entry.fileName || 'Unknown file',
+      fileSize: entry.fileSize || 0,
+      importedAt: entry.importedAt || new Date().toISOString(),
+      result: entry.result ? {
+        ...entry.result,
+        warnings: Array.isArray(entry.result.warnings) ? entry.result.warnings : [],
+        totalVisits: entry.result.totalVisits ?? 0,
+        imported: entry.result.imported ?? 0,
+        skipped: entry.result.skipped ?? 0,
+      } : entry.result,
+    }));
   } catch { return []; }
 }
 
@@ -228,7 +244,7 @@ export default function ImportPage() {
                       </div>
 
                       {/* Warnings */}
-                      {entry.result.warnings.length > 0 && (
+                      {(entry.result.warnings?.length ?? 0) > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">
                           {entry.result.warnings.map((w, wi) => (
                             <p key={wi} className="text-xs text-amber-700 flex items-start gap-1">
@@ -299,7 +315,7 @@ export default function ImportPage() {
                         )}
                         <span className="text-gray-400">{entry.result.totalVisits} total visits</span>
                       </div>
-                      {entry.result.warnings.length > 0 && (
+                      {(entry.result.warnings?.length ?? 0) > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">
                           {entry.result.warnings.map((w, wi) => (
                             <p key={wi} className="text-xs text-amber-700 flex items-start gap-1">
