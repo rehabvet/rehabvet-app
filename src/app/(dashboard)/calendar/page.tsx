@@ -85,7 +85,7 @@ export default function CalendarPage() {
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
     // Load roster for this month
-    const monthStr = `${year}-${String(month).padStart(2,'0')}`
+    const monthStr = `${year}-${String(month + 1).padStart(2,'0')}`
     fetch(`/api/staff/roster?month=${monthStr}`)
       .then(r => r.json()).then(d => {
         const map: Record<string, string[]> = {}
