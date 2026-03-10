@@ -1105,47 +1105,47 @@ export default function CalendarPage() {
                             ))}
                           </>
                         )}
-                        {clientSearchResults.length === 0 && patientSearchResults.length === 0 && !showNewClientForm && (
+                        {clientSearchResults.length === 0 && patientSearchResults.length === 0 && (
                           <p className="px-4 py-3 text-sm text-gray-400">No clients or pets found</p>
                         )}
-                        {/* Create new client option — always shown at bottom */}
-                        {!showNewClientForm ? (
-                          <button type="button"
-                            className="w-full text-left px-4 py-2.5 text-sm text-brand-pink font-semibold hover:bg-pink-50 border-t border-gray-100 flex items-center gap-2"
-                            onClick={() => setShowNewClientForm(true)}>
-                            <span className="text-lg leading-none">+</span> Create New Client
-                          </button>
-                        ) : (
-                          <div className="px-4 py-3 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">New Client</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input className="input text-sm py-1.5" placeholder="First name *"
-                                value={newClientForm.first_name}
-                                onChange={e => setNewClientForm(f => ({ ...f, first_name: e.target.value }))} />
-                              <input className="input text-sm py-1.5" placeholder="Last name"
-                                value={newClientForm.last_name}
-                                onChange={e => setNewClientForm(f => ({ ...f, last_name: e.target.value }))} />
-                            </div>
-                            <input className="input text-sm py-1.5" placeholder="Phone"
-                              value={newClientForm.phone}
-                              onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} />
-                            <input className="input text-sm py-1.5" placeholder="Email"
-                              value={newClientForm.email}
-                              onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} />
-                            <div className="flex gap-2 pt-1">
-                              <button type="button" onClick={() => setShowNewClientForm(false)}
-                                className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
-                                Cancel
-                              </button>
-                              <button type="button" onClick={createNewClientInline}
-                                disabled={savingNewClient || (!newClientForm.first_name.trim() && !newClientForm.last_name.trim())}
-                                className="flex-1 text-sm px-3 py-1.5 bg-brand-pink text-white rounded-lg hover:bg-pink-600 disabled:opacity-50">
-                                {savingNewClient ? 'Creating…' : 'Create & Select'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </>)}
+                    </div>
+                  )}
+                  {/* Create New Client — always visible below search */}
+                  {!showNewClientForm ? (
+                    <button type="button"
+                      className="mt-1.5 text-sm text-brand-pink font-semibold hover:underline flex items-center gap-1"
+                      onClick={() => setShowNewClientForm(true)}>
+                      <span className="text-base leading-none">+</span> Create New Client
+                    </button>
+                  ) : (
+                    <div className="mt-2 border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Client</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input className="input text-sm py-1.5" placeholder="First name *"
+                          value={newClientForm.first_name}
+                          onChange={e => setNewClientForm(f => ({ ...f, first_name: e.target.value }))} />
+                        <input className="input text-sm py-1.5" placeholder="Last name"
+                          value={newClientForm.last_name}
+                          onChange={e => setNewClientForm(f => ({ ...f, last_name: e.target.value }))} />
+                      </div>
+                      <input className="input text-sm py-1.5" placeholder="Phone"
+                        value={newClientForm.phone}
+                        onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} />
+                      <input className="input text-sm py-1.5" placeholder="Email"
+                        value={newClientForm.email}
+                        onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} />
+                      <div className="flex gap-2 pt-1">
+                        <button type="button" onClick={() => setShowNewClientForm(false)}
+                          className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 bg-white">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={createNewClientInline}
+                          disabled={savingNewClient || (!newClientForm.first_name.trim() && !newClientForm.last_name.trim())}
+                          className="flex-1 text-sm px-3 py-1.5 bg-brand-pink text-white rounded-lg hover:bg-pink-600 disabled:opacity-50">
+                          {savingNewClient ? 'Creating…' : 'Create & Select'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
