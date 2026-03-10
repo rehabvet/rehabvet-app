@@ -1395,9 +1395,17 @@ export default function CalendarPage() {
             <div className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <User className="w-4 h-4 text-gray-400" />
-                <span className="font-semibold text-gray-900">
-                  {selectedAppt.patient_name || <span className="text-gray-400 font-normal italic">No patient linked</span>}
-                </span>
+                {selectedAppt.patient_id ? (
+                  <a href={`/patients/${selectedAppt.patient_id}`} target="_blank" rel="noopener noreferrer"
+                    className="font-semibold text-gray-900 hover:text-brand-pink hover:underline transition-colors inline-flex items-center gap-1 group">
+                    {selectedAppt.patient_name || <span className="text-gray-400 font-normal italic">No patient linked</span>}
+                    <svg className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                ) : (
+                  <span className="font-semibold text-gray-900">
+                    {selectedAppt.patient_name || <span className="text-gray-400 font-normal italic">No patient linked</span>}
+                  </span>
+                )}
                 {selectedAppt.is_reactive && (
                   <span className="ml-2 text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ Reactive</span>
                 )}
