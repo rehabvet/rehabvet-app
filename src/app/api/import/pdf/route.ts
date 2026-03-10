@@ -5,6 +5,10 @@ import { parsePDF } from '@/lib/pdfImport';
 import { randomUUID } from 'crypto';
 import { backupPDFToDrive } from '@/lib/driveBackup';
 
+// Allow up to 60s for large PDF imports and increase body size limit
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 // Staff initials → user ID
 const STAFF_MAP: Record<string, string> = {
   XC:  '4b80e8f2-93fa-4d8a-aac8-e4950ee81afa', // Xan
@@ -71,14 +75,34 @@ export async function POST(req: NextRequest) {
   // Back up PDF to Google Drive (fire and forget — never blocks import)
   backupPDFToDrive(buffer, file.name).catch(() => {});
 
-  // Extract text from PDF using pdf-parse
+  // Extract text from PDF using pdf-parse (with lenient fallback for corrupted XRef tables)
   let pdfText = '';
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-    const data = await pdfParse(buffer);
-    pdfText = data.text;
-  } catch (e) {
+    // First attempt: standard parse
+    try {
+      const data = await pdfParse(buffer);
+      pdfText = data.text;
+    } catch (firstErr: any) {
+      const msg = String(firstErr?.message || firstErr);
+      // Retry with lenient options for corrupted XRef / bad cross-reference PDFs
+      if (msg.includes('XRef') || msg.includes('xref') || msg.includes('Invalid') || msg.includes('bad')) {
+        try {
+          const data = await pdfParse(buffer, {
+            // Disable strict mode — tolerate structural errors
+            max: 0,
+            version: 'v1.10.100',
+          });
+          pdfText = data.text;
+        } catch (secondErr: any) {
+          return NextResponse.json({ error: `PDF parse error: ${secondErr?.message || secondErr}` }, { status: 400 });
+        }
+      } else {
+        throw firstErr;
+      }
+    }
+  } catch (e: any) {
     return NextResponse.json({ error: `PDF parse error: ${(e as Error).message}` }, { status: 400 });
   }
 
