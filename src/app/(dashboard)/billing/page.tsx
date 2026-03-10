@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Plus, DollarSign, Filter } from 'lucide-react'
 import Modal from '@/components/Modal'
@@ -12,6 +12,14 @@ export default function BillingPage() {
   const [clients, setClients] = useState<any[]>([])
   const [patients, setPatients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [clientSearch, setClientSearch] = useState('')
+  const [patientSearch, setPatientSearch] = useState('')
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [selectedPatient, setSelectedPatient] = useState<any>(null)
+  const [showClientDrop, setShowClientDrop] = useState(false)
+  const [showPatientDrop, setShowPatientDrop] = useState(false)
+  const clientRef = useRef<HTMLDivElement>(null)
+  const patientRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState({
     client_id: '', patient_id: '', date: new Date().toISOString().split('T')[0],
     due_date: '', notes: '',
@@ -147,22 +155,62 @@ export default function BillingPage() {
         )}
       </div>
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Create Invoice" size="xl">
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); setClientSearch(''); setPatientSearch(''); setSelectedClient(null); setSelectedPatient(null); }} title="Create Invoice" size="xl">
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Client *</label>
-              <select className="input" value={form.client_id} onChange={e => setForm({...form, client_id: e.target.value})} required>
-                <option value="">Select client...</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="relative" ref={clientRef}>
+                <input
+                  className="input"
+                  placeholder="Search client..."
+                  value={clientSearch}
+                  onChange={e => { setClientSearch(e.target.value); setShowClientDrop(true); if (!e.target.value) { setSelectedClient(null); setForm(f => ({...f, client_id: '', patient_id: ''})); setSelectedPatient(null); setPatientSearch('') } }}
+                  onFocus={() => setShowClientDrop(true)}
+                  required={!form.client_id}
+                />
+                {selectedClient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓</span>}
+                {showClientDrop && clientSearch && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                    {clients.filter(c => `${c.name} ${c.phone || ''}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 20).map(c => (
+                      <div key={c.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { setSelectedClient(c); setClientSearch(c.name); setForm(f => ({...f, client_id: c.id, patient_id: ''})); setSelectedPatient(null); setPatientSearch(''); setShowClientDrop(false) }}>
+                        <p className="text-sm font-medium text-gray-800">{c.name}</p>
+                        {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
+                      </div>
+                    ))}
+                    {clients.filter(c => `${c.name} ${c.phone || ''}`.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                      <p className="px-3 py-2 text-sm text-gray-400">No clients found</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="label">Patient</label>
-              <select className="input" value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}>
-                <option value="">Select patient...</option>
-                {patients.filter(p => !form.client_id || p.client_id === form.client_id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <div className="relative" ref={patientRef}>
+                <input
+                  className="input"
+                  placeholder="Search patient..."
+                  value={patientSearch}
+                  onChange={e => { setPatientSearch(e.target.value); setShowPatientDrop(true); if (!e.target.value) { setSelectedPatient(null); setForm(f => ({...f, patient_id: ''})) } }}
+                  onFocus={() => setShowPatientDrop(true)}
+                  disabled={!form.client_id}
+                />
+                {selectedPatient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓</span>}
+                {showPatientDrop && patientSearch && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                    {patients.filter(p => (!form.client_id || p.client_id === form.client_id) && p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      <div key={p.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { setSelectedPatient(p); setPatientSearch(p.name); setForm(f => ({...f, patient_id: p.id})); setShowPatientDrop(false) }}>
+                        <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                        {p.species && <p className="text-xs text-gray-400 capitalize">{p.species}{p.breed ? ` · ${p.breed}` : ''}</p>}
+                      </div>
+                    ))}
+                    {patients.filter(p => (!form.client_id || p.client_id === form.client_id) && p.name.toLowerCase().includes(patientSearch.toLowerCase())).length === 0 && (
+                      <p className="px-3 py-2 text-sm text-gray-400">No patients found</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
