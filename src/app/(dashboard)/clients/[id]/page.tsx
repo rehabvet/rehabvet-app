@@ -417,6 +417,28 @@ export default function ClientDetailPage() {
               <p className="text-gray-400 text-sm py-2">No invoices</p>
             ) : (
               <>
+              {/* Billing summary */}
+              {(() => {
+                const totalBilled = invoices.reduce((s: number, inv: any) => s + Number(inv.total || 0), 0)
+                const totalPaid   = invoices.reduce((s: number, inv: any) => s + Number(inv.amount_paid || 0), 0)
+                const totalOwing  = totalBilled - totalPaid
+                return (
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="bg-gray-50 rounded-xl px-4 py-3 text-center">
+                      <p className="text-xs text-gray-500 mb-0.5">Total Billed</p>
+                      <p className="text-lg font-bold text-gray-800">S${totalBilled.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl px-4 py-3 text-center">
+                      <p className="text-xs text-gray-500 mb-0.5">Total Paid</p>
+                      <p className="text-lg font-bold text-green-700">S${totalPaid.toFixed(2)}</p>
+                    </div>
+                    <div className={`rounded-xl px-4 py-3 text-center ${totalOwing > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                      <p className="text-xs text-gray-500 mb-0.5">Outstanding</p>
+                      <p className={`text-lg font-bold ${totalOwing > 0 ? 'text-red-600' : 'text-gray-400'}`}>S${totalOwing.toFixed(2)}</p>
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead><tr className="border-b border-gray-200">
