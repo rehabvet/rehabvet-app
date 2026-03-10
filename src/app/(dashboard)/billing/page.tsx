@@ -1,30 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, DollarSign, Filter } from 'lucide-react'
-import Modal from '@/components/Modal'
+import { Plus } from 'lucide-react'
 import BillingModal from '@/components/BillingModal'
 
 export default function BillingPage() {
   const [invoices, setInvoices] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
-
-  // Step 1: pick client + patient
-  const [showPicker, setShowPicker] = useState(false)
-  const [clients, setClients] = useState<any[]>([])
-  const [patients, setPatients] = useState<any[]>([])
-  const [clientSearch, setClientSearch] = useState('')
-  const [patientSearch, setPatientSearch] = useState('')
-  const [selectedClient, setSelectedClient] = useState<any>(null)
-  const [selectedPatient, setSelectedPatient] = useState<any>(null)
-  const [showClientDrop, setShowClientDrop] = useState(false)
-  const [showPatientDrop, setShowPatientDrop] = useState(false)
-  const clientRef = useRef<HTMLDivElement>(null)
-  const patientRef = useRef<HTMLDivElement>(null)
-
-  // Step 2: open BillingModal
   const [showBilling, setShowBilling] = useState(false)
 
   useEffect(() => { fetchInvoices() }, [statusFilter])
@@ -38,36 +22,8 @@ export default function BillingPage() {
     setLoading(false)
   }
 
-  function openPicker() {
-    setClientSearch(''); setPatientSearch('')
-    setSelectedClient(null); setSelectedPatient(null)
-    Promise.all([
-      fetch('/api/clients?limit=5000').then(r => r.json()),
-      fetch('/api/patients?limit=5000').then(r => r.json()),
-    ]).then(([c, p]) => {
-      setClients(c.clients || [])
-      setPatients(p.patients || [])
-      setShowPicker(true)
-    })
-  }
-
-  function proceedToBilling() {
-    if (!selectedClient) return
-    setShowPicker(false)
-    setShowBilling(true)
-  }
-
-  function resetPicker() {
-    setShowPicker(false)
-    setClientSearch(''); setPatientSearch('')
-    setSelectedClient(null); setSelectedPatient(null)
-  }
-
   const totalOutstanding = invoices.filter(i => ['sent','partial','overdue'].includes(i.status)).reduce((sum, i) => sum + i.total - i.amount_paid, 0)
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
-
-  const filteredClients = clients.filter(c => `${c.name} ${c.phone || ''}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 20)
-  const filteredPatients = patients.filter(p => (!selectedClient || p.client_id === selectedClient.id) && p.name.toLowerCase().includes(patientSearch.toLowerCase()))
 
   return (
     <div className="space-y-6">
@@ -76,7 +32,9 @@ export default function BillingPage() {
           <h1 className="text-2xl font-bold text-gray-900">Billing & Invoices</h1>
           <p className="text-gray-500 text-sm">Manage invoices and payments</p>
         </div>
-        <button onClick={openPicker} className="btn-primary"><Plus className="w-4 h-4 mr-2" /> New Invoice</button>
+        <button onClick={() => setShowBilling(true)} className="btn-primary">
+          <Plus className="w-4 h-4 mr-2" /> New Invoice
+        </button>
       </div>
 
       {/* Summary */}
@@ -143,81 +101,13 @@ export default function BillingPage() {
         )}
       </div>
 
-      {/* Step 1: Select client + patient */}
-      <Modal open={showPicker} onClose={resetPicker} title="New Invoice — Select Client" size="md">
-        <div className="space-y-4">
-          <div>
-            <label className="label">Client *</label>
-            <div className="relative" ref={clientRef}>
-              <input
-                className="input"
-                placeholder="Search by name or phone..."
-                value={clientSearch}
-                autoFocus
-                onChange={e => { setClientSearch(e.target.value); setShowClientDrop(true); if (!e.target.value) { setSelectedClient(null); setSelectedPatient(null); setPatientSearch('') } }}
-                onFocus={() => setShowClientDrop(true)}
-              />
-              {selectedClient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {selectedClient.name}</span>}
-              {showClientDrop && clientSearch && !selectedClient && (
-                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
-                  {filteredClients.map(c => (
-                    <div key={c.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { setSelectedClient(c); setClientSearch(c.name); setSelectedPatient(null); setPatientSearch(''); setShowClientDrop(false) }}>
-                      <p className="text-sm font-medium text-gray-800">{c.name}</p>
-                      {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
-                    </div>
-                  ))}
-                  {filteredClients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No clients found</p>}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Patient <span className="text-gray-400 font-normal">(optional)</span></label>
-            <div className="relative" ref={patientRef}>
-              <input
-                className="input"
-                placeholder={selectedClient ? 'Search patient...' : 'Select a client first'}
-                value={patientSearch}
-                disabled={!selectedClient}
-                onChange={e => { setPatientSearch(e.target.value); setShowPatientDrop(true); if (!e.target.value) { setSelectedPatient(null) } }}
-                onFocus={() => setShowPatientDrop(true)}
-              />
-              {selectedPatient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {selectedPatient.name}</span>}
-              {showPatientDrop && patientSearch && !selectedPatient && (
-                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                  {filteredPatients.map(p => (
-                    <div key={p.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { setSelectedPatient(p); setPatientSearch(p.name); setShowPatientDrop(false) }}>
-                      <p className="text-sm font-medium text-gray-800">{p.name}</p>
-                      {p.species && <p className="text-xs text-gray-400 capitalize">{p.species}{p.breed ? ` · ${p.breed}` : ''}</p>}
-                    </div>
-                  ))}
-                  {filteredPatients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No patients found</p>}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={resetPicker} className="btn-secondary">Cancel</button>
-            <button type="button" onClick={proceedToBilling} disabled={!selectedClient} className="btn-primary disabled:opacity-40">Next →</button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Step 2: Full BillingModal with service/product picker */}
-      {showBilling && selectedClient && (
-        <BillingModal
-          open={showBilling}
-          onClose={() => { setShowBilling(false); resetPicker() }}
-          visitId={null}
-          clientId={selectedClient.id}
-          patientId={selectedPatient?.id || ''}
-          clientName={selectedClient.name}
-          patientName={selectedPatient?.name}
-          onSaved={() => { setShowBilling(false); resetPicker(); fetchInvoices() }}
-        />
-      )}
+      {/* BillingModal — client/patient search built-in */}
+      <BillingModal
+        open={showBilling}
+        onClose={() => setShowBilling(false)}
+        visitId={null}
+        onSaved={() => { setShowBilling(false); fetchInvoices() }}
+      />
     </div>
   )
 }

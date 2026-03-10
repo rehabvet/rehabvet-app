@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Modal from '@/components/Modal'
-import { Plus, Trash2, Search, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Search } from 'lucide-react'
 
 type LineItem = {
   id: string
@@ -21,8 +21,8 @@ interface Props {
   open: boolean
   onClose: () => void
   visitId?: string | null
-  clientId: string
-  patientId: string
+  clientId?: string
+  patientId?: string
   clientName?: string
   patientName?: string
   appointmentDate?: string
@@ -31,7 +31,7 @@ interface Props {
   onSaved: (invoiceId: string) => void
 }
 
-export default function BillingModal({ open, onClose, visitId, clientId, patientId, clientName, patientName, appointmentDate, existingInvoice, existingLineItems = [], onSaved }: Props) {
+export default function BillingModal({ open, onClose, visitId, clientId: initClientId = '', patientId: initPatientId = '', clientName, patientName, appointmentDate, existingInvoice, existingLineItems = [], onSaved }: Props) {
   const [services, setServices]   = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [items, setItems]         = useState<LineItem[]>([])
@@ -41,20 +41,42 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   const [patient, setPatient]       = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  // Inline client/patient search (used when no clientId provided)
+  const needsPicker = !initClientId
+  const [allClients, setAllClients]   = useState<any[]>([])
+  const [allPatients, setAllPatients] = useState<any[]>([])
+  const [clientSearch, setClientSearch]   = useState('')
+  const [patientSearch, setPatientSearch] = useState('')
+  const [showClientDrop, setShowClientDrop]   = useState(false)
+  const [showPatientDrop, setShowPatientDrop] = useState(false)
+  const [resolvedClientId, setResolvedClientId] = useState(initClientId)
+  const [resolvedPatientId, setResolvedPatientId] = useState(initPatientId)
+  const clientRef = useRef<HTMLDivElement>(null)
+  const patientRef = useRef<HTMLDivElement>(null)
+
   // Item picker state
   const [pickerType, setPickerType] = useState<'service'|'product'>('service')
   const [search, setSearch]         = useState('')
   const [showPicker, setShowPicker] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
+  const activeClientId  = resolvedClientId  || initClientId
+  const activePatientId = resolvedPatientId || initPatientId
+
   useEffect(() => {
     if (!open) return
     fetch('/api/service-pricing').then(r => r.json()).then(d => setServices(d.services || d.pricing || []))
     fetch('/api/inventory?limit=500').then(r => r.json()).then(d => setInventory(d.items || []))
-    if (clientId) fetch(`/api/clients/${clientId}`).then(r => r.json()).then(d => setClient(d.client || d))
-    if (patientId) fetch(`/api/patients/${patientId}`).then(r => r.json()).then(d => setPatient(d.patient || d))
+    if (initClientId)  fetch(`/api/clients/${initClientId}`).then(r => r.json()).then(d => setClient(d.client || d))
+    if (initPatientId) fetch(`/api/patients/${initPatientId}`).then(r => r.json()).then(d => setPatient(d.patient || d))
+    if (needsPicker) {
+      fetch('/api/clients?limit=5000').then(r => r.json()).then(d => setAllClients(d.clients || []))
+      fetch('/api/patients?limit=5000').then(r => r.json()).then(d => setAllPatients(d.patients || []))
+      setClient(null); setPatient(null)
+      setClientSearch(''); setPatientSearch('')
+      setResolvedClientId(''); setResolvedPatientId('')
+    }
     setPaymentMethod('')
-    // Pre-populate from existing line items
     if (existingLineItems.length > 0) {
       setItems(existingLineItems.map(li => ({
         id: uid(),
@@ -126,7 +148,11 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
   const subtotal = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
   const total    = subtotal // no GST shown separately — price already inclusive
 
+  const filteredClients  = allClients.filter(c => `${c.name} ${c.phone || ''}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 20)
+  const filteredPatients = allPatients.filter(p => (!client || p.client_id === client.id) && p.name.toLowerCase().includes(patientSearch.toLowerCase())).slice(0, 20)
+
   async function handleSave() {
+    if (needsPicker && !client) { alert('Please select a client first.'); return }
     setSaving(true)
     try {
       let invoiceId = existingInvoice?.id
@@ -153,7 +179,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
         const res = await fetch('/api/invoices/create-raw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ client_id: clientId, patient_id: patientId }),
+          body: JSON.stringify({ client_id: activeClientId, patient_id: activePatientId }),
         })
         const d = await res.json()
         invoiceId = d.invoice?.id
@@ -196,7 +222,7 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
           body: JSON.stringify({
             amount: total,
             method: paymentMethod,
-            client_id: clientId,
+            client_id: activeClientId,
           }),
         })
       }
@@ -213,26 +239,92 @@ export default function BillingModal({ open, onClose, visitId, clientId, patient
     <Modal open={open} onClose={onClose} title="Bill" size="xl">
       <div className="space-y-4">
 
-        {/* Invoice Header */}
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 flex flex-col sm:flex-row sm:justify-between gap-3">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Client</p>
-            <p className="font-semibold text-gray-900">{client?.name || clientName || '—'}</p>
-            {client?.phone && <p className="text-xs text-gray-500">{client.phone}</p>}
-            {client?.email && <p className="text-xs text-gray-500">{client.email}</p>}
-          </div>
-          <div className="sm:text-right">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Patient</p>
-            <p className="font-semibold text-gray-900">{patient?.name || patientName || '—'}</p>
-            {patient?.species && <p className="text-xs text-gray-500 capitalize">{patient.species}{patient.breed ? ` · ${patient.breed}` : ''}</p>}
-          </div>
-          {appointmentDate && (
-            <div className="sm:text-right">
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Date</p>
-              <p className="text-sm text-gray-700">{new Date(appointmentDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+        {/* Invoice Header — searchable when no clientId provided, read-only otherwise */}
+        {needsPicker ? (
+          <div className="space-y-3">
+            <div>
+              <label className="label">Client *</label>
+              <div className="relative" ref={clientRef}>
+                <input
+                  className="input"
+                  placeholder="Search by name or phone..."
+                  value={clientSearch}
+                  autoFocus
+                  onChange={e => {
+                    setClientSearch(e.target.value); setShowClientDrop(true)
+                    if (!e.target.value) { setClient(null); setPatient(null); setPatientSearch(''); setResolvedClientId(''); setResolvedPatientId('') }
+                  }}
+                  onFocus={() => setShowClientDrop(true)}
+                />
+                {client && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {client.name}</span>}
+                {showClientDrop && clientSearch && !client && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                    {filteredClients.map(c => (
+                      <div key={c.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => {
+                        setClient(c); setClientSearch(c.name); setResolvedClientId(c.id)
+                        setPatient(null); setPatientSearch(''); setResolvedPatientId(''); setShowClientDrop(false)
+                      }}>
+                        <p className="text-sm font-medium text-gray-800">{c.name}</p>
+                        {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
+                      </div>
+                    ))}
+                    {filteredClients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No clients found</p>}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+            <div>
+              <label className="label">Patient <span className="text-gray-400 font-normal">(optional)</span></label>
+              <div className="relative" ref={patientRef}>
+                <input
+                  className="input"
+                  placeholder={client ? 'Search patient...' : 'Select a client first'}
+                  value={patientSearch}
+                  disabled={!client}
+                  onChange={e => {
+                    setPatientSearch(e.target.value); setShowPatientDrop(true)
+                    if (!e.target.value) { setPatient(null); setResolvedPatientId('') }
+                  }}
+                  onFocus={() => setShowPatientDrop(true)}
+                />
+                {patient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {patient.name}</span>}
+                {showPatientDrop && patientSearch && !patient && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredPatients.map(p => (
+                      <div key={p.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => {
+                        setPatient(p); setPatientSearch(p.name); setResolvedPatientId(p.id); setShowPatientDrop(false)
+                      }}>
+                        <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                        {p.species && <p className="text-xs text-gray-400 capitalize">{p.species}{p.breed ? ` · ${p.breed}` : ''}</p>}
+                      </div>
+                    ))}
+                    {filteredPatients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No patients found</p>}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 flex flex-col sm:flex-row sm:justify-between gap-3">
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Client</p>
+              <p className="font-semibold text-gray-900">{client?.name || clientName || '—'}</p>
+              {client?.phone && <p className="text-xs text-gray-500">{client.phone}</p>}
+              {client?.email && <p className="text-xs text-gray-500">{client.email}</p>}
+            </div>
+            <div className="sm:text-right">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Patient</p>
+              <p className="font-semibold text-gray-900">{patient?.name || patientName || '—'}</p>
+              {patient?.species && <p className="text-xs text-gray-500 capitalize">{patient.species}{patient.breed ? ` · ${patient.breed}` : ''}</p>}
+            </div>
+            {appointmentDate && (
+              <div className="sm:text-right">
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Date</p>
+                <p className="text-sm text-gray-700">{new Date(appointmentDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add Item */}
         <div>
