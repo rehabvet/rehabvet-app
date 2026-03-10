@@ -27,7 +27,9 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
 
-  const firstDay = new Date(year, month, 1).getDay()
+  // Week starts Monday: shift Sunday (0) to end (6), Mon=0, Tue=1, ...
+  const rawFirstDay = new Date(year, month, 1).getDay()
+  const firstDay = (rawFirstDay + 6) % 7
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const days: (number | null)[] = []
   for (let i = 0; i < firstDay; i++) days.push(null)
@@ -76,7 +78,7 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
 
           {/* Days of Week */}
           <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+            {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
               <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
             ))}
           </div>
