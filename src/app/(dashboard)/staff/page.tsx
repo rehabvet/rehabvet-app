@@ -538,24 +538,30 @@ export default function StaffPage() {
                               const isOn = rosterData.has(rosterKey(s.id, date))
                               const isWeekend = weekday === 'Sat' || weekday === 'Sun'
                               const isToday = date === today
+                              const isPast = date < today
                               return (
                                 <td key={date} className={`text-center px-1 py-2 ${isWeekend ? 'bg-gray-50' : ''}`}>
                                   <button
-                                    onClick={() => toggleRosterDay(s.id, date)}
-                                    title={isOn ? `${s.name} working ${date} — click to remove` : `Mark ${s.name} working on ${date}`}
-                                    className={`w-8 h-8 rounded-lg mx-auto flex items-center justify-center transition-all duration-100 hover:scale-105 active:scale-95
-                                      ${isOn
-                                        ? 'bg-brand-pink text-white shadow-sm hover:bg-brand-pink/80'
-                                        : isToday
-                                          ? 'bg-pink-50 border-2 border-dashed border-brand-pink/30 text-gray-300 hover:border-brand-pink/60'
-                                          : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
+                                    onClick={() => !isPast && toggleRosterDay(s.id, date)}
+                                    disabled={isPast}
+                                    title={isPast ? `${date} — past days are locked` : isOn ? `${s.name} working ${date} — click to remove` : `Mark ${s.name} working on ${date}`}
+                                    className={`w-8 h-8 rounded-lg mx-auto flex items-center justify-center transition-all duration-100
+                                      ${isPast
+                                        ? isOn
+                                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                          : 'bg-gray-50 cursor-not-allowed'
+                                        : isOn
+                                          ? 'bg-brand-pink text-white shadow-sm hover:bg-brand-pink/80 hover:scale-105 active:scale-95'
+                                          : isToday
+                                            ? 'bg-pink-50 border-2 border-dashed border-brand-pink/30 text-gray-300 hover:border-brand-pink/60 hover:scale-105 active:scale-95'
+                                            : 'bg-gray-100 text-gray-300 hover:bg-gray-200 hover:scale-105 active:scale-95'
                                       }`}
                                   >
                                     {isOn ? (
-                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                    ) : (
+                                      <svg className={`w-4 h-4 ${isPast ? 'opacity-40' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    ) : !isPast ? (
                                       <svg className="w-3 h-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                    )}
+                                    ) : null}
                                   </button>
                                 </td>
                               )
