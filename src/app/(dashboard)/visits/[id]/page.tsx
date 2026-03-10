@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, ChevronDown, ChevronUp, Plus, Trash2, User, PawPrint, Calendar, DollarSign, CreditCard, Receipt, AlertTriangle } from 'lucide-react'
 
 type ListItem = { id: string; text: string }
 
@@ -86,6 +86,10 @@ export default function VisitPage() {
   const { id } = useParams()
   const router = useRouter()
   const [visit,    setVisit]    = useState<any>(null)
+  const [prevVisit, setPrevVisit] = useState<any>(null)
+  const [nextVisit, setNextVisit] = useState<any>(null)
+  const [totalVisits, setTotalVisits] = useState(0)
+  const [visitIndex, setVisitIndex] = useState(0)
   const [saving,   setSaving]   = useState(false)
   const [saved,    setSaved]    = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle'|'pending'|'saving'|'saved'>('idle')
@@ -118,6 +122,10 @@ export default function VisitPage() {
       if (!d.visit) return
       const v = d.visit
       setVisit(v)
+      setPrevVisit(d.prevVisit || null)
+      setNextVisit(d.nextVisit || null)
+      setTotalVisits(d.totalVisits || 0)
+      setVisitIndex(d.visitIndex ?? 0)
       setForm({
         staff_id:            v.staff_id || '',
         visit_date:          v.visit_date?.split('T')[0] || '',
@@ -254,9 +262,32 @@ export default function VisitPage() {
     <div className="space-y-4 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          {totalVisits > 1 && (
+            <div className="flex items-center gap-1 ml-2 border border-gray-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => prevVisit && router.push(`/visits/${prevVisit.id}`)}
+                disabled={!prevVisit}
+                title={prevVisit ? `Previous visit: ${prevVisit.visit_date?.split('T')[0] || ''}` : 'No previous visit'}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Prev
+              </button>
+              <span className="text-xs text-gray-400 px-1.5 border-x border-gray-200">{visitIndex + 1}/{totalVisits}</span>
+              <button
+                onClick={() => nextVisit && router.push(`/visits/${nextVisit.id}`)}
+                disabled={!nextVisit}
+                title={nextVisit ? `Next visit: ${nextVisit.visit_date?.split('T')[0] || ''}` : 'No next visit'}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Next <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowDeleteConfirm(true)}

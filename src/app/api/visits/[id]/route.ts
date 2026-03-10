@@ -23,11 +23,26 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const measurements = await prisma.$queryRawUnsafe(`
-    SELECT * FROM visit_measurements WHERE visit_id = $1::uuid ORDER BY recorded_at ASC
-  `, params.id) as any[]
+  const visit = rows[0]
 
-  return NextResponse.json({ visit: rows[0], measurements })
+  const [measurements, siblings] = await Promise.all([
+    prisma.$queryRawUnsafe(`
+      SELECT * FROM visit_measurements WHERE visit_id = $1::uuid ORDER BY recorded_at ASC
+    `, params.id) as Promise<any[]>,
+    visit.patient_id ? prisma.$queryRawUnsafe(`
+      SELECT id, visit_date, visit_number
+      FROM visit_records
+      WHERE patient_id = $1::uuid
+      ORDER BY visit_date ASC, created_at ASC
+    `, visit.patient_id) as Promise<any[]> : Promise.resolve([]),
+  ])
+
+  const siblingList = siblings as any[]
+  const currentIdx = siblingList.findIndex((v: any) => v.id === params.id)
+  const prevVisit = currentIdx > 0 ? siblingList[currentIdx - 1] : null
+  const nextVisit = currentIdx < siblingList.length - 1 ? siblingList[currentIdx + 1] : null
+
+  return NextResponse.json({ visit, measurements, prevVisit, nextVisit, totalVisits: siblingList.length, visitIndex: currentIdx })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
