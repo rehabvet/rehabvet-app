@@ -77,7 +77,13 @@ export async function GET(req: NextRequest) {
       cl.phone        AS client_phone,
       u.name          AS therapist_name,
       u.role          AS therapist_role,
-      u.photo_url     AS therapist_photo
+      u.photo_url     AS therapist_photo,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM invoices inv
+        WHERE inv.client_id = a.client_id
+          AND inv.date = a.date
+          AND inv.status IN ('paid','partial')
+      ) THEN true ELSE false END AS has_payment
     FROM appointments a
     LEFT JOIN patients pat ON pat.id = a.patient_id
     LEFT JOIN clients  cl  ON cl.id  = a.client_id

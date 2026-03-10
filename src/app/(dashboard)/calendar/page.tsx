@@ -741,7 +741,10 @@ export default function CalendarPage() {
                       className={`text-left text-white px-1 py-0.5 rounded hover:opacity-90 transition-opacity text-xs overflow-hidden ${color}`}
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
-                      <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs">{a.start_time?.slice(0,5)} {a.modality}</div>
+                      <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs flex items-center gap-0.5">
+                        <span className="truncate">{a.start_time?.slice(0,5)} {a.modality}</span>
+                        {a.has_payment && <span className="shrink-0 text-[9px]">💳</span>}
+                      </div>
                       <div className="opacity-90 truncate text-[10px]">{a.patient_name}{a.is_reactive ? ' ⚠️' : ''}</div>
                       {height > 38 && a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
                     </button>
@@ -982,7 +985,10 @@ export default function CalendarPage() {
                       className={`text-left text-white px-1.5 py-1 rounded-lg hover:opacity-90 hover:shadow-md transition-all text-xs overflow-hidden ${color}`}
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
-                      <div className="font-semibold leading-tight truncate">{a.start_time?.slice(0,5)} {a.modality}</div>
+                      <div className="font-semibold leading-tight truncate flex items-center gap-1">
+                        <span className="truncate">{a.start_time?.slice(0,5)} {a.modality}</span>
+                        {a.has_payment && <span className="ml-auto shrink-0 bg-white/25 rounded px-0.5 text-[9px] font-bold leading-none py-0.5">💳</span>}
+                      </div>
                       <div className="opacity-90 leading-tight mt-0.5 truncate">{a.client_name} • <span className="font-medium">{a.patient_name}</span></div>
                       {height > 52 && <div className="opacity-75 text-[10px] mt-0.5 truncate">{a.client_phone}</div>}
                     </button>
