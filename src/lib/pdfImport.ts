@@ -72,14 +72,16 @@ export function parsePDF(text: string): ParsedPDF | null {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
   // --- Extract patient header ---
-  // "For Shiro (1/5227)"
-  // followed by "Dog, Male, Maltese,"
-  const forLine = lines.find(l => l.startsWith('For ') && l.includes('('));
+  // "For Shiro (1/5227)" OR "For Shiro" (no ID in some PDFs)
+  const forLine = lines.find(l => /^For\s+\S/.test(l));
   if (!forLine) return null;
-  const forMatch = forLine.match(/^For (.+?)\s*\(([^)]+)\)/);
+  // Try with ID first, then without
+  const forMatchWithId = forLine.match(/^For (.+?)\s*\(([^)]+)\)/);
+  const forMatchNoId   = forLine.match(/^For (.+)/);
+  const forMatch = forMatchWithId || forMatchNoId;
   if (!forMatch) return null;
   const patientName = forMatch[1].trim();
-  const patientOldId = forMatch[2].trim();
+  const patientOldId = forMatchWithId ? forMatchWithId[2].trim() : '';
 
   // Parse species/gender/breed from the next line e.g. "Dog, Male, Maltese,"
   const forLineIdx = lines.indexOf(forLine);
@@ -102,31 +104,41 @@ export function parsePDF(text: string): ParsedPDF | null {
   }
 
   // --- Extract owner ---
-  // "Owner Ho Khim Rong (1/3776)"
-  const ownerLine = lines.find(l => l.startsWith('Owner ') && l.includes('('));
+  // "Owner Ho Khim Rong (1/3776)" OR "Owner Yeo Ai Ling" (no ID in some PDFs)
+  const ownerLine = lines.find(l => /^Owner\s+\S/.test(l));
   if (!ownerLine) return null;
-  const ownerMatch = ownerLine.match(/^Owner (.+?)\s*\(([^)]+)\)/);
+  // Try with ID first, then without
+  const ownerMatchWithId = ownerLine.match(/^Owner (.+?)\s*\(([^)]+)\)/);
+  const ownerMatchNoId   = ownerLine.match(/^Owner (.+)/);
+  const ownerMatch = ownerMatchWithId || ownerMatchNoId;
   if (!ownerMatch) return null;
   const ownerName = ownerMatch[1].trim();
-  const ownerOldId = ownerMatch[2].trim();
+  const ownerOldId = ownerMatchWithId ? ownerMatchWithId[2].trim() : '';
 
-  // Phone and postcode are in lines after the owner line
+  // Phone and postcode — search a wider window after owner line, also scan the full header
   const ownerIdx = lines.indexOf(ownerLine);
   let ownerPhone = '';
   let ownerPostcode = '';
-  for (let i = ownerIdx + 1; i < Math.min(ownerIdx + 8, lines.length); i++) {
+  // Search up to 12 lines after owner for phone/postcode
+  for (let i = ownerIdx + 1; i < Math.min(ownerIdx + 12, lines.length); i++) {
     const candidate = lines[i];
-    if (candidate.startsWith('Sales') || candidate.startsWith('Client') || candidate.startsWith('Bill')) break;
+    if (candidate.startsWith('Bill#')) break;
     // Extract phone
     if (!ownerPhone) {
       const phone = normalizePhone(candidate);
       if (phone) ownerPhone = phone;
     }
-    // Extract Singapore postcode (6 digits, optionally after "Singapore ")
+    // Extract Singapore postcode (6 digits)
     if (!ownerPostcode) {
       const pcMatch = candidate.match(/(?:Singapore\s+)?(\d{6})(?:\s|$)/i);
       if (pcMatch) ownerPostcode = pcMatch[1];
     }
+  }
+  // Last resort: scan entire header block for phone
+  if (!ownerPhone) {
+    const headerBlock = lines.slice(0, Math.min(ownerIdx + 20, lines.length)).join(' ');
+    const phoneMatch = headerBlock.match(/(?:^|\s|\+65[\s-]?)([89]\d{7})(?:\s|$)/);
+    if (phoneMatch) ownerPhone = phoneMatch[1];
   }
 
   // --- Split into visit blocks by "Bill#:" ---

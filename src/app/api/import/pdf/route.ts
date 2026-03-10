@@ -317,12 +317,12 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    patientName: parsed.patientName,
-    ownerName: parsed.ownerName,
-    ownerPhone: parsed.ownerPhone,
-    clientFound: !!clientId,
+    patientName:  parsed.patientName  || '(unknown)',
+    ownerName:    parsed.ownerName    || '(unknown)',
+    ownerPhone:   parsed.ownerPhone   || '',
+    clientFound:  !!clientId,
     patientFound: !!patientId,
-    totalVisits: parsed.visits.length,
+    totalVisits:  parsed.visits.length,
     imported,
     skipped,
     warnings,
