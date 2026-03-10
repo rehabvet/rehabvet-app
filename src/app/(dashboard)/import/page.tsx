@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, XCircle, RefreshCw, User, PawPrint, Trash2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, XCircle, RefreshCw, User, PawPrint, Trash2, ExternalLink } from 'lucide-react';
 
 const STORAGE_KEY = 'rehabvet-import-results';
 
@@ -241,6 +241,12 @@ export default function ImportPage() {
                           </span>
                         )}
                         <span className="text-gray-400">{entry.result.totalVisits} total visits in file</span>
+                        {entry.result.clientId && (
+                          <a href={`/clients/${entry.result.clientId}`} target="_blank" rel="noopener noreferrer"
+                            className="ml-auto flex items-center gap-1 text-xs font-medium text-brand-pink hover:underline">
+                            <ExternalLink className="w-3.5 h-3.5" /> View Client
+                          </a>
+                        )}
                       </div>
 
                       {/* Warnings */}
@@ -314,6 +320,12 @@ export default function ImportPage() {
                           </span>
                         )}
                         <span className="text-gray-400">{entry.result.totalVisits} total visits</span>
+                        {entry.result.clientId && (
+                          <a href={`/clients/${entry.result.clientId}`} target="_blank" rel="noopener noreferrer"
+                            className="ml-auto flex items-center gap-1 text-xs font-medium text-brand-pink hover:underline">
+                            <ExternalLink className="w-3.5 h-3.5" /> View Client
+                          </a>
+                        )}
                       </div>
                       {(entry.result.warnings?.length ?? 0) > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">

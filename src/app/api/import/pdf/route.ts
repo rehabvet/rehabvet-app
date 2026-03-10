@@ -322,6 +322,8 @@ export async function POST(req: NextRequest) {
     ownerPhone:   parsed.ownerPhone   || '',
     clientFound:  !!clientId,
     patientFound: !!patientId,
+    clientId,
+    patientId,
     totalVisits:  parsed.visits.length,
     imported,
     skipped,
