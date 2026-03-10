@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Search, ChevronDown, Eye, CheckCircle, Calendar, Trash2, Phone, Mail, PawPrint, Megaphone, MapPin, Stethoscope, AlertCircle } from 'lucide-react'
+import { Users, Search, ChevronDown, Eye, CheckCircle, Calendar, Trash2, Phone, Mail, PawPrint, Megaphone, MapPin, Stethoscope, AlertCircle, UserPlus } from 'lucide-react'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 
@@ -52,6 +52,7 @@ export default function LeadsPage() {
   const [convertLead, setConvertLead] = useState<Lead | null>(null)
   const [convertDate, setConvertDate] = useState('')
   const [converting, setConverting] = useState(false)
+  const [creatingClient, setCreatingClient] = useState<string | null>(null) // lead id being created
   const [staffNote, setStaffNote] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
@@ -98,6 +99,22 @@ export default function LeadsPage() {
     await fetch(`/api/leads/${viewLead.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staff_notes: staffNote }) })
     setSavingNote(false)
     fetchLeads()
+  }
+
+  async function createClientFromLead(lead: Lead) {
+    setCreatingClient(lead.id)
+    const res = await fetch(`/api/leads/${lead.id}/convert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}), // no appointment_date = client+patient only
+    })
+    const data = await res.json()
+    setCreatingClient(null)
+    if (data.error) { alert(data.error); return }
+    fetchLeads()
+    if (viewLead?.id === lead.id) setViewLead(l => l ? { ...l, status: 'converted' } : null)
+    // Navigate to client profile
+    if (data.client?.id) window.open(`/clients/${data.client.id}`, '_blank')
   }
 
   async function doConvert() {
@@ -259,9 +276,18 @@ export default function LeadsPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                           {lead.status !== 'converted' && (
-                            <button onClick={() => setConvertLead(lead)} className="p-1.5 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded transition-colors" title="Convert to appointment">
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button onClick={() => createClientFromLead(lead)} disabled={creatingClient === lead.id}
+                                className="p-1.5 text-gray-400 hover:text-brand-pink hover:bg-pink-50 rounded transition-colors disabled:opacity-50"
+                                title="Create client & patient from lead">
+                                {creatingClient === lead.id
+                                  ? <div className="w-4 h-4 animate-spin rounded-full border-b-2 border-brand-pink" />
+                                  : <UserPlus className="w-4 h-4" />}
+                              </button>
+                              <button onClick={() => setConvertLead(lead)} className="p-1.5 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded transition-colors" title="Convert to appointment">
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                           <button onClick={() => setConfirmDeleteId(lead.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" />
@@ -415,9 +441,19 @@ export default function LeadsPage() {
             {/* ── Actions ── */}
             <div className="flex gap-2 pt-1">
               {viewLead.status !== 'converted' && (
-                <button onClick={() => { setConvertLead(viewLead); setViewLead(null) }} className="btn-primary flex items-center gap-2 flex-1 justify-center">
-                  <CheckCircle className="w-4 h-4" /> Convert to Appointment
-                </button>
+                <>
+                  <button
+                    onClick={() => { createClientFromLead(viewLead); setViewLead(null) }}
+                    disabled={creatingClient === viewLead.id}
+                    className="flex items-center gap-2 flex-1 justify-center px-4 py-2 text-sm font-medium text-brand-pink border-2 border-brand-pink/40 rounded-lg hover:bg-pink-50 transition-colors disabled:opacity-50"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    {creatingClient === viewLead.id ? 'Creating…' : 'Create Client'}
+                  </button>
+                  <button onClick={() => { setConvertLead(viewLead); setViewLead(null) }} className="btn-primary flex items-center gap-2 flex-1 justify-center">
+                    <CheckCircle className="w-4 h-4" /> Convert to Appointment
+                  </button>
+                </>
               )}
               <button onClick={() => setConfirmDeleteId(viewLead.id)} className="btn-secondary text-red-500 flex items-center gap-1.5">
                 <Trash2 className="w-4 h-4" /> Delete

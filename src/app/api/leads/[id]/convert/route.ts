@@ -26,6 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           name: lead.owner_name || 'Unknown',
           email: lead.owner_email,
           phone: lead.owner_phone,
+          address: (lead as any).owner_address || null,
         }
       })
     }
