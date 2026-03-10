@@ -418,7 +418,7 @@ export default function VisitPage() {
       </Section>
 
       {/* Diagnosis */}
-      <Section title="📌 Diagnosis" defaultOpen={false}>
+      <Section title="📌 Diagnosis">
         <AutoTextarea className="input mt-3 w-full" placeholder="Diagnosis and clinical impression…" value={form.diagnosis} onChange={v => f('diagnosis', v)} />
       </Section>
 
@@ -428,28 +428,28 @@ export default function VisitPage() {
       </Section>
 
       {/* HEP */}
-      <Section title="🏠 Home Exercise Programme (HEP)" defaultOpen={false}>
+      <Section title="🏠 Home Exercise Programme (HEP)">
         <OrderedList items={form.hep} onChange={v => f('hep', v)} placeholder="Exercise" />
       </Section>
 
       {/* Plan */}
-      <Section title="📅 Plan (Next Session)" defaultOpen={false}>
+      <Section title="📅 Plan (Next Session)">
         <AutoTextarea className="input mt-3 w-full" placeholder="What to do at next session…" value={form.plan} onChange={v => f('plan', v)} />
       </Section>
 
       {/* Client Notes */}
-      <Section title="💬 Client-Facing Notes (visible to owner)" defaultOpen={false}>
+      <Section title="💬 Client-Facing Notes (visible to owner)">
         <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">⚠️ These notes are visible to the client on their portal/app.</p>
         <AutoTextarea className="input mt-2 w-full" placeholder="Notes to share with the owner — home care advice, observations…" value={form.client_notes} onChange={v => f('client_notes', v)} />
       </Section>
 
       {/* Internal Notes */}
-      <Section title="🔒 Internal Notes (staff only)" defaultOpen={false}>
+      <Section title="🔒 Internal Notes (staff only)">
         <AutoTextarea className="input mt-3 w-full" placeholder="Internal staff notes — not visible to the client…" value={form.internal_notes} onChange={v => f('internal_notes', v)} />
       </Section>
 
       {/* ── BILLING ───────────────────────────────────────────────────────── */}
-      <Section title="💳 Billing & Payment" defaultOpen={false}>
+      <Section title="💳 Billing & Payment">
         {!invoice ? (
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-400 mb-3">No invoice created for this visit yet.</p>
