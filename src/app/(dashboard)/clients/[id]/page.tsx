@@ -6,6 +6,11 @@ import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, PawPrint, CalendarClock, Edit2, Save, X, ClipboardList, Receipt, Plus } from 'lucide-react'
 import PhoneInput from '@/components/PhoneInput'
 import AddressInput from '@/components/AddressInput'
+import BreedSearch from '@/components/BreedSearch'
+import Modal from '@/components/Modal'
+
+const SPECIES_OPTIONS = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Hamster', 'Guinea Pig', 'Reptile', 'Other']
+const blankPatient = () => ({ name: '', species: 'Dog', breed: '', gender: '', neutered: '', date_of_birth: '', weight: '', microchip: '', is_reactive: '', vet_friendly: '', notes: '' })
 
 const PAGE_SIZE = 20
 
@@ -61,6 +66,9 @@ export default function ClientDetailPage() {
   // New visit modal
   const [showVisitModal, setShowVisitModal] = useState(false)
   const [newVisit, setNewVisit] = useState({ patient_id: '', staff_id: '', visit_date: new Date().toISOString().split('T')[0] })
+  const [showAddPatient, setShowAddPatient] = useState(false)
+  const [newPatient, setNewPatient] = useState(blankPatient())
+  const [savingPatient, setSavingPatient] = useState(false)
   const [staffList, setStaffList] = useState<any[]>([])
   const [creatingVisit, setCreatingVisit] = useState(false)
 
@@ -77,6 +85,36 @@ export default function ClientDetailPage() {
     setNewVisit({ patient_id: '', staff_id: '', visit_date: new Date().toISOString().split('T')[0] })
     setShowVisitModal(true)
     fetch('/api/staff').then(r => r.json()).then(d => setStaffList(d.staff || []))
+  }
+
+  async function addPatient() {
+    if (!newPatient.name.trim()) return
+    setSavingPatient(true)
+    await fetch('/api/patients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: id,
+        name: newPatient.name.trim(),
+        species: newPatient.species,
+        breed: newPatient.breed.trim() || null,
+        gender: newPatient.gender || null,
+        neutered: newPatient.neutered === 'yes' ? true : newPatient.neutered === 'no' ? false : null,
+        date_of_birth: newPatient.date_of_birth || null,
+        weight: newPatient.weight ? parseFloat(newPatient.weight) : null,
+        microchip: newPatient.microchip.trim() || null,
+        is_reactive: newPatient.is_reactive === 'yes' ? true : newPatient.is_reactive === 'no' ? false : null,
+        vet_friendly: newPatient.vet_friendly === 'yes' ? true : newPatient.vet_friendly === 'no' ? false : null,
+        notes: newPatient.notes.trim() || null,
+      }),
+    })
+    setSavingPatient(false)
+    setShowAddPatient(false)
+    setNewPatient(blankPatient())
+    // Refresh data
+    const res = await fetch(`/api/clients/${id}`)
+    const d = await res.json()
+    setData(d)
   }
 
   async function createVisit() {
@@ -179,7 +217,12 @@ export default function ClientDetailPage() {
 
       {/* Pets */}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><PawPrint className="w-5 h-5 text-brand-gold" /> Pets</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2"><PawPrint className="w-5 h-5 text-brand-gold" /> Pets</h2>
+          <button onClick={() => setShowAddPatient(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-brand-pink border border-brand-pink/30 rounded-lg hover:bg-pink-50 transition-colors">
+            <Plus className="w-4 h-4" /> Add Pet
+          </button>
+        </div>
         {patients.length === 0 ? (
           <p className="text-gray-400 text-sm">No pets registered</p>
         ) : (
@@ -198,6 +241,107 @@ export default function ClientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Add Patient Modal */}
+      <Modal open={showAddPatient} onClose={() => { setShowAddPatient(false); setNewPatient(blankPatient()) }} title="Add New Pet">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label text-xs">Pet Name *</label>
+              <input className="input text-sm" placeholder="e.g. Buddy" value={newPatient.name}
+                onChange={e => setNewPatient(p => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label text-xs">Species *</label>
+              <select className="input text-sm" value={newPatient.species}
+                onChange={e => setNewPatient(p => ({ ...p, species: e.target.value, breed: '' }))}>
+                {SPECIES_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label text-xs">Breed</label>
+            <BreedSearch species={newPatient.species} value={newPatient.breed}
+              onChange={v => setNewPatient(p => ({ ...p, breed: v }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label text-xs">Gender</label>
+              <select className="input text-sm" value={newPatient.gender}
+                onChange={e => setNewPatient(p => ({ ...p, gender: e.target.value }))}>
+                <option value="">— Unknown —</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label className="label text-xs">Neutered / Spayed</label>
+              <select className="input text-sm" value={newPatient.neutered}
+                onChange={e => setNewPatient(p => ({ ...p, neutered: e.target.value }))}>
+                <option value="">— Unknown —</option>
+                <option value="yes">Yes — Neutered / Spayed</option>
+                <option value="no">No — Intact</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label text-xs">Date of Birth</label>
+              <input type="date" className="input text-sm" value={newPatient.date_of_birth}
+                onChange={e => setNewPatient(p => ({ ...p, date_of_birth: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label text-xs">Weight (kg)</label>
+              <input type="number" step="0.1" min="0" className="input text-sm" placeholder="e.g. 12.5"
+                value={newPatient.weight}
+                onChange={e => setNewPatient(p => ({ ...p, weight: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label text-xs">Microchip No.</label>
+              <input className="input text-sm font-mono" placeholder="Microchip number" value={newPatient.microchip}
+                onChange={e => setNewPatient(p => ({ ...p, microchip: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label text-xs">Reactive to Dogs</label>
+              <select className="input text-sm" value={newPatient.is_reactive}
+                onChange={e => setNewPatient(p => ({ ...p, is_reactive: e.target.value }))}>
+                <option value="">— Unknown —</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label text-xs">Vet Friendly</label>
+              <select className="input text-sm" value={newPatient.vet_friendly}
+                onChange={e => setNewPatient(p => ({ ...p, vet_friendly: e.target.value }))}>
+                <option value="">— Unknown —</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label text-xs">Notes</label>
+            <textarea className="input text-sm" rows={2} placeholder="Pre-existing conditions, surgeries, medications..."
+              value={newPatient.notes}
+              onChange={e => setNewPatient(p => ({ ...p, notes: e.target.value }))} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => { setShowAddPatient(false); setNewPatient(blankPatient()) }}
+              className="flex-1 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button onClick={addPatient} disabled={savingPatient || !newPatient.name.trim()}
+              className="flex-1 btn-primary text-sm">
+              {savingPatient ? 'Saving…' : 'Add Pet'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Tabbed: Visit Records / Billing / Appointments */}
       <div className="card p-0 overflow-hidden">
