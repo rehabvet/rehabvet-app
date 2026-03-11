@@ -352,7 +352,7 @@ export async function POST(req: NextRequest) {
           visit.date,
         );
       }
-    });
+    }, { timeout: 30000 });
 
     imported++;
     } catch (visitErr: any) {
