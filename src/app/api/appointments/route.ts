@@ -152,7 +152,19 @@ export async function POST(req: NextRequest) {
   )
 
   const appt = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT * FROM appointments WHERE id = $1::uuid LIMIT 1`, id
+    `SELECT a.*,
+            c.name  AS client_name,
+            c.phone AS client_phone,
+            p.name  AS patient_name,
+            u.name  AS therapist_name,
+            u.role  AS therapist_role,
+            u.photo_url AS therapist_photo
+     FROM appointments a
+     LEFT JOIN clients  c ON c.id = a.client_id
+     LEFT JOIN patients p ON p.id = a.patient_id
+     LEFT JOIN users    u ON u.id = a.therapist_id
+     WHERE a.id = $1::uuid LIMIT 1`,
+    id
   )
 
   return NextResponse.json({ appointment: appt[0] }, { status: 201 })
