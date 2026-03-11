@@ -291,7 +291,10 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                         fetch(`/api/patients?client_id=${c.id}&limit=20`).then(r => r.json()).then(d => setPatientResults(d.patients || []))
                       }}>
                         <p className="text-sm font-medium text-gray-800">{c.name}</p>
-                        {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
+                        <p className="text-xs text-gray-400">
+                          {c.phone || ''}
+                          {c.patient_names?.length > 0 && <span className="ml-1 text-pink-400">🐾 {c.patient_names.join(', ')}</span>}
+                        </p>
                       </div>
                     ))}
                     {filteredClients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No clients found</p>}

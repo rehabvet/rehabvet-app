@@ -33,21 +33,32 @@ export async function GET(req: NextRequest) {
     prisma.clients.count({ where }),
   ])
 
-  // Fetch client_numbers + first/last name for this page (outside Prisma schema)
+    // Fetch client_numbers + first/last name + patient names for this page
   const ids = clients.map(c => c.id)
-  const cnRows = ids.length
-    ? await prisma.$queryRawUnsafe(
-        `SELECT id, client_number, first_name, last_name FROM clients WHERE id = ANY($1::uuid[])`,
-        ids
-      ) as any[]
-    : []
-  const cnMap = Object.fromEntries(cnRows.map((r: any) => [r.id, { client_number: r.client_number, first_name: r.first_name, last_name: r.last_name }]))
+  const [cnRows, patRows] = ids.length ? await Promise.all([
+    prisma.$queryRawUnsafe(
+      `SELECT id, client_number, first_name, last_name FROM clients WHERE id = ANY($1::uuid[])`,
+      ids
+    ) as Promise<any[]>,
+    prisma.$queryRawUnsafe(
+      `SELECT client_id, name FROM patients WHERE client_id = ANY($1::uuid[]) ORDER BY name ASC`,
+      ids
+    ) as Promise<any[]>,
+  ]) : [[], []]
+
+  const cnMap = Object.fromEntries((cnRows as any[]).map((r: any) => [r.id, { client_number: r.client_number, first_name: r.first_name, last_name: r.last_name }]))
+  const patMap: Record<string, string[]> = {}
+  ;(patRows as any[]).forEach((r: any) => {
+    if (!patMap[r.client_id]) patMap[r.client_id] = []
+    patMap[r.client_id].push(r.name)
+  })
 
   const cliRes = NextResponse.json({
     clients: clients.map((c) => {
       const { _count, ...rest } = c as any
       const extra = cnMap[c.id] || {}
-      return { ...rest, patient_count: _count?.patients ?? 0, client_number: extra.client_number ?? null, first_name: extra.first_name ?? null, last_name: extra.last_name ?? null }
+      const patients = patMap[c.id] || []
+      return { ...rest, patient_count: _count?.patients ?? 0, client_number: extra.client_number ?? null, first_name: extra.first_name ?? null, last_name: extra.last_name ?? null, patient_names: patients }
     }),
     total,
     page,
