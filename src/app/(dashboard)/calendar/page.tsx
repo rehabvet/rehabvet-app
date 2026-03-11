@@ -38,7 +38,7 @@ export default function CalendarPage() {
   const [selectedAppt, setSelectedAppt] = useState<any>(null)
   const [editForm, setEditForm] = useState<any>(null)
   const [saving,          setSaving]          = useState(false)
-  const [apptTab, setApptTab] = useState<'visit'|'billing'>('visit')
+  const [apptTab, setApptTab] = useState<'visit'|'billing'|'diagnosis'>('visit')
   const [apptVisit, setApptVisit] = useState<any>(null)
   const [apptInvoice, setApptInvoice] = useState<any>(null)
   const [apptLineItems, setApptLineItems] = useState<any[]>([])
@@ -1470,19 +1470,12 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {/* Persistent Diagnosis History */}
-            {selectedAppt?.patient_id && (
-              <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                <DiagnosisLog patientId={selectedAppt.patient_id} compact />
-              </div>
-            )}
-
             {/* Tabs */}
             <div className="flex border-b border-gray-200 -mx-1">
-              {(['visit', 'billing'] as const).map(tab => (
+              {(['visit', 'billing', 'diagnosis'] as const).map(tab => (
                 <button key={tab} onClick={() => setApptTab(tab)}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors capitalize ${apptTab === tab ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  {tab === 'visit' ? '📋 Visit Record' : '💳 Billing'}
+                  {tab === 'visit' ? '📋 Visit Record' : tab === 'billing' ? '💳 Billing' : '🩺 Diagnosis'}
                 </button>
               ))}
             </div>
@@ -1567,6 +1560,11 @@ export default function CalendarPage() {
                   {apptInvoice ? 'Edit Bill' : '+ Create Bill'}
                 </button>
               </div>
+            )}
+
+            {/* Diagnosis History Tab */}
+            {apptTab === 'diagnosis' && selectedAppt?.patient_id && (
+              <DiagnosisLog patientId={selectedAppt.patient_id} compact />
             )}
 
             {/* Date */}

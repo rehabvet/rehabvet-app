@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Search, ChevronLeft, ChevronRight, X, Trash2, AlertTriangle, ClipboardList } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import BillingModal from '@/components/BillingModal'
+import DiagnosisLog from '@/components/DiagnosisLog'
 import Modal from '@/components/Modal'
 import DatePicker from '@/components/DatePicker'
 import TimePicker from '@/components/TimePicker'
@@ -84,7 +85,7 @@ export default function AppointmentsPage() {
   const [showEdit,        setShowEdit]        = useState(false)
   const [editing,         setEditing]         = useState<any>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [apptTab,         setApptTab]         = useState<'visit'|'billing'>('visit')
+  const [apptTab,         setApptTab]         = useState<'visit'|'billing'|'diagnosis'>('visit')
   const [apptVisit,       setApptVisit]       = useState<any>(null)
   const [apptInvoice,     setApptInvoice]     = useState<any>(null)
   const [apptLineItems,   setApptLineItems]   = useState<any[]>([])
@@ -778,10 +779,10 @@ export default function AppointmentsPage() {
 
             {/* Tabs */}
             <div className="flex border-b border-gray-200 -mx-1">
-              {(['visit', 'billing'] as const).map(tab => (
+              {(['visit', 'billing', 'diagnosis'] as const).map(tab => (
                 <button key={tab} type="button" onClick={() => setApptTab(tab)}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${apptTab === tab ? 'border-brand-pink text-brand-pink' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  {tab === 'visit' ? '📋 Visit Record' : '💳 Billing'}
+                  {tab === 'visit' ? '📋 Visit Record' : tab === 'billing' ? '💳 Billing' : '🩺 Diagnosis'}
                 </button>
               ))}
             </div>
@@ -858,6 +859,11 @@ export default function AppointmentsPage() {
                   {apptInvoice ? 'Edit Bill' : '+ Create Bill'}
                 </button>
               </div>
+            )}
+
+            {/* Diagnosis History Tab */}
+            {apptTab === 'diagnosis' && editing.patient_id && (
+              <DiagnosisLog patientId={editing.patient_id} compact />
             )}
 
             <div>
