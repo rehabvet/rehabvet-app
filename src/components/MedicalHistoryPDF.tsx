@@ -191,7 +191,7 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
     : 'Complete medical history'
 
   return (
-    <Document title={`Medical History — ${patient.name}`} author="RehabVet Veterinary Rehabilitation Centre">
+    <Document title={`Medical History — ${patient.name}`} author="RehabVet Pte Ltd">
       <Page size="A4" style={styles.page}>
 
         {/* ── Header ── */}
@@ -199,7 +199,7 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
           {logoDataUrl && <Image style={styles.logo} src={logoDataUrl} />}
           <View style={styles.clinicBlock}>
             <Text style={styles.clinicName}>RehabVet</Text>
-            <Text style={styles.clinicTagline}>Proven steps to pain free mobility</Text>
+            <Text style={styles.clinicTagline}>RehabVet Pte Ltd  ·  Proven steps to pain free mobility</Text>
             <Text style={styles.clinicDetails}>
               513 Serangoon Road, #01-01, Singapore 218154{'\n'}
               Tel: 6291 6881  ·  WhatsApp: +65 8798 7554  ·  hello@rehabvet.com
@@ -353,7 +353,7 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
 
         {/* ── Footer ── */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerLeft}>RehabVet Veterinary Rehabilitation Centre  ·  513 Serangoon Road, #01-01, Singapore 218154  ·  Tel: 6291 6881</Text>
+          <Text style={styles.footerLeft}>RehabVet Pte Ltd  ·  513 Serangoon Road, #01-01, Singapore 218154  ·  Tel: 6291 6881</Text>
           <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
 
