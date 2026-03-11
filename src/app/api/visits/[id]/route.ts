@@ -104,6 +104,14 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Block deletion if a paid invoice exists for this visit
+  const paidInvoice = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT id FROM invoices WHERE visit_id = $1::uuid AND status IN ('paid', 'partial') LIMIT 1`, params.id
+  )
+  if (paidInvoice.length > 0) {
+    return NextResponse.json({ error: 'Cannot delete a visit with a paid or partial invoice' }, { status: 400 })
+  }
+
   // Delete related records first (measurements, invoice line items, payments, invoice)
   await prisma.$queryRawUnsafe(`DELETE FROM visit_measurements WHERE visit_id = $1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`

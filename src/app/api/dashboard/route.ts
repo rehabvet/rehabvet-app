@@ -6,6 +6,7 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  try {
   const today = new Date().toISOString().split('T')[0]
 
   const [todayAppointments, totalPatients, activePlans] = await Promise.all([
@@ -80,4 +81,8 @@ export async function GET() {
     todaySchedule,
     recentSessions,
   })
+  } catch (e: any) {
+    console.error('[dashboard] DB error:', e)
+    return NextResponse.json({ error: 'Failed to load dashboard data' }, { status: 500 })
+  }
 }

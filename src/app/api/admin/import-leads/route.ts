@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 const IMPORT_SECRET = process.env.IMPORT_SECRET || ''
 
 function checkAuth(req: NextRequest) {
+  if (!IMPORT_SECRET) return false // reject all if env var not set
   return req.headers.get('x-import-secret') === IMPORT_SECRET
 }
 

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'rehabvet-dev-secret-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'rehabvet-dev-secret-local-only')
 
 export interface AuthUser {
   id: string
@@ -20,15 +20,13 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function createToken(user: AuthUser): string {
-  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable must be set in production')
-  }
+  if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable must be set')
   return jwt.sign(user, JWT_SECRET, { expiresIn: '24h' })
 }
 
 export function verifyToken(token: string): AuthUser | null {
-  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    console.error('[auth] JWT_SECRET not set in production — rejecting token')
+  if (!JWT_SECRET) {
+    console.error('[auth] JWT_SECRET not set — rejecting token')
     return null
   }
   try {

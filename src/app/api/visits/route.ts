@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
 
   params.push(limit, offset)
 
+  try {
   const rows = await prisma.$queryRawUnsafe(`
     SELECT
       v.*,
@@ -44,6 +45,10 @@ export async function GET(req: NextRequest) {
   `, ...params.slice(0, -2)) as any[]
 
   return NextResponse.json({ visits: rows, total: countRows[0]?.total ?? 0, page, limit })
+  } catch (e: any) {
+    console.error('[visits GET] DB error:', e)
+    return NextResponse.json({ error: 'Failed to load visits' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -63,6 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'client_id, patient_id and visit_date required' }, { status: 400 })
   }
 
+  try {
   // Generate visit number
   const countRows = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM visit_records`) as any[]
   const n = (countRows[0]?.n ?? 0) + 1
@@ -104,4 +110,8 @@ export async function POST(req: NextRequest) {
   ) as any[]
 
   return NextResponse.json({ visit: rows[0] }, { status: 201 })
+  } catch (e: any) {
+    console.error('[visits POST] DB error:', e)
+    return NextResponse.json({ error: 'Failed to create visit record' }, { status: 500 })
+  }
 }

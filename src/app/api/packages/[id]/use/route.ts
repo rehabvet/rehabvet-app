@@ -10,6 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { used_date, notes, appointment_id } = body
 
+  try {
   const result = await prisma.$transaction(async (tx) => {
     // Atomic check: only increment if sessions_used < sessions_total and status is active
     const updated = await tx.$queryRawUnsafe<any[]>(`
@@ -54,4 +55,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   return NextResponse.json({ package: updatedPkg, completed: result.status === 'completed' })
+  } catch (e: any) {
+    console.error('[packages/use] DB error:', e)
+    return NextResponse.json({ error: 'Failed to use package session' }, { status: 500 })
+  }
 }
