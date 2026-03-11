@@ -962,6 +962,7 @@ export default function AppointmentsPage() {
           patientId={editing.patient_id}
           clientName={editing.client_name}
           patientName={editing.patient_name}
+          clientEmail={editing.client_email || ''}
           appointmentDate={editing.date}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}

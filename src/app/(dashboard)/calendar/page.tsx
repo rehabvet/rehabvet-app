@@ -1684,6 +1684,7 @@ export default function CalendarPage() {
           patientId={selectedAppt.patient_id}
           clientName={selectedAppt.client_name}
           patientName={selectedAppt.patient_name}
+          clientEmail={selectedAppt.client_email || ''}
           appointmentDate={selectedAppt.date}
           existingInvoice={apptInvoice}
           existingLineItems={apptLineItems}

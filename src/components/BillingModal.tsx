@@ -25,13 +25,14 @@ interface Props {
   patientId?: string
   clientName?: string
   patientName?: string
+  clientEmail?: string
   appointmentDate?: string
   existingInvoice?: any
   existingLineItems?: any[]
   onSaved: (invoiceId: string) => void
 }
 
-export default function BillingModal({ open, onClose, visitId, clientId: initClientId = '', patientId: initPatientId = '', clientName, patientName, appointmentDate, existingInvoice, existingLineItems = [], onSaved }: Props) {
+export default function BillingModal({ open, onClose, visitId, clientId: initClientId = '', patientId: initPatientId = '', clientName, patientName, clientEmail, appointmentDate, existingInvoice, existingLineItems = [], onSaved }: Props) {
   const [services, setServices]   = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [items, setItems]         = useState<LineItem[]>([])
@@ -40,6 +41,13 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
   const [client, setClient]         = useState<any>(null)
   const [patient, setPatient]       = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [emailReceipt, setEmailReceipt] = useState(false)
+
+  const effectiveEmail = clientEmail || client?.email || ''
+
+  useEffect(() => {
+    setEmailReceipt(effectiveEmail.includes('@'))
+  }, [effectiveEmail])
 
   // Inline client/patient search (used when no clientId provided)
   const needsPicker = !initClientId
@@ -252,6 +260,16 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
       }
 
       onSaved(invoiceId)
+
+      // Fire-and-forget email receipt
+      if (emailReceipt && effectiveEmail && invoiceId) {
+        fetch(`/api/invoices/${invoiceId}/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: effectiveEmail }),
+        }).catch(() => {})
+      }
+
       onClose()
     } finally {
       setSaving(false)
@@ -537,6 +555,19 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
             <p className="text-xs text-gray-400 mt-1">Required to mark as paid. Leave blank to save as unpaid draft.</p>
           )}
         </div>
+
+        {/* Email receipt checkbox */}
+        {paymentMethod && effectiveEmail && (
+          <label className="flex items-center gap-2 text-xs text-slate-500 mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="w-3.5 h-3.5 accent-pink-500"
+              checked={emailReceipt}
+              onChange={e => setEmailReceipt(e.target.checked)}
+            />
+            📧 Email receipt to {effectiveEmail}
+          </label>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-1">

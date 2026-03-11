@@ -119,7 +119,8 @@ export default function InvoicePDF({ invoice, lineItems, payments, logoDataUrl }
             <Text style={styles.clinicSub}>Proven steps to pain free mobility</Text>
             <Text style={styles.clinicDetails}>
               513 Serangoon Road, #01-01, Singapore 218154{'\n'}
-              Tel: 6291 6881  ·  hello@rehabvet.com  ·  www.rehabvet.com
+              Tel: 6291 6881  ·  hello@rehabvet.com  ·  www.rehabvet.com{'\n'}
+              UEN: 201606729H
             </Text>
           </View>
           <View style={styles.invoiceCol}>
@@ -247,7 +248,7 @@ export default function InvoicePDF({ invoice, lineItems, payments, logoDataUrl }
 
         {/* ── Footer ── */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerLeft}>RehabVet Pte Ltd  ·  513 Serangoon Road, #01-01, Singapore 218154  ·  GST Reg: (if applicable)</Text>
+          <Text style={styles.footerLeft}>RehabVet Pte Ltd  ·  UEN: 201606729H  ·  513 Serangoon Road, #01-01, Singapore 218154</Text>
           <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
 
