@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { renderToBuffer } from '@react-pdf/renderer'
 import MedicalHistoryPDF from '@/components/MedicalHistoryPDF'
+import fs from 'fs'
+import path from 'path'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -69,15 +71,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }))
   const safePatient = serialize(patient)
 
-  // Pre-fetch logo as base64 so Railway doesn't need outbound image requests during PDF render
+  // Load logo from local public folder — no outbound HTTP needed
   let logoDataUrl: string | null = null
   try {
-    const logoRes = await fetch('https://rehabvet.com/wp-content/uploads/2024/01/rehabvet-logo.png', { signal: AbortSignal.timeout(5000) })
-    if (logoRes.ok) {
-      const logoBuffer = await logoRes.arrayBuffer()
-      logoDataUrl = `data:image/png;base64,${Buffer.from(logoBuffer).toString('base64')}`
-    }
-  } catch { /* logo fetch failed — PDF will render without logo */ }
+    const logoPath = path.join(process.cwd(), 'public', 'rehabvet-logo.jpg')
+    const logoBuffer = fs.readFileSync(logoPath)
+    logoDataUrl = `data:image/jpeg;base64,${logoBuffer.toString('base64')}`
+  } catch { /* logo missing — PDF renders without it */ }
 
   // Generate PDF using JSX (avoids createElement type issues with ESM package)
   try {
