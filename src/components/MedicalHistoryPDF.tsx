@@ -325,9 +325,10 @@ interface Props {
   fromDate: string | null
   toDate: string | null
   generatedAt: string
+  logoDataUrl?: string | null
 }
 
-export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, generatedAt }: Props) {
+export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, generatedAt, logoDataUrl }: Props) {
   const totalSpend = visits.reduce((sum: number, v: any) => {
     const vTotal = (v.lineItems || []).reduce((s: number, li: any) => s + Number(li.unit_price || 0) * Number(li.quantity || 1), 0)
     return sum + vTotal
@@ -353,10 +354,9 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
 
         {/* ── Header ── */}
         <View style={styles.header}>
-          <Image
-            style={styles.logo}
-            src="https://rehabvet.com/wp-content/uploads/2024/01/rehabvet-logo.png"
-          />
+          {logoDataUrl && (
+            <Image style={styles.logo} src={logoDataUrl} />
+          )}
           <View style={styles.clinicBlock}>
             <Text style={styles.clinicName}>RehabVet</Text>
             <Text style={styles.clinicTagline}>Veterinary Rehabilitation Centre</Text>

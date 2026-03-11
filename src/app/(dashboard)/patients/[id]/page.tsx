@@ -52,7 +52,12 @@ export default function PatientDetailPage() {
     setExporting(true)
     try {
       const res = await fetch(`/api/patients/${id}/export-pdf`)
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        const errText = await res.text()
+        let errMsg = errText
+        try { const j = JSON.parse(errText); errMsg = j.detail || j.error || errText } catch {}
+        throw new Error(errMsg || `HTTP ${res.status}`)
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -61,7 +66,7 @@ export default function PatientDetailPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (e: any) {
-      alert(`Export failed: ${e.message}`)
+      alert(`Export failed: ${e?.message || String(e)}`)
     }
     setExporting(false)
   }

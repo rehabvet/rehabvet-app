@@ -58,6 +58,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     lineItems: lineItems.filter((li: any) => li.visit_id === v.id),
   }))
 
+  // Pre-fetch logo as base64 so Railway doesn't need outbound image requests during PDF render
+  let logoDataUrl: string | null = null
+  try {
+    const logoRes = await fetch('https://rehabvet.com/wp-content/uploads/2024/01/rehabvet-logo.png', { signal: AbortSignal.timeout(5000) })
+    if (logoRes.ok) {
+      const logoBuffer = await logoRes.arrayBuffer()
+      logoDataUrl = `data:image/png;base64,${Buffer.from(logoBuffer).toString('base64')}`
+    }
+  } catch { /* logo fetch failed — PDF will render without logo */ }
+
   // Generate PDF using JSX (avoids createElement type issues with ESM package)
   try {
     const buffer = await renderToBuffer(
@@ -67,6 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         fromDate={fromDate || null}
         toDate={toDate || null}
         generatedAt={new Date().toISOString()}
+        logoDataUrl={logoDataUrl}
       />
     )
 
