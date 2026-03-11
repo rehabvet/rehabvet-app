@@ -16,9 +16,6 @@ export default function PatientDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState<any>({})
-  const [exportModal, setExportModal] = useState(false)
-  const [exportFrom, setExportFrom] = useState('')
-  const [exportTo, setExportTo] = useState('')
   const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
@@ -54,10 +51,7 @@ export default function PatientDetailPage() {
   async function handleExportPDF() {
     setExporting(true)
     try {
-      const params = new URLSearchParams()
-      if (exportFrom) params.set('from', exportFrom)
-      if (exportTo)   params.set('to', exportTo)
-      const res = await fetch(`/api/patients/${id}/export-pdf?${params.toString()}`)
+      const res = await fetch(`/api/patients/${id}/export-pdf`)
       if (!res.ok) throw new Error(await res.text())
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -66,7 +60,6 @@ export default function PatientDetailPage() {
       a.download = `RehabVet_MedicalHistory_${data?.patient?.name || 'Patient'}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-      setExportModal(false)
     } catch (e: any) {
       alert(`Export failed: ${e.message}`)
     }
@@ -156,7 +149,7 @@ export default function PatientDetailPage() {
                     <p className="text-gray-500">{patient.species} · {patient.breed || 'Unknown breed'} · Owner: <Link href={`/clients/${patient.client_id}`} className="text-brand-pink hover:underline">{patient.client_name}</Link></p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setExportModal(true)} className="btn-secondary flex items-center gap-1 text-sm"><Download className="w-3.5 h-3.5" />Export PDF</button>
+                    <button onClick={handleExportPDF} disabled={exporting} className="btn-secondary flex items-center gap-1 text-sm"><Download className="w-3.5 h-3.5" />{exporting ? 'Generating…' : 'Export PDF'}</button>
                     <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-1 text-sm"><Edit2 className="w-3.5 h-3.5" />Edit</button>
                   </div>
                 </div>
@@ -368,49 +361,6 @@ export default function PatientDetailPage() {
           )}
         </div>
       )}
-    {/* ── Export PDF Modal ── */}
-    {exportModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">Export Medical History</h2>
-            <button onClick={() => setExportModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-          </div>
-          <p className="text-sm text-gray-500 mb-5">Select a date range or leave blank to export all visits.</p>
-          <div className="space-y-3 mb-6">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
-              <input
-                type="date"
-                value={exportFrom}
-                onChange={e => setExportFrom(e.target.value)}
-                className="input-field w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
-              <input
-                type="date"
-                value={exportTo}
-                onChange={e => setExportTo(e.target.value)}
-                className="input-field w-full"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setExportModal(false)} className="btn-secondary flex-1">Cancel</button>
-            <button
-              onClick={handleExportPDF}
-              disabled={exporting}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              {exporting ? 'Generating…' : 'Download PDF'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </div>
   )
 }
