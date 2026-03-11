@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, DollarSign, Printer, Receipt, User, PawPrint, CalendarDays, CreditCard, ClipboardList, Trash2 } from 'lucide-react'
+import { ArrowLeft, DollarSign, Printer, Receipt, User, PawPrint, CalendarDays, CreditCard, ClipboardList, Trash2, Send, X } from 'lucide-react'
 import Modal from '@/components/Modal'
 
 const METHODS = [
@@ -39,6 +39,10 @@ export default function InvoiceDetailPage() {
   const [showPayment, setShowPayment]   = useState(false)
   const [showDelete, setShowDelete]     = useState(false)
   const [deleting, setDeleting]         = useState(false)
+  const [showSendEmail, setShowSendEmail] = useState(false)
+  const [sendEmail, setSendEmail]         = useState('')
+  const [sending, setSending]             = useState(false)
+  const [sentTo, setSentTo]               = useState<string|null>(null)
   const [payForm, setPayForm]     = useState({
     amount: '', method: 'paynow', reference: '', date: new Date().toISOString().split('T')[0], notes: ''
   })
@@ -101,6 +105,29 @@ export default function InvoiceDetailPage() {
       body: JSON.stringify({ status })
     })
     fetchData()
+  }
+
+  function openSendEmail() {
+    setSendEmail(data?.invoice?.client_email || '')
+    setSentTo(null)
+    setShowSendEmail(true)
+  }
+
+  async function handleSendEmail() {
+    setSending(true)
+    try {
+      const res = await fetch(`/api/invoices/${id}/send-email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: sendEmail }),
+      })
+      const d = await res.json()
+      if (!res.ok) { alert(d.error || d.detail || 'Send failed'); setSending(false); return }
+      setSentTo(sendEmail)
+      setShowSendEmail(false)
+    } catch (e: any) {
+      alert(`Send failed: ${e.message}`)
+    }
+    setSending(false)
   }
 
   if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
@@ -189,7 +216,10 @@ export default function InvoiceDetailPage() {
               <ClipboardList className="w-4 h-4" /> View Visit Record
             </button>
           )}
-          <button onClick={() => window.print()} className="btn-secondary text-sm flex items-center gap-1.5 ml-auto">
+          <button onClick={openSendEmail} className="btn-secondary text-sm flex items-center gap-1.5 ml-auto">
+            <Send className="w-4 h-4" /> {sentTo ? '✓ Sent' : 'Send Invoice'}
+          </button>
+          <button onClick={() => window.print()} className="btn-secondary text-sm flex items-center gap-1.5">
             <Printer className="w-4 h-4" /> Print
           </button>
           {invoice.status === 'draft' && (
@@ -285,6 +315,46 @@ export default function InvoiceDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Send Invoice Email */}
+      {showSendEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Send className="w-5 h-5 text-brand-pink" />Send Invoice</h2>
+              <button onClick={() => setShowSendEmail(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              A PDF invoice for <strong>{data?.invoice?.patient_name || 'patient'}</strong> will be emailed as an attachment.
+            </p>
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Send to email address</label>
+              <input
+                type="email"
+                value={sendEmail}
+                onChange={e => setSendEmail(e.target.value)}
+                placeholder="client@example.com"
+                className="input-field w-full"
+                autoFocus
+              />
+              {!data?.invoice?.client_email && (
+                <p className="text-xs text-amber-600 mt-1">⚠️ No email on file for this client — please enter one above.</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowSendEmail(false)} className="btn-secondary flex-1">Cancel</button>
+              <button
+                onClick={handleSendEmail}
+                disabled={sending || !sendEmail}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                {sending ? 'Sending…' : 'Send Invoice'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       <Modal open={showDelete} onClose={() => setShowDelete(false)} title="Delete Invoice" size="sm">
