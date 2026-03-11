@@ -43,12 +43,14 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
 
   // Inline client/patient search (used when no clientId provided)
   const needsPicker = !initClientId
-  const [allClients, setAllClients]   = useState<any[]>([])
-  const [allPatients, setAllPatients] = useState<any[]>([])
+  const [clientResults, setClientResults]   = useState<any[]>([])
+  const [patientResults, setPatientResults] = useState<any[]>([])
   const [clientSearch, setClientSearch]   = useState('')
   const [patientSearch, setPatientSearch] = useState('')
   const [showClientDrop, setShowClientDrop]   = useState(false)
   const [showPatientDrop, setShowPatientDrop] = useState(false)
+  const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const patientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [resolvedClientId, setResolvedClientId] = useState(initClientId)
   const [resolvedPatientId, setResolvedPatientId] = useState(initPatientId)
   const clientRef = useRef<HTMLDivElement>(null)
@@ -70,10 +72,9 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
     if (initClientId)  fetch(`/api/clients/${initClientId}`).then(r => r.json()).then(d => setClient(d.client || d))
     if (initPatientId) fetch(`/api/patients/${initPatientId}`).then(r => r.json()).then(d => setPatient(d.patient || d))
     if (needsPicker) {
-      fetch('/api/clients?limit=5000').then(r => r.json()).then(d => setAllClients(d.clients || []))
-      fetch('/api/patients?limit=5000').then(r => r.json()).then(d => setAllPatients(d.patients || []))
       setClient(null); setPatient(null)
       setClientSearch(''); setPatientSearch('')
+      setClientResults([]); setPatientResults([])
       setResolvedClientId(''); setResolvedPatientId('')
     }
     setPaymentMethod('')
@@ -148,8 +149,30 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
   const subtotal = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
   const total    = subtotal // no GST shown separately — price already inclusive
 
-  const filteredClients  = allClients.filter(c => `${c.name} ${c.phone || ''}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 20)
-  const filteredPatients = allPatients.filter(p => (!client || p.client_id === client.id) && p.name.toLowerCase().includes(patientSearch.toLowerCase())).slice(0, 20)
+  // Debounced server-side client search
+  function searchClients(q: string) {
+    if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current)
+    if (!q.trim()) { setClientResults([]); return }
+    clientSearchTimer.current = setTimeout(() => {
+      fetch(`/api/clients?search=${encodeURIComponent(q)}&limit=20`)
+        .then(r => r.json()).then(d => setClientResults(d.clients || []))
+    }, 250)
+  }
+
+  // Debounced server-side patient search (scoped to selected client if set)
+  function searchPatients(q: string) {
+    if (patientSearchTimer.current) clearTimeout(patientSearchTimer.current)
+    if (!q.trim() && !client) { setPatientResults([]); return }
+    patientSearchTimer.current = setTimeout(() => {
+      const clientParam = client ? `&client_id=${client.id}` : ''
+      const searchParam = q.trim() ? `&search=${encodeURIComponent(q)}` : ''
+      fetch(`/api/patients?limit=20${clientParam}${searchParam}`)
+        .then(r => r.json()).then(d => setPatientResults(d.patients || []))
+    }, 250)
+  }
+
+  const filteredClients  = clientResults
+  const filteredPatients = patientResults
 
   async function handleSave() {
     if (needsPicker && !client) { alert('Please select a client first.'); return }
@@ -252,6 +275,7 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                   autoFocus
                   onChange={e => {
                     setClientSearch(e.target.value); setShowClientDrop(true)
+                    searchClients(e.target.value)
                     if (!e.target.value) { setClient(null); setPatient(null); setPatientSearch(''); setResolvedClientId(''); setResolvedPatientId('') }
                   }}
                   onFocus={() => setShowClientDrop(true)}
@@ -263,6 +287,8 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                       <div key={c.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => {
                         setClient(c); setClientSearch(c.name); setResolvedClientId(c.id)
                         setPatient(null); setPatientSearch(''); setResolvedPatientId(''); setShowClientDrop(false)
+                        // Pre-load this client's patients
+                        fetch(`/api/patients?client_id=${c.id}&limit=20`).then(r => r.json()).then(d => setPatientResults(d.patients || []))
                       }}>
                         <p className="text-sm font-medium text-gray-800">{c.name}</p>
                         {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
@@ -283,9 +309,10 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                   disabled={!client}
                   onChange={e => {
                     setPatientSearch(e.target.value); setShowPatientDrop(true)
+                    searchPatients(e.target.value)
                     if (!e.target.value) { setPatient(null); setResolvedPatientId('') }
                   }}
-                  onFocus={() => setShowPatientDrop(true)}
+                  onFocus={() => { setShowPatientDrop(true); searchPatients(patientSearch) }}
                 />
                 {patient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {patient.name}</span>}
                 {showPatientDrop && patientSearch && !patient && (
