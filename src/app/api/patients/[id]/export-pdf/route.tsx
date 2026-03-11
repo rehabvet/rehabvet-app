@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { renderToBuffer } from '@react-pdf/renderer'
-import { createElement } from 'react'
 import MedicalHistoryPDF from '@/components/MedicalHistoryPDF'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const visits = await prisma.$queryRawUnsafe<any[]>(visitQuery, ...queryParams)
 
   // Fetch invoice line items for these visits
-  const visitIds = visits.map(v => v.id)
+  const visitIds = visits.map((v: any) => v.id)
   let lineItems: any[] = []
   if (visitIds.length > 0) {
     const placeholders = visitIds.map((_: any, i: number) => `$${i + 1}`).join(',')
@@ -57,23 +56,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const visitsWithItems = visits.map((v: any) => ({
     ...v,
     lineItems: lineItems.filter((li: any) => li.visit_id === v.id),
-    invoice: lineItems.find((li: any) => li.visit_id === v.id),
   }))
 
-  // Generate PDF
+  // Generate PDF using JSX (avoids createElement type issues with ESM package)
   try {
     const buffer = await renderToBuffer(
-      createElement(MedicalHistoryPDF, {
-        patient,
-        visits: visitsWithItems,
-        fromDate: fromDate || null,
-        toDate: toDate || null,
-        generatedAt: new Date().toISOString(),
-      })
+      <MedicalHistoryPDF
+        patient={patient}
+        visits={visitsWithItems}
+        fromDate={fromDate || null}
+        toDate={toDate || null}
+        generatedAt={new Date().toISOString()}
+      />
     )
 
     const filename = `RehabVet_MedicalHistory_${patient.name.replace(/\s+/g, '_')}.pdf`
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
