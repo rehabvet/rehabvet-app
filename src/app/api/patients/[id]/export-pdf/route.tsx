@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     `SELECT p.*, c.name as client_name, c.phone as client_phone, c.email as client_email
      FROM patients p
      LEFT JOIN clients c ON c.id = p.client_id
-     WHERE p.id = $1 LIMIT 1`,
+     WHERE p.id = $1::uuid LIMIT 1`,
     id
   )
   if (patients.length === 0) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
            u.name as staff_name
     FROM visit_records vr
     LEFT JOIN users u ON u.id = vr.staff_id
-    WHERE vr.patient_id = $1
+    WHERE vr.patient_id = $1::uuid
   `
   const queryParams: any[] = [id]
   if (fromDate) { queryParams.push(fromDate); visitQuery += ` AND vr.visit_date >= $${queryParams.length}` }
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const visitIds = visits.map((v: any) => v.id)
   let lineItems: any[] = []
   if (visitIds.length > 0) {
-    const placeholders = visitIds.map((_: any, i: number) => `$${i + 1}`).join(',')
+    const placeholders = visitIds.map((_: any, i: number) => `$${i + 1}::uuid`).join(',')
     lineItems = await prisma.$queryRawUnsafe<any[]>(
       `SELECT ili.*, i.visit_id, i.bill_number FROM invoice_line_items ili
        JOIN invoices i ON i.id = ili.invoice_id
