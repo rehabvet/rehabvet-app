@@ -31,6 +31,7 @@ export interface ParsedPDF {
   patientBreed: string;      // e.g. "Maltese"
   patientGender: string;     // e.g. "Male"
   patientDOB: string | null; // approximate DOB from age e.g. "2021-08-01"
+  patientDesexed: boolean | null; // from "Desexed: Y/N"
   ownerName: string;
   ownerOldId: string;
   ownerPhone: string;        // normalized 8-digit SG mobile
@@ -103,6 +104,12 @@ export function parsePDF(text: string): ParsedPDF | null {
     approxDOB.setMonth(approxDOB.getMonth() - months);
     patientDOB = approxDOB.toISOString().split('T')[0];
   }
+
+  // Parse desexed status from "Desexed: Y" or "Desexed: N"
+  const desexedMatch = ageSearchStr.match(/Desexed:\s*([YN])/i);
+  const patientDesexed: boolean | null = desexedMatch
+    ? desexedMatch[1].toUpperCase() === 'Y'
+    : null;
 
   // --- Extract owner ---
   // "Owner Ho Khim Rong (1/3776)" OR "Owner Yeo Ai Ling" (no ID in some PDFs)
@@ -221,5 +228,5 @@ export function parsePDF(text: string): ParsedPDF | null {
     });
   }
 
-  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, patientDOB, ownerName, ownerOldId, ownerPhone, ownerPostcode, visits };
+  return { patientName, patientOldId, patientSpecies, patientBreed, patientGender, patientDOB, patientDesexed, ownerName, ownerOldId, ownerPhone, ownerPostcode, visits };
 }

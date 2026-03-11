@@ -205,18 +205,38 @@ export async function POST(req: NextRequest) {
     if (partial.length > 0) patientId = partial[0].id;
   }
 
-  // 3. Auto-create patient (removed single-patient fallback — a client can have multiple pets)
+  // If we matched an existing patient, fill in any missing fields from the PDF
+  if (patientId) {
+    await prisma.$queryRawUnsafe(
+      `UPDATE patients SET
+        species       = COALESCE(NULLIF(species, ''), $2),
+        breed         = COALESCE(breed, $3),
+        gender        = COALESCE(gender, $4),
+        date_of_birth = COALESCE(date_of_birth, $5),
+        neutered      = COALESCE(neutered, $6)
+       WHERE id = $1`,
+      patientId,
+      parsed.patientSpecies || null,
+      parsed.patientBreed || null,
+      parsed.patientGender || null,
+      parsed.patientDOB || null,
+      parsed.patientDesexed ?? null
+    );
+  }
+
+  // 3. Auto-create patient if still not found
   if (!patientId) {
     const newPatientId = randomUUID();
     await prisma.$queryRawUnsafe(
-      `INSERT INTO patients (id, client_id, name, species, breed, gender, date_of_birth, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+      `INSERT INTO patients (id, client_id, name, species, breed, gender, date_of_birth, neutered, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
       newPatientId, clientId,
       parsed.patientName || 'Unknown',
       parsed.patientSpecies || 'Dog',
       parsed.patientBreed || null,
       parsed.patientGender || null,
-      parsed.patientDOB || null
+      parsed.patientDOB || null,
+      parsed.patientDesexed ?? null
     );
     patientId = newPatientId;
     warnings.push(`New patient created: ${parsed.patientName || 'Unknown'} (${parsed.patientBreed || parsed.patientSpecies || 'Dog'})`);
