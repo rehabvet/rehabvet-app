@@ -52,11 +52,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     )
   }
 
-  // Attach line items to visits
-  const visitsWithItems = visits.map((v: any) => ({
+  // Serialize: convert Prisma Decimal/Date objects to plain JS primitives
+  function serialize(obj: any): any {
+    if (obj === null || obj === undefined) return obj
+    if (typeof obj === 'bigint') return Number(obj)
+    if (obj instanceof Date) return obj.toISOString()
+    if (typeof obj === 'object' && typeof obj.toFixed === 'function') return Number(obj) // Prisma Decimal
+    if (Array.isArray(obj)) return obj.map(serialize)
+    if (typeof obj === 'object') return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, serialize(v)]))
+    return obj
+  }
+
+  const visitsWithItems = visits.map((v: any) => serialize({
     ...v,
     lineItems: lineItems.filter((li: any) => li.visit_id === v.id),
   }))
+  const safePatient = serialize(patient)
 
   // Pre-fetch logo as base64 so Railway doesn't need outbound image requests during PDF render
   let logoDataUrl: string | null = null
@@ -72,7 +83,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const buffer = await renderToBuffer(
       <MedicalHistoryPDF
-        patient={patient}
+        patient={safePatient}
         visits={visitsWithItems}
         fromDate={fromDate || null}
         toDate={toDate || null}
