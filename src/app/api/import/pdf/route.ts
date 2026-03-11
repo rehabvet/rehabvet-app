@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
   }
 
   const parsed = parsePDF(pdfText);
-  if (!parsed) return NextResponse.json({ error: 'Could not parse PDF structure' }, { status: 400 });
+  if (!parsed) return NextResponse.json({ error: 'Could not parse PDF structure', debug_text: pdfText.slice(0, 800) }, { status: 400 });
 
   // --- Match or auto-create client ---
   const normPhone = normalizePhone(parsed.ownerPhone);
@@ -374,6 +374,7 @@ export async function POST(req: NextRequest) {
     success: true,
     patientName:  parsed.patientName  || '(unknown)',
     ownerName:    parsed.ownerName    || '(unknown)',
+    debug_text:   (!parsed.patientName || !parsed.ownerName) ? pdfText.slice(0, 800) : undefined,
     ownerPhone:   parsed.ownerPhone   || '',
     clientFound:  !!clientId,
     patientFound: !!patientId,
