@@ -261,7 +261,7 @@ export default function InvoiceDetailPage() {
                         {item.item_type || 'service'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-700">{parseFloat(item.qty ?? item.quantity ?? 1)}</td>
+                    <td className="px-4 py-3 text-center text-gray-700">{parseFloat(item.quantity ?? item.qty ?? 1)}</td>
                     <td className="px-4 py-3 text-right text-gray-700">S${fmt(item.unit_price)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">S${fmt(item.total ?? item.amount)}</td>
                   </tr>

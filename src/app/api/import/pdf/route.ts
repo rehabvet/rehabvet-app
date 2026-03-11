@@ -328,8 +328,8 @@ export async function POST(req: NextRequest) {
       // Create line items
       for (const li of visit.lineItems) {
         await tx.$queryRawUnsafe(
-          `INSERT INTO invoice_line_items (id, invoice_id, description, quantity, unit_price, amount, total, created_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$6,NOW())`,
+          `INSERT INTO invoice_line_items (id, invoice_id, description, qty, quantity, unit_price, amount, total, created_at)
+           VALUES ($1,$2,$3,$4,$4,$5,$6,$6,NOW())`,
           randomUUID(),
           invoiceId,
           li.name,
