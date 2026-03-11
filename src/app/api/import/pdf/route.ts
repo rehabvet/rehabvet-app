@@ -81,10 +81,18 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
+    // Helper: run pdf-parse with a 15s timeout to prevent Railway from dropping the connection
+    function parseWithTimeout(buf: Buffer, opts?: object): Promise<{ text: string }> {
+      return Promise.race([
+        pdfParse(buf, opts),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('pdf-parse timeout after 15s')), 15000)),
+      ]);
+    }
+
     // Tier 1: standard parse
     let parsed1 = false;
     try {
-      const data = await pdfParse(buffer);
+      const data = await parseWithTimeout(buffer);
       pdfText = data.text;
       parsed1 = true;
     } catch { /* fall through */ }
@@ -92,7 +100,7 @@ export async function POST(req: NextRequest) {
     // Tier 2: lenient options (for bad XRef / corrupted structure)
     if (!parsed1) {
       try {
-        const data = await pdfParse(buffer, { max: 0, version: 'v1.10.100' });
+        const data = await parseWithTimeout(buffer, { max: 0, version: 'v1.10.100' });
         pdfText = data.text;
         parsed1 = true;
       } catch { /* fall through */ }
