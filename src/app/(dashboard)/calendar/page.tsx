@@ -1053,31 +1053,11 @@ export default function CalendarPage() {
             </button>
 
             {showDateJumper && (
-              <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-3 min-w-[220px]">
-                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Jump to date</p>
-                <DatePicker
-                  label=""
-                  value={toSGTDateStr(currentDate)}
-                  onChange={v => {
-                    if (!v) return
-                    const [y, m, d] = v.split('-').map(Number)
-                    setCurrentDate(new Date(y, m - 1, d))
-                    setShowDateJumper(false)
-                  }}
-                />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[
-                    { label: 'Today', date: new Date() },
-                    { label: 'Tomorrow', date: new Date(Date.now() + 86400000) },
-                    { label: 'Next Mon', date: (() => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d })() },
-                  ].map(({ label, date }) => (
-                    <button key={label} onClick={() => { setCurrentDate(date); setShowDateJumper(false) }}
-                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-brand-pink hover:text-white rounded-lg transition-colors font-medium">
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <MiniCalendarPicker
+                selectedDate={currentDate}
+                todayStr={toSGTDateStr(new Date())}
+                onSelect={d => { setCurrentDate(d); setShowDateJumper(false) }}
+              />
             )}
           </div>
         </div>
@@ -1728,6 +1708,71 @@ export default function CalendarPage() {
           }}
         />
       )}
+    </div>
+  )
+}
+
+function MiniCalendarPicker({ selectedDate, todayStr, onSelect }: {
+  selectedDate: Date
+  todayStr: string
+  onSelect: (d: Date) => void
+}) {
+  const [pickerYear, setPickerYear] = useState(selectedDate.getFullYear())
+  const [pickerMonth, setPickerMonth] = useState(selectedDate.getMonth())
+
+  const selectedStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`
+  const firstDay = new Date(pickerYear, pickerMonth, 1).getDay()
+  const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate()
+  const monthName = new Date(pickerYear, pickerMonth).toLocaleString('en-SG', { month: 'long', year: 'numeric' })
+  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  function prevMonth() { const d = new Date(pickerYear, pickerMonth - 1); setPickerMonth(d.getMonth()); setPickerYear(d.getFullYear()) }
+  function nextMonth() { const d = new Date(pickerYear, pickerMonth + 1); setPickerMonth(d.getMonth()); setPickerYear(d.getFullYear()) }
+
+  return (
+    <div className="absolute left-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl p-3 w-64">
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-sm font-semibold text-gray-800">{monthName}</span>
+        <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />
+          const dateStr = `${pickerYear}-${String(pickerMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+          const isToday = dateStr === todayStr
+          const isSelected = dateStr === selectedStr
+          return (
+            <button key={i} onClick={() => onSelect(new Date(pickerYear, pickerMonth, day))}
+              className={`text-xs w-8 h-8 mx-auto flex items-center justify-center rounded-full font-medium transition-colors
+                ${isSelected ? 'bg-brand-pink text-white shadow-sm' :
+                  isToday ? 'bg-pink-100 text-brand-pink font-bold' :
+                  'text-gray-700 hover:bg-gray-100'}`}>
+              {day}
+            </button>
+          )
+        })}
+      </div>
+      {/* Today shortcut */}
+      <div className="mt-2 pt-2 border-t border-gray-100">
+        <button onClick={() => onSelect(new Date())}
+          className="w-full text-xs text-center text-brand-pink hover:text-pink-700 font-semibold py-1 rounded-lg hover:bg-pink-50 transition-colors">
+          Go to Today
+        </button>
+      </div>
     </div>
   )
 }
