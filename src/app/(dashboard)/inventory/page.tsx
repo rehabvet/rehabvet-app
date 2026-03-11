@@ -31,16 +31,22 @@ interface Stats {
 }
 
 const CATEGORIES = [
-  'TCM / Chinese Medicine',
-  'Ruffwear Gear',
-  'Orthotics & Braces',
-  'Mobility Aids',
-  'Pet Food',
-  'Supplies & Equipment',
+  'Consumables & Supplies',
+  'Dental Care',
+  'Diagnostics & Lab',
+  'Disinfectants & Antiseptics',
+  'Food & Nutrition',
   'Grooming & Skin Care',
+  'Injectables',
+  'IV & Fluids',
+  'Mobility Aids & Harnesses',
+  'Ophthalmic & Ear Care',
+  'Orthotics & Braces',
+  'Parasite Control',
+  'Pharmaceuticals',
+  'Rehabilitation Equipment',
   'Supplements',
-  'Pet Accessories',
-  'Medications',
+  'Wound Care & Bandaging',
   'Other',
 ]
 
