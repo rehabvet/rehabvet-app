@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const placeholders = visitIds.map((_: any, i: number) => `$${i + 1}::uuid`).join(',')
     lineItems = await prisma.$queryRawUnsafe<any[]>(
       `SELECT ili.*, i.visit_id, i.bill_number FROM invoice_line_items ili
-       JOIN invoices i ON i.id = ili.invoice_id
+       JOIN invoices i ON i.id = ili.invoice_id::uuid
        WHERE i.visit_id IN (${placeholders})`,
       ...visitIds
     )
