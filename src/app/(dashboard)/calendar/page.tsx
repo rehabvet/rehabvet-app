@@ -377,23 +377,12 @@ export default function CalendarPage() {
       })
       const data = await res.json()
       if (data.appointment) {
-        // Optimistically add to state immediately with full joined data from API
+        // Add instantly to state — POST now returns full joined row (client_name, patient_name, etc.)
         setAppointments(prev => {
           const updated = [...prev, data.appointment]
           apptCache.current.set(`${year}-${month}`, updated)
           return updated
         })
-        // Also background-refresh the month to ensure full consistency
-        const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-        const endDate   = toSGTDateStr(new Date(year, month + 2, 0))
-        fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
-          .then(r => r.json())
-          .then(d => {
-            const fresh = d.appointments || []
-            apptCache.current.set(`${year}-${month}`, fresh)
-            setAppointments(fresh)
-          })
-          .catch(() => {/* silent — optimistic add already visible */})
       }
       resetNewApptModal()
     } catch (err) { console.error(err) }

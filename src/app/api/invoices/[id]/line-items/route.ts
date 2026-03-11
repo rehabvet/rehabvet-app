@@ -35,9 +35,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const rows = await prisma.$queryRawUnsafe(`
     INSERT INTO invoice_line_items
-      (invoice_id, staff_id, item_type, description, qty, unit_price, total, package_id, is_package_redemption, dispensing_instructions)
+      (invoice_id, staff_id, item_type, description, qty, quantity, unit_price, total, amount, is_package_redemption, dispensing_instructions)
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ($1, $2, $3, $4, $5, $5, $6, $7, $7, $8, $9)
     RETURNING *
   `,
     params.id,
@@ -47,7 +47,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     parseFloat(qty),
     parseFloat(unit_price),
     total,
-    package_id || null,
     is_package_redemption,
     dispensing_instructions || null,
   ) as any[]
@@ -76,7 +75,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
 async function recalcInvoice(invoiceId: string) {
   const rows = await prisma.$queryRawUnsafe(`
-    SELECT COALESCE(SUM(total), 0)::numeric AS subtotal
+    SELECT COALESCE(SUM(amount), 0)::numeric AS subtotal
     FROM invoice_line_items WHERE invoice_id = $1
   `, invoiceId) as any[]
 
