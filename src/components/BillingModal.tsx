@@ -176,6 +176,7 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
 
   async function handleSave() {
     if (needsPicker && !client) { alert('Please select a client first.'); return }
+    if (needsPicker && !resolvedPatientId) { alert('Please select a patient.'); return }
     setSaving(true)
     try {
       let invoiceId = existingInvoice?.id
@@ -303,35 +304,54 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
               </div>
             </div>
             <div>
-              <label className="label">Patient <span className="text-gray-400 font-normal">(optional)</span></label>
-              <div className="relative" ref={patientRef}>
-                <input
-                  className="input"
-                  placeholder={client ? 'Search patient...' : 'Select a client first'}
-                  value={patientSearch}
-                  disabled={!client}
-                  onChange={e => {
-                    setPatientSearch(e.target.value); setShowPatientDrop(true)
-                    searchPatients(e.target.value)
-                    if (!e.target.value) { setPatient(null); setResolvedPatientId('') }
-                  }}
-                  onFocus={() => { setShowPatientDrop(true); searchPatients(patientSearch) }}
-                />
-                {patient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">✓ {patient.name}</span>}
-                {showPatientDrop && patientSearch && !patient && (
-                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                    {filteredPatients.map(p => (
-                      <div key={p.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => {
-                        setPatient(p); setPatientSearch(p.name); setResolvedPatientId(p.id); setShowPatientDrop(false)
-                      }}>
-                        <p className="text-sm font-medium text-gray-800">{p.name}</p>
-                        {p.species && <p className="text-xs text-gray-400 capitalize">{p.species}{p.breed ? ` · ${p.breed}` : ''}</p>}
-                      </div>
-                    ))}
-                    {filteredPatients.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No patients found</p>}
-                  </div>
-                )}
-              </div>
+              <label className="label">Patient <span className="text-red-400">*</span></label>
+              {!client ? (
+                <p className="text-sm text-gray-400 italic px-1">Select a client first</p>
+              ) : patient ? (
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  <span className="inline-flex items-center gap-1.5 bg-pink-50 border border-pink-200 text-pink-700 text-sm font-medium px-3 py-1.5 rounded-full">
+                    🐾 {patient.name}
+                    {patient.species && <span className="text-pink-400 text-xs capitalize">· {patient.species}</span>}
+                    <button type="button" onClick={() => { setPatient(null); setResolvedPatientId('') }} className="ml-1 text-pink-400 hover:text-pink-600">✕</button>
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {filteredPatients.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setPatient(p); setResolvedPatientId(p.id) }}
+                      className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:border-pink-300 hover:bg-pink-50 text-gray-700 text-sm font-medium px-3 py-1.5 rounded-full transition-colors"
+                    >
+                      🐾 {p.name}
+                      {p.species && <span className="text-gray-400 text-xs capitalize">· {p.species}</span>}
+                    </button>
+                  ))}
+                  {filteredPatients.length === 0 && (
+                    <div className="relative w-full" ref={patientRef}>
+                      <input
+                        className="input"
+                        placeholder="Search patient..."
+                        value={patientSearch}
+                        onChange={e => { setPatientSearch(e.target.value); setShowPatientDrop(true); searchPatients(e.target.value) }}
+                        onFocus={() => { setShowPatientDrop(true); searchPatients(patientSearch) }}
+                      />
+                      {showPatientDrop && (
+                        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {patientResults.map(p => (
+                            <div key={p.id} className="px-3 py-2 hover:bg-gray-50 cursor-pointer" onMouseDown={() => { setPatient(p); setResolvedPatientId(p.id); setShowPatientDrop(false) }}>
+                              <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                              {p.species && <p className="text-xs text-gray-400 capitalize">{p.species}{p.breed ? ` · ${p.breed}` : ''}</p>}
+                            </div>
+                          ))}
+                          {patientResults.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">No patients found</p>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
