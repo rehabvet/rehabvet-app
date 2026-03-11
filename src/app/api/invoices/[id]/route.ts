@@ -26,7 +26,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const [oldItems, lineItems, payments] = await Promise.all([
     prisma.$queryRawUnsafe(`SELECT * FROM invoice_items WHERE invoice_id=$1::uuid`, params.id).catch(() => []) as Promise<any[]>,
     prisma.$queryRawUnsafe(
-      `SELECT il.*, u.name AS staff_name FROM invoice_line_items il LEFT JOIN users u ON u.id=il.staff_id WHERE il.invoice_id=$1::uuid ORDER BY COALESCE(il.sort_order, 0), il.created_at`,
+      `SELECT il.*, u.name AS staff_name FROM invoice_line_items il LEFT JOIN users u ON u.id=il.staff_id WHERE il.invoice_id=$1 ORDER BY COALESCE(il.sort_order, 0), il.created_at`,
       params.id
     ).catch(() => []) as Promise<any[]>,
     prisma.$queryRawUnsafe(
@@ -106,7 +106,7 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (rows[0].status !== 'draft') return NextResponse.json({ error: 'Only draft invoices can be deleted' }, { status: 400 })
 
-  await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1::uuid`, params.id)
+  await prisma.$queryRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id=$1`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoice_items WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM payments WHERE invoice_id=$1::uuid`, params.id)
   await prisma.$queryRawUnsafe(`DELETE FROM invoices WHERE id=$1::uuid`, params.id)

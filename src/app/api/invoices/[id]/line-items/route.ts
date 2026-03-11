@@ -10,7 +10,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     SELECT il.*, u.name AS staff_name
     FROM invoice_line_items il
     LEFT JOIN users u ON u.id = il.staff_id
-    WHERE il.invoice_id = $1::uuid
+    WHERE il.invoice_id = $1
     ORDER BY il.created_at ASC
   `, params.id) as any[]
 
@@ -65,7 +65,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
   const { line_item_id } = body
   await prisma.$queryRawUnsafe(
-    `DELETE FROM invoice_line_items WHERE id = $1::uuid AND invoice_id = $2::uuid`,
+    `DELETE FROM invoice_line_items WHERE id = $1 AND invoice_id = $2`,
     line_item_id, params.id
   )
 

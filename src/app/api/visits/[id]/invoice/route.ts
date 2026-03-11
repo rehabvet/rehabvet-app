@@ -28,7 +28,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     SELECT il.*, u.name AS staff_name
     FROM invoice_line_items il
     LEFT JOIN users u ON u.id = il.staff_id
-    WHERE il.invoice_id = $1::uuid
+    WHERE il.invoice_id = $1
     ORDER BY il.created_at ASC
   `, inv.id) as any[]
 
