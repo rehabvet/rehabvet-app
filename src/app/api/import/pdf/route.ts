@@ -306,7 +306,9 @@ export async function POST(req: NextRequest) {
         `SELECT 'RV-' || LPAD(NEXTVAL('inv_number_seq')::TEXT, 8, '0') AS inv`
       );
       const invoiceNumber = inRow[0].inv;
-      const subtotal = visit.lineItems.reduce((s: number, li: any) => s + li.price * li.qty, 0);
+      // In Vetlink PDFs, li.price is the LINE TOTAL (final price), NOT unit price
+      // unit_price = li.price / li.qty  |  amount/total = li.price
+      const subtotal = visit.lineItems.reduce((s: number, li: any) => s + li.price, 0);
 
       await tx.$queryRawUnsafe(
         `INSERT INTO invoices (id, client_id, patient_id, visit_id, invoice_number, bill_number, date, due_date, status, subtotal, tax, total, notes, created_at, updated_at)
@@ -334,8 +336,8 @@ export async function POST(req: NextRequest) {
           invoiceId,
           li.name,
           li.qty,
-          li.price,
-          li.price * li.qty,
+          li.qty > 0 ? li.price / li.qty : li.price,  // unit_price = line_total / qty
+          li.price,  // amount = total = line total from PDF
         );
       }
 
