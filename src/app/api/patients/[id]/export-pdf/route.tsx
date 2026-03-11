@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       },
     })
   } catch (err: any) {
-    console.error('PDF generation error:', err)
-    return NextResponse.json({ error: 'PDF generation failed', detail: err.message }, { status: 500 })
+    console.error('PDF generation error:', err?.message || err, err?.stack)
+    return NextResponse.json({ error: 'PDF generation failed', detail: err?.message || String(err) }, { status: 500 })
   }
 }
