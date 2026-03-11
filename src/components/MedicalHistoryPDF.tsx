@@ -266,7 +266,6 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
           <Text style={styles.noVisits}>No visits found for this date range.</Text>
         ) : (
           visits.map((visit: any, i: number) => {
-            const services: any[] = visit.lineItems || []
             return (
               <View key={visit.id || i} style={styles.visitCard} wrap={false}>
                 {/* Visit header */}
@@ -327,22 +326,7 @@ export default function MedicalHistoryPDF({ patient, visits, fromDate, toDate, g
                     </View>
                   )}
 
-                  {/* Services (name only, no pricing) */}
-                  {services.length > 0 && (
-                    <View style={styles.servicesList}>
-                      <View style={styles.servicesHeader}>
-                        <Text style={styles.servicesHeaderText}>Services / Treatments Provided</Text>
-                      </View>
-                      {services.map((s: any, j: number) => (
-                        <View key={j} style={[styles.serviceRow, j % 2 === 1 ? styles.serviceRowAlt : {}]}>
-                          <Text style={[styles.fieldValue, { flex: 1 }]}>{s.description || '—'}</Text>
-                          {s.quantity && Number(s.quantity) > 1 && (
-                            <Text style={[styles.fieldValue, { color: MID }]}>×{s.quantity}</Text>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  )}
+
                 </View>
               </View>
             )
