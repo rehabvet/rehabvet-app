@@ -527,6 +527,8 @@ export default function CalendarPage() {
 
   function renderAppointment(a: any, showDate = false) {
     const time = a.start_time?.slice(0, 5)
+    const endTime = a.end_time?.slice(0, 5)
+    const timeRange = endTime ? `${time}–${endTime}` : time
     const service = a.modality || ''
     const clientName = a.client_name || ''
     const petName = a.patient_name || ''
@@ -537,9 +539,9 @@ export default function CalendarPage() {
         key={a.id}
         onClick={(e) => { e.preventDefault(); openEditModal(a) }}
         className={`block w-full text-left text-[11px] leading-tight text-white px-1 py-0.5 rounded hover:opacity-90 transition-opacity ${treatmentColors[a.modality] || 'bg-gray-400'}`}
-        title={`${time} • ${service}\n${clientName} - ${petName}\n${phone}`}
+        title={`${timeRange} • ${service}\n${clientName} - ${petName}\n${phone}`}
       >
-        <div className="font-semibold truncate">{time} {service}</div>
+        <div className="font-semibold truncate">{timeRange} {service}</div>
         <div className="opacity-90 truncate">{clientName} • {petName}</div>
         {a.therapist_name && <div className="opacity-75 truncate text-[10px]">👤 {a.therapist_name}</div>}
         {phone && <div className="opacity-75 truncate text-[10px]">📱 {phone}</div>}
@@ -753,7 +755,7 @@ export default function CalendarPage() {
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
                       <div className="font-semibold leading-tight truncate text-[10px] sm:text-xs flex items-center gap-0.5">
-                        <span className="truncate">{a.start_time?.slice(0,5)} {a.modality}</span>
+                        <span className="truncate">{a.start_time?.slice(0,5)}{a.end_time ? `–${a.end_time.slice(0,5)}` : ''} {a.modality}</span>
                         {a.has_payment && <span className="shrink-0 text-[9px]">💳</span>}
                       </div>
                       <div className="opacity-90 truncate text-[10px]">{a.patient_name}{a.is_reactive ? ' ⚠️' : ''}</div>
@@ -997,7 +999,7 @@ export default function CalendarPage() {
                       title={`${a.start_time}–${a.end_time} • ${a.modality}\n${a.patient_name} (${a.client_name}) ${a.client_phone}`}
                     >
                       <div className="font-semibold leading-tight truncate flex items-center gap-1">
-                        <span className="truncate">{a.start_time?.slice(0,5)} {a.modality}</span>
+                        <span className="truncate">{a.start_time?.slice(0,5)}{a.end_time ? `–${a.end_time.slice(0,5)}` : ''} {a.modality}</span>
                         {a.has_payment && <span className="ml-auto shrink-0 bg-white/25 rounded px-0.5 text-[9px] font-bold leading-none py-0.5">💳</span>}
                       </div>
                       <div className="opacity-90 leading-tight mt-0.5 truncate">{a.client_name} • <span className="font-medium">{a.patient_name}</span></div>
