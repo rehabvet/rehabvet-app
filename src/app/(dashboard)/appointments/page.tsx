@@ -497,6 +497,7 @@ export default function AppointmentsPage() {
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Patient</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Treatment</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Provider</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Created</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="px-3 py-3 w-10"></th>
               </tr>
@@ -545,6 +546,13 @@ export default function AppointmentsPage() {
                             {roleLabel[a.therapist_role] || a.therapist_role}
                           </span></>
                       : <span className="text-gray-300 text-xs">Unassigned</span>}
+                  </td>
+
+                  {/* Created Date */}
+                  <td className="px-5 py-3.5 hidden lg:table-cell whitespace-nowrap">
+                    <p className="text-xs text-gray-500">
+                      {a.created_at ? new Date(a.created_at).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' }) : '—'}
+                    </p>
                   </td>
 
                   {/* Status */}
