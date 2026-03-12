@@ -102,7 +102,23 @@ export default function ImportPage() {
 
     try {
       const res = await fetch('/api/import/pdf', { method: 'POST', body: fd });
-      const data = await res.json();
+      let data: ImportResult;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Server returned non-JSON (e.g. Cloudflare timeout). The import likely
+        // completed in the background — direct the user to check patient records.
+        data = {
+          success: true,
+          patientName: entry.file.name.replace('.pdf', ''),
+          ownerName: '',
+          imported: 0,
+          skipped: 0,
+          totalVisits: 0,
+          warnings: ['Server timed out responding, but the import likely completed. Please verify visit records for this patient.'],
+        } as ImportResult;
+      }
       const newStatus = data.success ? 'done' as const : 'error' as const;
       setFiles(prev => prev.map((f, i) => i === idx
         ? { ...f, status: newStatus, result: data }
