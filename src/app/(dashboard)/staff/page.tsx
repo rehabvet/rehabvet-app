@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import { Plus, Trash2, KeyRound, Pencil } from 'lucide-react'
+import { Plus, Trash2, KeyRound, Pencil, CalendarDays } from 'lucide-react'
 import Modal from '@/components/Modal'
 import PhoneInput from '@/components/PhoneInput'
 
@@ -75,6 +75,10 @@ export default function StaffPage() {
   const [savingRoster, setSavingRoster] = useState<string | null>(null) // staff_id being saved
   const [showScheduleEdit, setShowScheduleEdit] = useState<any>(null)
   const [savingSchedule, setSavingSchedule] = useState(false)
+  // ── Weekly Pattern ──────────────────────────────────────────────────────────
+  const [showPatternModal, setShowPatternModal] = useState<any>(null) // staff object
+  const [patternDays, setPatternDays] = useState<Set<number>>(new Set([1,2,3,4,5])) // 0=Sun…6=Sat
+  const [applyingPattern, setApplyingPattern] = useState(false)
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -358,6 +362,86 @@ export default function StaffPage() {
     } catch { return 'Not set' }
   }
 
+  // ── Weekly Pattern helpers ─────────────────────────────────────────────────
+  // DOW mapping: JS getDay() → schedule key
+  const DOW_TO_KEY: Record<number, keyof WeekSchedule> = {
+    0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+    4: 'thursday', 5: 'friday', 6: 'saturday'
+  }
+  const DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+  function openPatternModal(s: any) {
+    // Pre-fill from staff's saved schedule
+    try {
+      const sched: WeekSchedule = s.schedule ? { ...DEFAULT_SCHEDULE, ...JSON.parse(s.schedule) } : DEFAULT_SCHEDULE
+      const days = new Set<number>()
+      Object.entries(DOW_TO_KEY).forEach(([dow, key]) => {
+        if (sched[key].on) days.add(Number(dow))
+      })
+      setPatternDays(days)
+    } catch {
+      setPatternDays(new Set([1,2,3,4,5]))
+    }
+    setShowPatternModal(s)
+  }
+
+  async function applyWeeklyPattern() {
+    if (!showPatternModal) return
+    setApplyingPattern(true)
+    try {
+      const staffId = showPatternModal.id
+      // Generate all dates for the next 52 weeks starting from today
+      const today = new Date()
+      today.setHours(0,0,0,0)
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() + 364) // 52 weeks
+
+      // Collect dates grouped by month
+      const byMonth: Record<string, string[]> = {}
+      const cur = new Date(today)
+      while (cur <= endDate) {
+        const dow = cur.getDay()
+        if (patternDays.has(dow)) {
+          const month = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`
+          const dateStr = cur.toISOString().split('T')[0]
+          if (!byMonth[month]) byMonth[month] = []
+          byMonth[month].push(dateStr)
+        }
+        cur.setDate(cur.getDate() + 1)
+      }
+
+      // For each affected month: load existing past dates (before today) and merge
+      const months = Object.keys(byMonth)
+      for (const month of months) {
+        // Load existing roster for this month
+        let existingDates: string[] = []
+        try {
+          const res = await fetch(`/api/staff/roster?month=${month}`)
+          const data = await res.json()
+          existingDates = (data.roster || [])
+            .filter((r: any) => r.staff_id === staffId)
+            .map((r: any) => r.date as string)
+        } catch { /* ignore */ }
+
+        // Keep past dates as-is, replace future dates with the pattern
+        const pastDates = existingDates.filter(d => d < today.toISOString().split('T')[0])
+        const merged = [...new Set([...pastDates, ...byMonth[month]])]
+
+        await fetch('/api/staff/roster', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ month, staff_id: staffId, dates: merged }),
+        })
+      }
+
+      // Refresh current month view
+      await loadRoster(rosterMonth)
+      setShowPatternModal(null)
+    } finally {
+      setApplyingPattern(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -531,10 +615,17 @@ export default function StaffPage() {
                                     {initials}
                                   </div>
                                 )}
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-gray-800 truncate leading-tight">{s.name}</p>
                                   {isSaving && <p className="text-[10px] text-brand-pink animate-pulse">Saving…</p>}
                                 </div>
+                                <button
+                                  onClick={() => openPatternModal(s)}
+                                  title="Set weekly work pattern"
+                                  className="flex-shrink-0 p-1 rounded text-gray-300 hover:text-brand-pink hover:bg-pink-50 transition-colors"
+                                >
+                                  <CalendarDays className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </td>
                             {/* Day cells */}
@@ -867,6 +958,88 @@ export default function StaffPage() {
                 <button type="submit" className="btn-primary">Set Password</button>
               </div>
             </form>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Weekly Pattern Modal ── */}
+      <Modal open={!!showPatternModal} onClose={() => setShowPatternModal(null)} title="Weekly Work Pattern" size="sm">
+        {showPatternModal && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              {showPatternModal.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={showPatternModal.photo_url} alt={showPatternModal.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-sm">
+                  {showPatternModal.name.split(' ').map((n: string) => n[0]).join('').substring(0,2)}
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-gray-900">{showPatternModal.name}</p>
+                <p className="text-xs text-gray-400">Select which days they work each week</p>
+              </div>
+            </div>
+
+            {/* Day toggles */}
+            <div className="grid grid-cols-7 gap-1.5">
+              {DOW_LABELS.map((label, dow) => {
+                const isOn = patternDays.has(dow)
+                const isWeekend = dow === 0 || dow === 6
+                return (
+                  <button
+                    key={dow}
+                    type="button"
+                    onClick={() => setPatternDays(prev => {
+                      const next = new Set(prev)
+                      isOn ? next.delete(dow) : next.add(dow)
+                      return next
+                    })}
+                    className={`flex flex-col items-center py-3 rounded-xl border-2 transition-all font-medium text-sm
+                      ${isOn
+                        ? 'bg-brand-pink border-brand-pink text-white shadow-sm scale-105'
+                        : isWeekend
+                          ? 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300'
+                          : 'bg-white border-gray-200 text-gray-500 hover:border-brand-pink/40 hover:bg-pink-50'
+                      }`}
+                  >
+                    <span className="text-xs font-semibold">{label}</span>
+                    <div className={`mt-1 w-2 h-2 rounded-full ${isOn ? 'bg-white/70' : 'bg-gray-200'}`} />
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="rounded-xl bg-pink-50 border border-pink-100 px-4 py-3 text-sm text-pink-700">
+              <p className="font-semibold mb-0.5">
+                {patternDays.size === 0
+                  ? 'No days selected'
+                  : `${patternDays.size} day${patternDays.size !== 1 ? 's' : ''}/week · ${DOW_LABELS.filter((_,i) => patternDays.has(i)).join(', ')}`}
+              </p>
+              <p className="text-xs text-pink-500">
+                This will fill the next <strong>52 weeks</strong> (from today through{' '}
+                {(() => {
+                  const d = new Date(); d.setDate(d.getDate() + 364)
+                  return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
+                })()}). Past dates are not affected.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowPatternModal(null)} className="btn-secondary">Cancel</button>
+              <button
+                type="button"
+                onClick={applyWeeklyPattern}
+                disabled={applyingPattern || patternDays.size === 0}
+                className="btn-primary flex items-center gap-2"
+              >
+                {applyingPattern ? (
+                  <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Applying…</>
+                ) : (
+                  <><CalendarDays className="w-4 h-4" /> Apply 52 weeks</>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </Modal>
