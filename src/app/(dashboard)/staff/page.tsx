@@ -1244,6 +1244,55 @@ export default function StaffPage() {
           </div>
         )}
       </Modal>
+
+      {/* Add Leave Modal */}
+      <Modal open={!!showAddLeave} onClose={() => { setShowAddLeave(null); setLeaveForm({ start_date: '', end_date: '', reason: '' }) }} title="Add Annual Leave">
+        {showAddLeave && (
+          <form onSubmit={handleAddLeave} className="space-y-4">
+            <p className="text-sm text-gray-600">Adding leave for <strong>{showAddLeave.name}</strong></p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Start Date</label>
+                <input
+                  type="date"
+                  value={leaveForm.start_date}
+                  onChange={e => setLeaveForm(f => ({ ...f, start_date: e.target.value }))}
+                  required
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="label">End Date</label>
+                <input
+                  type="date"
+                  value={leaveForm.end_date}
+                  onChange={e => setLeaveForm(f => ({ ...f, end_date: e.target.value }))}
+                  required
+                  className="input"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label">Reason <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="text"
+                value={leaveForm.reason}
+                onChange={e => setLeaveForm(f => ({ ...f, reason: e.target.value }))}
+                placeholder="e.g. Annual leave, Medical leave…"
+                className="input"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => { setShowAddLeave(null); setLeaveForm({ start_date: '', end_date: '', reason: '' }) }} className="btn-secondary">
+                Cancel
+              </button>
+              <button type="submit" disabled={savingLeave} className="btn-primary">
+                {savingLeave ? 'Saving…' : 'Save Leave'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   )
 }
