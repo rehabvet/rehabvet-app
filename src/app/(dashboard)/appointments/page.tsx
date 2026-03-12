@@ -74,7 +74,7 @@ export default function AppointmentsPage() {
   const [providerFilter, setProviderFilter] = useState('')
   const [createdFrom, setCreatedFrom] = useState('')
   const [createdTo, setCreatedTo] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(true)
   const [page, setPage]     = useState(1)
   const PER_PAGE = 20
   const [isAdmin, setIsAdmin] = useState(false)
