@@ -79,6 +79,13 @@ export default function StaffPage() {
   const [showPatternModal, setShowPatternModal] = useState<any>(null) // staff object
   const [patternDays, setPatternDays] = useState<Set<number>>(new Set([1,2,3,4,5])) // 0=Sun…6=Sat
   const [applyingPattern, setApplyingPattern] = useState(false)
+  // ── Annual Leave ──────────────────────────────────────────────────────────
+  const [scheduleSubTab, setScheduleSubTab] = useState<'roster'|'leave'>('roster')
+  const [leaveRecords, setLeaveRecords] = useState<any[]>([])
+  const [leaveLoading, setLeaveLoading] = useState(false)
+  const [showAddLeave, setShowAddLeave] = useState<any>(null) // staff object
+  const [leaveForm, setLeaveForm] = useState({ start_date: '', end_date: '', reason: '' })
+  const [savingLeave, setSavingLeave] = useState(false)
   const editPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const addPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -396,6 +403,12 @@ export default function StaffPage() {
       const endDate = new Date(today)
       endDate.setDate(endDate.getDate() + 364) // 52 weeks
 
+      // Helper: format a Date as local YYYY-MM-DD (avoids UTC offset shifting the date)
+      const localDateStr = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+
+      const todayStr = localDateStr(today)
+
       // Collect dates grouped by month
       const byMonth: Record<string, string[]> = {}
       const cur = new Date(today)
@@ -403,7 +416,7 @@ export default function StaffPage() {
         const dow = cur.getDay()
         if (patternDays.has(dow)) {
           const month = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`
-          const dateStr = cur.toISOString().split('T')[0]
+          const dateStr = localDateStr(cur)
           if (!byMonth[month]) byMonth[month] = []
           byMonth[month].push(dateStr)
         }
@@ -424,7 +437,7 @@ export default function StaffPage() {
         } catch { /* ignore */ }
 
         // Keep past dates as-is, replace future dates with the pattern
-        const pastDates = existingDates.filter(d => d < today.toISOString().split('T')[0])
+        const pastDates = existingDates.filter(d => d < todayStr)
         const merged = [...new Set([...pastDates, ...byMonth[month]])]
 
         await fetch('/api/staff/roster', {
@@ -440,6 +453,56 @@ export default function StaffPage() {
     } finally {
       setApplyingPattern(false)
     }
+  }
+
+  // ── Annual Leave functions ────────────────────────────────────────────────
+  async function loadLeave() {
+    setLeaveLoading(true)
+    const res = await fetch('/api/staff/leave')
+    const data = await res.json()
+    setLeaveRecords(data.leave || [])
+    setLeaveLoading(false)
+  }
+
+  useEffect(() => {
+    if (pageTab === 'schedule' && scheduleSubTab === 'leave') loadLeave()
+  }, [pageTab, scheduleSubTab])
+
+  async function handleAddLeave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!showAddLeave || !leaveForm.start_date || !leaveForm.end_date) return
+    setSavingLeave(true)
+    await fetch('/api/staff/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staff_id: showAddLeave.id, ...leaveForm }),
+    })
+    setSavingLeave(false)
+    setShowAddLeave(null)
+    setLeaveForm({ start_date: '', end_date: '', reason: '' })
+    loadLeave()
+  }
+
+  async function handleDeleteLeave(id: string) {
+    await fetch('/api/staff/leave', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setLeaveRecords(prev => prev.filter(l => l.id !== id))
+  }
+
+  function formatDateRange(start: string, end: string) {
+    const s = new Date(start + 'T00:00:00')
+    const e = new Date(end + 'T00:00:00')
+    const fmt = (d: Date) => d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
+    const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1
+    return `${fmt(s)}${start !== end ? ` – ${fmt(e)}` : ''} · ${days} day${days !== 1 ? 's' : ''}`
+  }
+
+  function isCurrentlyOnLeave(start: string, end: string) {
+    const today = new Date().toISOString().split('T')[0]
+    return today >= start && today <= end
   }
 
   return (
@@ -533,7 +596,7 @@ export default function StaffPage() {
         </div>
       ))}
 
-      {/* ── Schedule Tab — Monthly Roster ── */}
+      {/* ── Schedule Tab ── */}
       {pageTab === 'schedule' && (() => {
         const days = getRosterDaysInMonth(rosterMonth)
         const [y, m] = rosterMonth.split('-').map(Number)
@@ -543,6 +606,99 @@ export default function StaffPage() {
 
         return (
           <div className="space-y-4">
+            {/* Sub-tab switcher */}
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+              <button
+                onClick={() => setScheduleSubTab('roster')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${scheduleSubTab === 'roster' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Monthly Roster
+              </button>
+              <button
+                onClick={() => setScheduleSubTab('leave')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${scheduleSubTab === 'leave' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Annual Leave
+              </button>
+            </div>
+
+            {/* ── Annual Leave sub-tab ── */}
+            {scheduleSubTab === 'leave' && (
+              <div className="space-y-3">
+                {leaveLoading ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
+                ) : (
+                  <>
+                    {activeStaff.map(s => {
+                      const staffLeave = leaveRecords.filter(l => l.staff_id === s.id).sort((a: any, b: any) => a.start_date.localeCompare(b.start_date))
+                      return (
+                        <div key={s.id} className="card p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              {s.photo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={s.photo_url} alt={s.name} className="w-9 h-9 rounded-full object-cover border border-gray-200" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy font-bold text-xs">
+                                  {s.name.split(' ').map((n: string) => n[0]).join('').substring(0,2)}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-semibold text-gray-900 text-sm">{s.name}</p>
+                                <p className="text-xs text-gray-400">{staffLeave.length} leave period{staffLeave.length !== 1 ? 's' : ''}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => { setShowAddLeave(s); setLeaveForm({ start_date: today, end_date: today, reason: '' }) }}
+                              className="btn-secondary text-xs flex items-center gap-1.5"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Add Leave
+                            </button>
+                          </div>
+                          {staffLeave.length > 0 ? (
+                            <div className="space-y-2">
+                              {staffLeave.map((l: any) => {
+                                const active = isCurrentlyOnLeave(l.start_date, l.end_date)
+                                const isPast = l.end_date < today
+                                return (
+                                  <div key={l.id} className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${
+                                    active ? 'bg-amber-50 border-amber-200' : isPast ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-blue-50 border-blue-100'
+                                  }`}>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                                          active ? 'bg-amber-100 text-amber-700' : isPast ? 'bg-gray-200 text-gray-500' : 'bg-blue-100 text-blue-600'
+                                        }`}>
+                                          {active ? 'On leave now' : isPast ? 'Past' : 'Upcoming'}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-800 mt-1">{formatDateRange(l.start_date, l.end_date)}</p>
+                                      {l.reason && <p className="text-xs text-gray-500 mt-0.5">{l.reason}</p>}
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteLeave(l.id)}
+                                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="Remove leave"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic">No leave periods</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Monthly Roster sub-tab ── */}
+            {scheduleSubTab === 'roster' && <>
             {/* Month navigation */}
             <div className="card p-4 flex items-center justify-between">
               <button
@@ -693,6 +849,7 @@ export default function StaffPage() {
                 </div>
               </div>
             )}
+            </>}
           </div>
         )
       })()}
