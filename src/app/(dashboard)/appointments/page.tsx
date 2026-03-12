@@ -104,6 +104,7 @@ export default function AppointmentsPage() {
   // clients searched via debounced API (see clientResults below)
   const [staff,            setStaff]            = useState<any[]>([])
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
+  const [modalityOptions, setModalityOptions] = useState<string[]>([])
 
   const [form, setForm] = useState({
     patient_id: '', client_id: '', therapist_id: '',
@@ -164,6 +165,7 @@ export default function AppointmentsPage() {
   // load treatment types once
   useEffect(() => {
     fetch('/api/appointment-types').then(r => r.json()).then(d => setTreatmentGrouped(d.grouped || {}))
+    fetch('/api/appointments/modalities').then(r => r.json()).then(d => setModalityOptions(d.modalities || []))
     fetch('/api/patients?per_page=999').then(r => r.json()).then(d => setPatients(d.patients || []))
     // clients now searched via debounced API call
     fetch('/api/staff').then(r => r.json()).then(d =>
@@ -489,11 +491,7 @@ export default function AppointmentsPage() {
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Appointment Type</label>
               <select value={modalityFilter} onChange={e => { setModalityFilter(e.target.value); setPage(1) }} className="input text-sm w-full">
                 <option value="">All Types</option>
-                {Object.entries(treatmentGrouped).map(([cat, items]) => (
-                  <optgroup key={cat} label={cat}>
-                    {(items as any[]).map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
-                  </optgroup>
-                ))}
+                {modalityOptions.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
 
