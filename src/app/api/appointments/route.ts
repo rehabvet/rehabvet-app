@@ -95,6 +95,12 @@ export async function GET(req: NextRequest) {
   `
 
   const dataSql = `
+    WITH paid_days AS (
+      SELECT DISTINCT client_id, date
+      FROM invoices
+      WHERE status IN ('paid','partial')
+        ${startDate && endDate ? `AND date >= '${startDate}' AND date <= '${endDate}'` : ''}
+    )
     SELECT
       a.id, a.patient_id, a.client_id, a.therapist_id, a.treatment_plan_id,
       a.date, a.start_time, a.end_time, a.modality, a.status::text AS status,
@@ -107,16 +113,12 @@ export async function GET(req: NextRequest) {
       u.name          AS therapist_name,
       u.role          AS therapist_role,
       u.photo_url     AS therapist_photo,
-      CASE WHEN EXISTS (
-        SELECT 1 FROM invoices inv
-        WHERE inv.client_id = a.client_id
-          AND inv.date = a.date
-          AND inv.status IN ('paid','partial')
-      ) THEN true ELSE false END AS has_payment
+      CASE WHEN pd.client_id IS NOT NULL THEN true ELSE false END AS has_payment
     FROM appointments a
     LEFT JOIN patients pat ON pat.id = a.patient_id
     LEFT JOIN clients  cl  ON cl.id  = a.client_id
     LEFT JOIN users    u   ON u.id   = a.therapist_id
+    LEFT JOIN paid_days pd ON pd.client_id = a.client_id AND pd.date = a.date
     ${where}
     ORDER BY a.date ASC, a.start_time ASC
     LIMIT $${idx++} OFFSET $${idx++}

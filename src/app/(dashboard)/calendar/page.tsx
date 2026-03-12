@@ -33,6 +33,7 @@ export default function CalendarPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
   const [rosterByDate, setRosterByDate] = useState<Record<string, string[]>>({}) // date → [staff_id]
+  const [leaveByStaff, setLeaveByStaff] = useState<Record<string, { start: string; end: string }[]>>({}) // staff_id → leave periods
   const [treatmentTypes, setTreatmentTypes] = useState<any[]>([])
   const [treatmentGrouped, setTreatmentGrouped] = useState<Record<string, any[]>>({})
   const [selectedAppt, setSelectedAppt] = useState<any>(null)
@@ -86,9 +87,9 @@ export default function CalendarPage() {
   }, [currentDate])
 
   useEffect(() => {
-    const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-    const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-    fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
+    const startDate = toSGTDateStr(new Date(year, month, 1))
+    const endDate = toSGTDateStr(new Date(year, month + 1, 0))
+    fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=2000`)
       .then(r => r.json())
       .then(d => {
         const appts = d.appointments || []
@@ -97,7 +98,7 @@ export default function CalendarPage() {
       })
     fetch('/api/staff')
       .then(r => r.json()).then(d => setStaff(d.staff || []))
-    // Load roster for this month
+    // Load roster + leave for this month
     const monthStr = `${year}-${String(month + 1).padStart(2,'0')}`
     fetch(`/api/staff/roster?month=${monthStr}`)
       .then(r => r.json()).then(d => {
@@ -108,6 +109,18 @@ export default function CalendarPage() {
           map[date].push(entry.staff_id)
         }
         setRosterByDate(map)
+      })
+    // Load leave periods covering this month
+    const firstDay = `${year}-${String(month + 1).padStart(2,'0')}-01`
+    const lastDay  = new Date(year, month + 1, 0).toISOString().split('T')[0]
+    fetch(`/api/staff/leave?from=${firstDay}&to=${lastDay}`)
+      .then(r => r.json()).then(d => {
+        const map: Record<string, { start: string; end: string }[]> = {}
+        for (const l of (d.leave || [])) {
+          if (!map[l.staff_id]) map[l.staff_id] = []
+          map[l.staff_id].push({ start: l.start_date, end: l.end_date })
+        }
+        setLeaveByStaff(map)
       })
     fetch('/api/appointment-types')
       .then(r => r.json()).then(d => { setTreatmentGrouped(d.grouped || {}) })
@@ -448,9 +461,9 @@ export default function CalendarPage() {
       })
       // Invalidate cache and refresh
       apptCache.current.delete(`${year}-${month}`)
-      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
+      const startDate = toSGTDateStr(new Date(year, month, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 1, 0))
+      const res = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=2000`)
       const data = await res.json()
       const fresh = data.appointments || []
       apptCache.current.set(`${year}-${month}`, fresh)
@@ -478,9 +491,9 @@ export default function CalendarPage() {
       if (selectedAppt?.id === confirmDeleteId) closeModal()
       // Refresh calendar
       apptCache.current.delete(`${year}-${month}`)
-      const startDate = toSGTDateStr(new Date(year, month - 1, 1))
-      const endDate = toSGTDateStr(new Date(year, month + 2, 0))
-      const res2 = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=3000`)
+      const startDate = toSGTDateStr(new Date(year, month, 1))
+      const endDate = toSGTDateStr(new Date(year, month + 1, 0))
+      const res2 = await fetch(`/api/appointments?start_date=${startDate}&end_date=${endDate}&per_page=2000`)
       const data2 = await res2.json()
       const fresh = data2.appointments || []
       apptCache.current.set(`${year}-${month}`, fresh)
@@ -771,6 +784,13 @@ export default function CalendarPage() {
     )
   }
 
+  // Check if a staff member is on approved leave on a given date
+  function isOnLeave(staffId: string, dateStr: string): boolean {
+    const periods = leaveByStaff[staffId]
+    if (!periods) return false
+    return periods.some(p => dateStr >= p.start && dateStr <= p.end)
+  }
+
   // Day View — Provider column layout (CSS Grid for perfect column alignment)
   function renderDayView() {
     const dateStr = toSGTDateStr(currentDate)
@@ -782,8 +802,9 @@ export default function CalendarPage() {
     const providerMap: Record<string, { id: string; name: string; role: string; photo_url?: string }> = {}
 
     if (rosteredIds && rosteredIds.length > 0) {
-      // Use rostered staff as the base columns (in roster order)
+      // Use rostered staff as the base columns (in roster order), excluding staff on leave
       for (const sid of rosteredIds) {
+        if (isOnLeave(sid, dateStr)) continue
         const s = staff.find((x: any) => x.id === sid)
         if (s) providerMap[sid] = { id: s.id, name: s.name, role: s.role || '', photo_url: s.photo_url }
       }
