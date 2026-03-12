@@ -22,13 +22,15 @@ export async function GET() {
 
   for (const svc of services) {
     const names = (svc.appointment_names as string[]) || []
-    if (names.length === 0) continue // skip services without appointment types
     const durOverrides = (svc.appointment_durations as Record<string, number>) || {}
-    
-    for (const apptName of names) {
+    const cat = svc.category || 'Uncategorized'
+
+    // If no appointment_names, use the service name itself
+    const apptNames = names.length > 0 ? names : [svc.name]
+
+    for (const apptName of apptNames) {
       if (seen.has(apptName)) continue
       seen.add(apptName)
-      const cat = svc.category || 'Uncategorized'
       if (!grouped[cat]) grouped[cat] = []
       const dur = durOverrides[apptName] ?? svc.duration ?? 60
       grouped[cat].push({ name: apptName, duration: dur })
