@@ -23,6 +23,12 @@ const DEFAULT_SCHEDULE: WeekSchedule = {
   saturday: DEFAULT_DAY(false), sunday: DEFAULT_DAY(false),
 }
 
+// Local date helper — avoids UTC offset shifting date in SGT (UTC+8)
+function localTodayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
 // Generate time slots from 06:00 to 23:00 in 30-min steps
 const TIME_SLOTS: string[] = []
 for (let h = 6; h <= 23; h++) {
@@ -501,7 +507,7 @@ export default function StaffPage() {
   }
 
   function isCurrentlyOnLeave(start: string, end: string) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localTodayStr()
     return today >= start && today <= end
   }
 
@@ -601,7 +607,7 @@ export default function StaffPage() {
         const days = getRosterDaysInMonth(rosterMonth)
         const [y, m] = rosterMonth.split('-').map(Number)
         const monthLabel = new Date(y, m-1, 1).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })
-        const today = new Date().toISOString().split('T')[0]
+        const today = localTodayStr()
         const activeStaff = staff.filter(s => s.active !== false)
 
         return (
