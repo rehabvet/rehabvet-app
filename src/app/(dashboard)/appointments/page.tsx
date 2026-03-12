@@ -378,60 +378,51 @@ export default function AppointmentsPage() {
       </div>
 
       {/* ── Filters ── */}
-      <div className="space-y-3">
-        {/* Row 1: Search + Status + Toggle */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
-          <div className="relative flex-1 max-w-sm" ref={searchBoxRef}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
-            <input
-              type="text"
-              placeholder="Search patient, client, therapist..."
-              value={qInput}
-              onChange={e => handleSearch(e.target.value)}
-              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              className="input pl-9 pr-8"
-              autoComplete="off"
-            />
-            {qInput && (
-              <button onClick={() => { setQInput(''); setQ(''); setPage(1); setSuggestions([]); setShowSuggestions(false) }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {/* Suggestion dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                {suggestions.map((a, i) => (
-                  <button key={i} type="button"
-                    className="w-full text-left px-4 py-2.5 hover:bg-pink-50 border-b border-gray-50 last:border-0 flex items-center gap-3"
-                    onMouseDown={() => {
-                      const val = a.patient_name || a.client_name || ''
-                      setQInput(val); setQ(val); setPage(1)
-                      setSuggestions([]); setShowSuggestions(false)
-                    }}>
-                    <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-brand-pink text-xs font-bold">{(a.patient_name || a.client_name || '?')[0].toUpperCase()}</span>
-                    </div>
-                    <div className="min-w-0">
-                      {a.patient_name && <p className="font-semibold text-gray-900 text-sm truncate">{a.patient_name}</p>}
-                      <p className="text-xs text-gray-400 truncate">{a.client_name}{a.client_phone ? ` · ${a.client_phone}` : ''}</p>
-                    </div>
-                  </button>
-                ))}
-                <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
-                  <p className="text-xs text-gray-400">Press Enter to search all results</p>
-                </div>
-              </div>
-            )}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        {/* Client */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Client</label>
+          <div className="relative">
+            <input type="text" placeholder="Filter by client name…" value={clientFilter}
+              onChange={e => { setClientFilter(e.target.value); setPage(1) }}
+              className="input text-sm pr-7 w-full" />
+            {clientFilter && <button onClick={() => { setClientFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
           </div>
+        </div>
 
-          {/* Status filter */}
-          <select
-            value={status}
-            onChange={e => { setStatus(e.target.value); setPage(1) }}
-            className="input text-sm w-auto"
-          >
+        {/* Patient */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Patient</label>
+          <div className="relative">
+            <input type="text" placeholder="Filter by patient name…" value={patientFilter}
+              onChange={e => { setPatientFilter(e.target.value); setPage(1) }}
+              className="input text-sm pr-7 w-full" />
+            {patientFilter && <button onClick={() => { setPatientFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
+          </div>
+        </div>
+
+        {/* Appointment Type */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Appointment Type</label>
+          <select value={modalityFilter} onChange={e => { setModalityFilter(e.target.value); setPage(1) }} className="input text-sm w-full">
+            <option value="">All Types</option>
+            {modalityOptions.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* Provider */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Provider</label>
+          <select value={providerFilter} onChange={e => { setProviderFilter(e.target.value); setPage(1) }} className="input text-sm w-full">
+            <option value="">All Providers</option>
+            {staff.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+
+        {/* Status */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Status</label>
+          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} className="input text-sm w-full">
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="scheduled">Scheduled</option>
@@ -441,123 +432,58 @@ export default function AppointmentsPage() {
             <option value="cancelled">Cancelled</option>
             <option value="no_show">No Show</option>
           </select>
-
-          {/* Toggle filters button */}
-          <button
-            onClick={() => setShowFilters(f => !f)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-              showFilters || clientFilter || patientFilter || modalityFilter || providerFilter || createdFrom || createdTo || dateFilter || fromDate !== todayStr
-                ? 'bg-brand-pink text-white border-brand-pink'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
-            Filters
-            {(clientFilter || patientFilter || modalityFilter || providerFilter || createdFrom || createdTo || dateFilter || fromDate !== todayStr) && (
-              <span className="bg-white/30 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {[clientFilter, patientFilter, modalityFilter, providerFilter, createdFrom || createdTo, dateFilter || fromDate !== todayStr].filter(Boolean).length}
-              </span>
-            )}
-          </button>
         </div>
 
-        {/* Row 2: Expanded filters */}
-        {showFilters && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {/* Client */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Client</label>
-              <div className="relative">
-                <input type="text" placeholder="Filter by client name…" value={clientFilter}
-                  onChange={e => { setClientFilter(e.target.value); setPage(1) }}
-                  className="input text-sm pr-7 w-full" />
-                {clientFilter && <button onClick={() => { setClientFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
-              </div>
+        {/* Appointment Date */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Appointment Date</label>
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <input type="date" value={fromDate}
+                onChange={e => { setFromDate(e.target.value); setDateFilter(''); setPage(1) }}
+                className="input text-sm pr-7 w-full" />
+              {fromDate && <button onClick={() => { setFromDate(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
             </div>
-
-            {/* Patient */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Patient</label>
-              <div className="relative">
-                <input type="text" placeholder="Filter by patient name…" value={patientFilter}
-                  onChange={e => { setPatientFilter(e.target.value); setPage(1) }}
-                  className="input text-sm pr-7 w-full" />
-                {patientFilter && <button onClick={() => { setPatientFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
-              </div>
-            </div>
-
-            {/* Appointment Type */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Appointment Type</label>
-              <select value={modalityFilter} onChange={e => { setModalityFilter(e.target.value); setPage(1) }} className="input text-sm w-full">
-                <option value="">All Types</option>
-                {modalityOptions.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-
-            {/* Provider */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Provider</label>
-              <select value={providerFilter} onChange={e => { setProviderFilter(e.target.value); setPage(1) }} className="input text-sm w-full">
-                <option value="">All Providers</option>
-                {staff.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-
-            {/* Appointment Date */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Appointment Date</label>
-              <div className="flex gap-2 items-center">
-                <div className="relative flex-1">
-                  <input type="date" value={dateFilter || fromDate}
-                    onChange={e => { setDateFilter(''); setFromDate(e.target.value); setPage(1) }}
-                    className="input text-sm pr-7 w-full" />
-                  {(dateFilter || fromDate) && (
-                    <button onClick={() => { setDateFilter(''); setFromDate(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400">to</span>
-                <div className="relative flex-1">
-                  <input type="date" value={dateFilter}
-                    onChange={e => { setDateFilter(e.target.value); setPage(1) }}
-                    className="input text-sm pr-7 w-full" placeholder="End date" />
-                  {dateFilter && <button onClick={() => { setDateFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
-                </div>
-              </div>
-            </div>
-
-            {/* Created Date */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created Date</label>
-              <div className="flex gap-2 items-center">
-                <div className="relative flex-1">
-                  <input type="date" value={createdFrom}
-                    onChange={e => { setCreatedFrom(e.target.value); setPage(1) }}
-                    className="input text-sm pr-7 w-full" placeholder="From" />
-                  {createdFrom && <button onClick={() => { setCreatedFrom(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
-                </div>
-                <span className="text-xs text-gray-400">to</span>
-                <div className="relative flex-1">
-                  <input type="date" value={createdTo}
-                    onChange={e => { setCreatedTo(e.target.value); setPage(1) }}
-                    className="input text-sm pr-7 w-full" placeholder="To" />
-                  {createdTo && <button onClick={() => { setCreatedTo(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
-                </div>
-              </div>
-            </div>
-
-            {/* Clear all */}
-            <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
-              <button onClick={() => {
-                setClientFilter(''); setPatientFilter(''); setModalityFilter(''); setProviderFilter('')
-                setCreatedFrom(''); setCreatedTo(''); setDateFilter(''); setFromDate(todayStr)
-                setQ(''); setQInput(''); setStatus('all'); setPage(1)
-              }} className="text-sm text-brand-pink hover:underline font-medium flex items-center gap-1">
-                <X className="w-3.5 h-3.5" /> Clear all filters
-              </button>
+            <span className="text-xs text-gray-400">to</span>
+            <div className="relative flex-1">
+              <input type="date" value={dateFilter}
+                onChange={e => { setDateFilter(e.target.value); setPage(1) }}
+                className="input text-sm pr-7 w-full" />
+              {dateFilter && <button onClick={() => { setDateFilter(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Created Date */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created Date</label>
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <input type="date" value={createdFrom}
+                onChange={e => { setCreatedFrom(e.target.value); setPage(1) }}
+                className="input text-sm pr-7 w-full" />
+              {createdFrom && <button onClick={() => { setCreatedFrom(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
+            </div>
+            <span className="text-xs text-gray-400">to</span>
+            <div className="relative flex-1">
+              <input type="date" value={createdTo}
+                onChange={e => { setCreatedTo(e.target.value); setPage(1) }}
+                className="input text-sm pr-7 w-full" />
+              {createdTo && <button onClick={() => { setCreatedTo(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>}
+            </div>
+          </div>
+        </div>
+
+        {/* Clear all */}
+        <div className="flex items-end">
+          <button onClick={() => {
+            setClientFilter(''); setPatientFilter(''); setModalityFilter(''); setProviderFilter('')
+            setCreatedFrom(''); setCreatedTo(''); setDateFilter(''); setFromDate(todayStr)
+            setStatus('all'); setPage(1)
+          }} className="text-sm text-brand-pink hover:underline font-medium flex items-center gap-1">
+            <X className="w-3.5 h-3.5" /> Clear all
+          </button>
+        </div>
       </div>
 
       {/* ── Table ── */}
