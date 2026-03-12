@@ -181,7 +181,13 @@ export function parsePDF(text: string): ParsedPDF | null {
     const SECTIONS = ['History', 'Clinical Examination', 'Treatment', 'Comments'];
     const history = extractSection(block, 'History', ['Clinical Examination', 'Treatment', 'Comments', 'Staff']);
     const rawClinical = extractSection(block, 'Clinical Examination', ['Treatment', 'Comments', 'Staff']);
-    const treatment = extractSection(block, 'Treatment', ['Comments', 'Staff']);
+    // Strip pricing table that may bleed into treatment when the PDF has "StaffQtyNamePrice"
+    // column header (no colon) instead of the "Staff:" section marker we look for
+    let rawTreatment = extractSection(block, 'Treatment', ['Comments', 'Staff']);
+    const pricingIdx = rawTreatment.indexOf('\nStaffQtyNamePrice');
+    if (pricingIdx !== -1) rawTreatment = rawTreatment.substring(0, pricingIdx).trim();
+    if (rawTreatment.startsWith('StaffQtyNamePrice')) rawTreatment = '';
+    const treatment = rawTreatment || undefined;
     const comments = extractSection(block, 'Comments', ['Staff', 'Bill#']);
 
     // Split clinical examination on "Diagnosis:" label — anything after it is the diagnosis
@@ -222,7 +228,7 @@ export function parsePDF(text: string): ParsedPDF | null {
       history: history || undefined,
       clinicalExamination: clinicalExamination || undefined,
       diagnosis: diagnosis || undefined,
-      treatment: treatment || undefined,
+      treatment: treatment,
       comments: comments || undefined,
       lineItems,
     });
