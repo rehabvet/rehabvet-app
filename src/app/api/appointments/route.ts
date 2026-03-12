@@ -8,15 +8,20 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const p = req.nextUrl.searchParams
-  const date        = p.get('date')
-  const startDate   = p.get('start_date')
-  const endDate     = p.get('end_date')
-  const therapistId = p.get('therapist_id')
-  const status      = p.get('status')
-  const q           = (p.get('q') || '').trim()
-  const page        = Math.max(1, parseInt(p.get('page') || '1', 10))
-  const perPage     = Math.min(3000, parseInt(p.get('per_page') || '20', 10))
-  const offset      = (page - 1) * perPage
+  const date         = p.get('date')
+  const startDate    = p.get('start_date')
+  const endDate      = p.get('end_date')
+  const therapistId  = p.get('therapist_id')
+  const status       = p.get('status')
+  const q            = (p.get('q') || '').trim()
+  const clientFilter = (p.get('client') || '').trim()
+  const patientFilter= (p.get('patient') || '').trim()
+  const modality     = (p.get('modality') || '').trim()
+  const createdFrom  = p.get('created_from')
+  const createdTo    = p.get('created_to')
+  const page         = Math.max(1, parseInt(p.get('page') || '1', 10))
+  const perPage      = Math.min(3000, parseInt(p.get('per_page') || '20', 10))
+  const offset       = (page - 1) * perPage
 
   // Build WHERE clauses
   const conditions: string[] = []
@@ -36,7 +41,6 @@ export async function GET(req: NextRequest) {
     params.push(therapistId)
   }
 
-
   if (status && status !== 'all') {
     conditions.push(`a.status::text = $${idx++}`)
     params.push(status)
@@ -51,6 +55,31 @@ export async function GET(req: NextRequest) {
     )`)
     params.push(`%${q}%`)
     idx++
+  }
+
+  if (clientFilter) {
+    conditions.push(`cl.name ILIKE $${idx++}`)
+    params.push(`%${clientFilter}%`)
+  }
+
+  if (patientFilter) {
+    conditions.push(`pat.name ILIKE $${idx++}`)
+    params.push(`%${patientFilter}%`)
+  }
+
+  if (modality) {
+    conditions.push(`a.modality = $${idx++}`)
+    params.push(modality)
+  }
+
+  if (createdFrom) {
+    conditions.push(`a.created_at >= $${idx++}`)
+    params.push(createdFrom)
+  }
+
+  if (createdTo) {
+    conditions.push(`a.created_at < ($${idx++}::date + interval '1 day')`)
+    params.push(createdTo)
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
