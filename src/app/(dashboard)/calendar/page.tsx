@@ -197,6 +197,7 @@ export default function CalendarPage() {
     'Consultation Off Peak':       'bg-green-500',
     'Consultation Peak':           'bg-green-600',
     'Reassessment':                'bg-green-400',
+    'Pain Relief':                 'bg-purple-500',
     'Acupuncture':                 'bg-purple-400',
     'Lunch':                       'bg-gray-400',
     'Do Not Book':                 'bg-red-300',
