@@ -168,10 +168,10 @@ export async function POST(req: NextRequest) {
     const firstName = nameParts[0] || 'Unknown';
     const lastName = nameParts.slice(1).join(' ') || '';
     const fullName = parsed.ownerName.trim() || 'Unknown';
-    const numRow = await prisma.$queryRawUnsafe<{ max_num: number | null }[]>(
-      `SELECT COALESCE(MAX(client_number::integer), 0) as max_num FROM clients`
+    const numRow = await prisma.$queryRawUnsafe<{ max_num: string | null }[]>(
+      `SELECT COALESCE(MAX(client_number::bigint), 0)::text as max_num FROM clients WHERE client_number ~ '^[0-9]+$'`
     );
-    const nextNum = (Number(numRow[0]?.max_num) || 0) + 1;
+    const nextNum = (parseInt(numRow[0]?.max_num || '0', 10) || 0) + 1;
     // Look up full address from postcode via OneMap
     let clientAddress: string | null = null;
     if (parsed.ownerPostcode) {
