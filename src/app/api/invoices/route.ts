@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
 
   const status = req.nextUrl.searchParams.get('status')
   const clientId = req.nextUrl.searchParams.get('client_id')
+  const page = Math.max(1, parseInt(req.nextUrl.searchParams.get('page') || '1'))
+  const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') || '50')))
+  const offset = (page - 1) * limit
 
   const conditions: string[] = []
   const values: any[] = []
@@ -15,6 +18,11 @@ export async function GET(req: NextRequest) {
   if (status) { conditions.push(`i.status = $${idx++}`); values.push(status) }
   if (clientId) { conditions.push(`i.client_id = $${idx++}::uuid`); values.push(clientId) }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  const countRows = await prisma.$queryRawUnsafe(`
+    SELECT COUNT(*) as total FROM invoices i ${where}
+  `, ...values) as any[]
+  const total = parseInt(countRows[0].total)
 
   const rows = await prisma.$queryRawUnsafe(`
     SELECT
@@ -28,11 +36,10 @@ export async function GET(req: NextRequest) {
     LEFT JOIN patients p ON p.id = i.patient_id
     ${where}
     ORDER BY i.date DESC, i.created_at DESC
-  `, ...values) as any[]
+    LIMIT $${idx++} OFFSET $${idx++}
+  `, ...values, limit, offset) as any[]
 
-  const invoices = rows
-
-  return NextResponse.json({ invoices })
+  return NextResponse.json({ invoices: rows, total, page, limit, totalPages: Math.ceil(total / limit) })
 }
 
 export async function POST(req: NextRequest) {

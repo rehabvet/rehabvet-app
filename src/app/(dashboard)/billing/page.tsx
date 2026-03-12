@@ -2,23 +2,31 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import BillingModal from '@/components/BillingModal'
+
+const PAGE_SIZE = 50
 
 export default function BillingPage() {
   const [invoices, setInvoices] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [showBilling, setShowBilling] = useState(false)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
-  useEffect(() => { fetchInvoices() }, [statusFilter])
+  useEffect(() => { setPage(1) }, [statusFilter])
+  useEffect(() => { fetchInvoices() }, [statusFilter, page])
 
   async function fetchInvoices() {
     setLoading(true)
-    const q = statusFilter ? `?status=${statusFilter}` : ''
-    const sep = q ? '&' : '?'
-    const data = await fetch(`/api/invoices${q}${sep}_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+    const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE), _t: String(Date.now()) })
+    if (statusFilter) params.set('status', statusFilter)
+    const data = await fetch(`/api/invoices?${params}`, { cache: 'no-store' }).then(r => r.json())
     setInvoices(data.invoices || [])
+    setTotalPages(data.totalPages || 1)
+    setTotalCount(data.total || 0)
     setLoading(false)
   }
 
@@ -49,7 +57,7 @@ export default function BillingPage() {
         </div>
         <div className="card">
           <p className="text-xs text-gray-500 mb-1">Total Invoices</p>
-          <p className="text-xl font-bold text-gray-900">{invoices.length}</p>
+          <p className="text-xl font-bold text-gray-900">{totalCount}</p>
         </div>
       </div>
 
@@ -100,6 +108,32 @@ export default function BillingPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} of {totalCount} invoices
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-1.5 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-medium text-gray-700">Page {page} of {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-1.5 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* BillingModal — client/patient search built-in */}
       <BillingModal
