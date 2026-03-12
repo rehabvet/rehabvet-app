@@ -89,6 +89,7 @@ export default function StaffPage() {
   const [scheduleSubTab, setScheduleSubTab] = useState<'roster'|'leave'>('roster')
   const [leaveRecords, setLeaveRecords] = useState<any[]>([])
   const [leaveLoading, setLeaveLoading] = useState(false)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
   const [showAddLeave, setShowAddLeave] = useState<any>(null) // staff object
   const [leaveForm, setLeaveForm] = useState({ start_date: '', end_date: '', reason: '' })
   const [savingLeave, setSavingLeave] = useState(false)
@@ -97,10 +98,15 @@ export default function StaffPage() {
 
   async function fetchStaff() {
     setLoading(true)
-    const res = await fetch('/api/staff')
-    const data = await res.json()
-    setStaff(data.staff || [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/staff')
+      const data = await res.json()
+      setStaff(data.staff || [])
+    } catch (err) {
+      console.error('Failed to load staff:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -464,10 +470,19 @@ export default function StaffPage() {
   // ── Annual Leave functions ────────────────────────────────────────────────
   async function loadLeave() {
     setLeaveLoading(true)
-    const res = await fetch('/api/staff/leave')
-    const data = await res.json()
-    setLeaveRecords(data.leave || [])
-    setLeaveLoading(false)
+    setLeaveError(null)
+    try {
+      const res = await fetch('/api/staff/leave')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      setLeaveRecords(data.leave || [])
+    } catch (err: any) {
+      console.error('Failed to load leave:', err)
+      setLeaveError(err.message || 'Failed to load leave records')
+      setLeaveRecords([])
+    } finally {
+      setLeaveLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -633,6 +648,11 @@ export default function StaffPage() {
               <div className="space-y-3">
                 {leaveLoading ? (
                   <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-pink" /></div>
+                ) : leaveError ? (
+                  <div className="text-center py-12">
+                    <p className="text-sm text-red-500 mb-3">{leaveError}</p>
+                    <button onClick={loadLeave} className="btn-secondary text-sm">Retry</button>
+                  </div>
                 ) : (
                   <>
                     {activeStaff.map(s => {
