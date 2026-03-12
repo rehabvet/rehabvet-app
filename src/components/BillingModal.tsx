@@ -514,11 +514,13 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                         autoFocus={item.name === ''}
                       />
                     ) : (
-                      <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                      <>
+                        <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                        <span className={`text-xs font-semibold uppercase tracking-wide ${item.type === 'product' ? 'text-blue-500' : 'text-brand-pink'}`}>
+                          {item.category || item.type}
+                        </span>
+                      </>
                     )}
-                    <span className={`text-xs font-semibold uppercase tracking-wide ${item.type === 'product' ? 'text-blue-500' : item.type === 'misc' ? 'text-gray-400' : 'text-brand-pink'}`}>
-                      {item.category || item.type}
-                    </span>
                   </div>
                   {/* Qty */}
                   <div className="col-span-2">
