@@ -6,7 +6,7 @@ import { Plus, Trash2, Search } from 'lucide-react'
 
 type LineItem = {
   id: string
-  type: 'service' | 'product'
+  type: 'service' | 'product' | 'misc'
   item_id: string
   name: string
   category?: string
@@ -152,7 +152,21 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
   function removeItem(id: string) { setItems(prev => prev.filter(i => i.id !== id)) }
   function updateQty(id: string, qty: number) { setItems(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(0.5, qty) } : i)) }
   function updatePrice(id: string, price: number) { setItems(prev => prev.map(i => i.id === id ? { ...i, unit_price: price } : i)) }
+  function updateName(id: string, name: string) { setItems(prev => prev.map(i => i.id === id ? { ...i, name } : i)) }
   function updateInstructions(id: string, v: string) { setItems(prev => prev.map(i => i.id === id ? { ...i, dispensing_instructions: v } : i)) }
+
+  function addMiscItem() {
+    setItems(prev => [...prev, {
+      id: uid(),
+      type: 'misc',
+      item_id: '',
+      name: '',
+      category: 'Miscellaneous',
+      unit_price: 0,
+      qty: 1,
+    }])
+    setShowPicker(false)
+  }
 
   const subtotal = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
   const total    = subtotal // no GST shown separately — price already inclusive
@@ -236,8 +250,8 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            item_type: item.type === 'product' ? 'product' : 'service',
-            description: item.name,
+            item_type: item.type === 'product' ? 'product' : item.type === 'misc' ? 'misc' : 'service',
+            description: item.name || 'Miscellaneous',
             qty: item.qty,
             unit_price: item.unit_price,
             dispensing_instructions: item.dispensing_instructions || null,
@@ -407,6 +421,11 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
               className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
               <Plus className="w-3.5 h-3.5" /> Add Product
             </button>
+            <button type="button"
+              onClick={addMiscItem}
+              className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+              <Plus className="w-3.5 h-3.5" /> Misc Item
+            </button>
           </div>
 
           {/* Picker */}
@@ -485,8 +504,19 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                 <div className="grid grid-cols-12 gap-2 items-center">
                   {/* Description */}
                   <div className="col-span-5">
-                    <p className="font-medium text-gray-900 text-sm">{item.name}</p>
-                    <span className={`text-xs font-semibold uppercase tracking-wide ${item.type === 'product' ? 'text-blue-500' : 'text-brand-pink'}`}>
+                    {item.type === 'misc' ? (
+                      <input
+                        type="text"
+                        className="input text-sm py-1.5 font-medium"
+                        placeholder="Description…"
+                        value={item.name}
+                        onChange={e => updateName(item.id, e.target.value)}
+                        autoFocus={item.name === ''}
+                      />
+                    ) : (
+                      <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                    )}
+                    <span className={`text-xs font-semibold uppercase tracking-wide ${item.type === 'product' ? 'text-blue-500' : item.type === 'misc' ? 'text-gray-400' : 'text-brand-pink'}`}>
                       {item.category || item.type}
                     </span>
                   </div>
