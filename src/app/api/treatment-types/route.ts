@@ -33,7 +33,23 @@ export async function POST(req: NextRequest) {
   if (!name || !category) return NextResponse.json({ error: 'Name and category required' }, { status: 400 })
 
   const existing = await prisma.treatment_types.findUnique({ where: { name } })
-  if (existing) return NextResponse.json({ error: 'Treatment type already exists' }, { status: 409 })
+  if (existing) {
+    if (existing.active) return NextResponse.json({ error: 'Treatment type already exists' }, { status: 409 })
+    // Reactivate the inactive record with updated values
+    const reactivated = await prisma.treatment_types.update({
+      where: { name },
+      data: {
+        active: true,
+        category: category ?? existing.category,
+        description: description ?? existing.description,
+        duration: duration ?? existing.duration,
+        color: color ?? existing.color,
+        price: price ?? existing.price,
+        sessions_in_package: sessions_in_package ?? existing.sessions_in_package,
+      },
+    })
+    return NextResponse.json({ type: reactivated }, { status: 200 })
+  }
 
   const maxSort = await prisma.treatment_types.aggregate({
     where: { category },
