@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
         owner_email:      String(owner_email),
         owner_phone:      String(owner_phone),
         post_code:        post_code  ? String(post_code)  : null,
+        owner_address:    address    ? String(address)    : null,
         how_heard:        how_heard  ? String(how_heard)  : null,
         pet_name:         String(pet_name),
         species:          species    ? String(species)    : 'Unknown',
