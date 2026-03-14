@@ -11,6 +11,7 @@ type LineItem = {
   name: string
   category?: string
   unit_price: number
+  cost_price?: number   // internal only — not shown on client invoice
   qty: number
   dispensing_instructions?: string
 }
@@ -142,6 +143,7 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
       name: p.name,
       category: p.category || 'Product',
       unit_price: parseFloat(p.sell_price || 0),
+      cost_price: p.cost_price != null ? parseFloat(p.cost_price) : undefined,
       qty: 1,
       dispensing_instructions: '',
     }])
@@ -558,10 +560,18 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                     <input type="number" min="0" step="0.01"
                       className="input text-sm py-1.5 text-right"
                       value={item.unit_price} onChange={e => updatePrice(item.id, parseFloat(e.target.value) || 0)} />
+                    {item.type === 'product' && item.cost_price != null && (
+                      <p className="text-xs text-gray-400 text-right mt-0.5">Cost: S${item.cost_price.toFixed(2)}</p>
+                    )}
                   </div>
                   {/* Total */}
                   <div className="col-span-2 text-right">
                     <p className="font-semibold text-gray-900">S${(item.qty * item.unit_price).toFixed(2)}</p>
+                    {item.type === 'product' && item.cost_price != null && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Margin: S${((item.unit_price - item.cost_price) * item.qty).toFixed(2)}
+                      </p>
+                    )}
                   </div>
                   {/* Delete */}
                   <div className="col-span-1 flex justify-end">
