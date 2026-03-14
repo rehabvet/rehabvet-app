@@ -420,7 +420,11 @@ export default function ClientDetailPage() {
               {/* Billing summary */}
               {(() => {
                 const totalBilled = invoices.reduce((s: number, inv: any) => s + Number(inv.total || 0), 0)
-                const totalPaid   = invoices.reduce((s: number, inv: any) => s + Number(inv.amount_paid || 0), 0)
+                const totalPaid   = invoices.reduce((s: number, inv: any) => {
+                  const paid = Number(inv.amount_paid || 0)
+                  // If marked paid but amount_paid not recorded, infer full total as paid
+                  return s + (inv.status === 'paid' && paid === 0 ? Number(inv.total || 0) : paid)
+                }, 0)
                 const totalOwing  = totalBilled - totalPaid
                 return (
                   <div className="grid grid-cols-3 gap-4 mb-4">
@@ -454,7 +458,7 @@ export default function ClientDetailPage() {
                         <td className="table-cell font-medium">{inv.invoice_number || inv.bill_number || '—'}</td>
                         <td className="table-cell">{inv.date}</td>
                         <td className="table-cell">S${Number(inv.total || 0).toFixed(2)}</td>
-                        <td className="table-cell">S${Number(inv.amount_paid || 0).toFixed(2)}</td>
+                        <td className="table-cell">S${(inv.status === 'paid' && !Number(inv.amount_paid) ? Number(inv.total || 0) : Number(inv.amount_paid || 0)).toFixed(2)}</td>
                         <td className="table-cell"><InvoiceStatusBadge status={inv.status} /></td>
                       </tr>
                     ))}
