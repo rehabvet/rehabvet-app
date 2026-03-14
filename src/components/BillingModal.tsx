@@ -150,7 +150,7 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
   }
 
   function removeItem(id: string) { setItems(prev => prev.filter(i => i.id !== id)) }
-  function updateQty(id: string, qty: number) { setItems(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(0.5, qty) } : i)) }
+  function updateQty(id: string, qty: number) { setItems(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(0.01, Math.round(qty * 100) / 100) } : i)) }
   function updatePrice(id: string, price: number) { setItems(prev => prev.map(i => i.id === id ? { ...i, unit_price: price } : i)) }
   function updateName(id: string, name: string) { setItems(prev => prev.map(i => i.id === id ? { ...i, name } : i)) }
   function updateInstructions(id: string, v: string) { setItems(prev => prev.map(i => i.id === id ? { ...i, dispensing_instructions: v } : i)) }
@@ -549,7 +549,7 @@ export default function BillingModal({ open, onClose, visitId, clientId: initCli
                   </div>
                   {/* Qty */}
                   <div className="col-span-2">
-                    <input type="number" min="0.5" step="0.5"
+                    <input type="number" min="0.01" step="0.01"
                       className="input text-sm py-1.5 text-center"
                       value={item.qty} onChange={e => updateQty(item.id, parseFloat(e.target.value) || 1)} />
                   </div>
