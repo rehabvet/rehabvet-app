@@ -66,7 +66,9 @@ export default function NewClientPage() {
       }
     } else {
       setSaving(false)
-      alert('Failed to create client. Please try again.')
+      let msg = 'Failed to create client. Please try again.'
+      try { const e = await res.json(); if (e?.detail || e?.error) msg = e.detail || e.error } catch {}
+      alert(msg)
     }
   }
 

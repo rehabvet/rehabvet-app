@@ -97,20 +97,26 @@ export async function POST(req: NextRequest) {
       date_of_birth: p.date_of_birth || null,
       microchip: p.microchip || null,
       weight: p.weight ? parseFloat(p.weight) : null,
-      is_reactive: p.is_reactive != null ? p.is_reactive : null,
+      is_reactive: p.is_reactive != null ? p.is_reactive : false,
       vet_friendly: p.vet_friendly != null ? p.vet_friendly : null,
     }))
 
-  const client = await prisma.clients.create({
-    data: {
-      name: fullName,
-      email: email || null,
-      phone,
-      address: address || null,
-      notes: notes || null,
-      patients: patientCreates.length ? { create: patientCreates } : undefined,
-    },
-  })
+  let client
+  try {
+    client = await prisma.clients.create({
+      data: {
+        name: fullName,
+        email: email || null,
+        phone,
+        address: address || null,
+        notes: notes || null,
+        patients: patientCreates.length ? { create: patientCreates } : undefined,
+      },
+    })
+  } catch (err: any) {
+    console.error('[POST /api/clients] DB error:', err?.message || err)
+    return NextResponse.json({ error: 'Database error', detail: err?.message || String(err) }, { status: 500 })
+  }
 
   // Store first_name / last_name via raw SQL (outside Prisma schema)
   if (firstName || lastName) {
